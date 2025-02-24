@@ -1,0 +1,6 @@
+name: lightbug
+description: Work with Lightbug protocols and devices
+dependencies:
+  coordinate:
+    url: github.com/lightbug-io/toit-coordinate
+    version: ^1.0.0

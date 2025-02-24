@@ -1,0 +1,13 @@
+prefixes:
+  coordinate: toit-coordinate
+  lightbug: ..
+packages:
+  ..:
+    path: ..
+    prefixes:
+      coordinate: toit-coordinate
+  toit-coordinate:
+    url: github.com/lightbug-io/toit-coordinate
+    name: coordinate
+    version: 1.0.0
+    hash: 5db8272fdfbdc0b2e017280940dc537e5e64b361

@@ -1,0 +1,6 @@
+dependencies:
+  coordinate:
+    url: github.com/lightbug-io/toit-coordinate
+    version: ^1.0.0
+  lightbug:
+    path: ..
