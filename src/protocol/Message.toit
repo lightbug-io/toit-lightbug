@@ -2,7 +2,6 @@ import crypto.crc
 import io
 import .Header show *
 import .Data show *
-import .constants show *
 
 class Message:
  protocolVersion_ /int := 3
@@ -25,22 +24,22 @@ class Message:
 
  withRandomMsgId -> Message:
   randomUint32 := ( random 4_294_967_295) +1
-  header.data.addDataUint32 HEADER-MESSAGE-ID randomUint32
+  header.data.addDataUint32 Header.TYPE_MESSAGE_ID randomUint32
   return this
 
  msgId -> int?:
-  if header.data.hasData HEADER-MESSAGE-ID: return header.data.getDataUintn HEADER-MESSAGE-ID
+  if header.data.hasData Header.TYPE_MESSAGE_ID: return header.data.getDataUintn Header.TYPE_MESSAGE_ID
   return null
 
  msgType -> int:
   return header_.messageType_
 
  msgState -> int?:
-  if header.data.hasData HEADER_MESSAGE_STATUS: return header.data.getDataIntn HEADER_MESSAGE_STATUS
+  if header.data.hasData Header.TYPE_MESSAGE_STATUS: return header.data.getDataIntn Header.TYPE_MESSAGE_STATUS
   return null
 
  wasForwarded -> bool:
-  return header_.data.hasData HEADER_FORWARDED_FOR or header_.data.hasData HEADER_FORWARDED_FOR_TYPE
+  return header_.data.hasData Header.TYPE_FORWARDED_FOR or header_.data.hasData Header.TYPE_FORWARDED_FOR_TYPE
 
  header -> Header:
   return header_  
