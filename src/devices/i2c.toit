@@ -33,15 +33,15 @@ class Reader extends io.Reader with io.InMixin:
   as we want to empty the buffer as soon as possible into our own memory.
   */
   read_ -> ByteArray?:
-    log.debug "calling read_ in LB Reader for i2c"
+    // log.debug "calling read_ in LB Reader for i2c"
     all := #[]
     allExpected := 0
-    loops := 1
+    loops := 0
     // Read from the buffer as fast as possible (as our buffer is bigger)
     // At most 5*(tx buffer), so 5*1000 = 5KB
     while loops <= 5:
       loops++
-      // log.debug "Getting number of bytes available to read"
+      // log.debug "Getting number of bytes available to read, loop $loops"
       lenBytes := device.read-address #[I2C_COMMAND_LIGHTBUG_READABLE_BYTES] 2
       lenInt := LITTLE-ENDIAN.uint16 lenBytes 0
       allExpected = allExpected + lenInt
@@ -52,7 +52,8 @@ class Reader extends io.Reader with io.InMixin:
         if finishWhenEmpty_:
           log.debug "No bytes to read, finishing"
           return null
-        continue // Leave the while loop
+        // log.debug "No bytes to read, yielding"
+        break // Leave the while loop
 
       log.debug "Got $lenInt bytes to read"
 
@@ -73,6 +74,8 @@ class Reader extends io.Reader with io.InMixin:
         return null
 
       log.debug "Read $all.size bytes after $loops loops"
+
+    yield // They are in our buffer now, so yield briefly before returning
     return all
 
 class Writer extends io.Writer with io.OutMixin:
