@@ -15,6 +15,24 @@ class Header:
   static TYPE_FORWARD_TO_TYPE := 13       // Type of forwarded message
   static TYPE_FORWARD_TO := 14
 
+  // For use with TYPE_MESSAGE_STATUS
+  static STATUS_GENERIC_ERROR /int ::= 1
+  static STATUS_MISSING_PARAMETER /int ::= 2
+  static STATUS_METHOD_NOT_SUPPORTED /int ::= 3
+  static STATUS_INVALID_PARAMETER /int ::= 4
+  static STATUS_INVALID_STATE /int ::= 5
+  static STATUS_NO_DATA /int ::= 6
+  static STATUS_NOT_SUPPORTED /int ::= 7
+  static STATUS_FAILED_WILL_RETRY /int ::= 8
+  static STATUS_FAILED_PERMANENTLY /int ::= 9
+  static STATUS_UNKNOWN_MESSAGE /int ::= 10
+
+  // For use with TYPE_MESSAGE_METHOD
+  static METHOD_SET /int ::= 1
+  static METHOD_GET /int ::= 2
+  static METHOD_SUBSCRIBE /int ::= 3
+  static METHOD_DO /int ::= 4
+
   messageLength_ /int := 0
   messageType_ /int := 0
   data_ /Data := Data

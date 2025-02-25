@@ -2,7 +2,7 @@ import ..protocol as protocol
 import coordinate show Coordinate
 import fixed-point show FixedPoint
 
-class LastPositionData extends protocol.Data:
+class LastPosition extends protocol.Data:
   static MT := 15
   static TIMESTAMP := 1
   static LATITUDE := 2
@@ -16,8 +16,19 @@ class LastPositionData extends protocol.Data:
   static POSITION_TYPE := 10
   static POSITION_SOURCE := 11
 
+  static LAT_LON_RAW_ADJUSTMENT := 1e7
+
   constructor.fromData data/protocol.Data:
     super.fromData data
+  
+  msg -> protocol.Message:
+    return protocol.Message.withData MT this
+  
+  static subscribeMsg --intervalms/int -> protocol.Message:
+    msg := protocol.Message MT
+    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-SUBSCRIBE
+    msg.header.data.addDataUint32 protocol.Header.TYPE_SUBSCRIPTION_INTERVAL intervalms // must be uint32
+    return msg
 
   timestamp -> int:
     // TODO return a typed value
@@ -33,9 +44,9 @@ class LastPositionData extends protocol.Data:
   longitudeFixed -> FixedPoint:
     return ( FixedPoint --decimals=7 longitude-float )
   latitude-float -> float:
-    return ( getDataIntn LATITUDE) / 1e7
+    return ( getDataIntn LATITUDE) / LAT_LON_RAW_ADJUSTMENT
   longitude-float -> float:
-    return ( getDataIntn LONGITUDE) / 1e7
+    return ( getDataIntn LONGITUDE) / LAT_LON_RAW_ADJUSTMENT
   latitude-raw -> int:
     return getDataIntn LATITUDE
   longitude-raw -> int:

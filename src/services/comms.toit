@@ -161,7 +161,7 @@ class Comms:
     if msg.header.data.hasData protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
       respondingTo := msg.header.data.getDataUintn protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
       isAck := msg.header.messageType == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
-      isBad := msg.header.data.hasData protocol.Header.TYPE-MESSAGE-STATUS and msg.msgState > 0
+      isBad := msg.header.data.hasData protocol.Header.TYPE-MESSAGE-STATUS and msg.msgStatus > 0
       if isAck:
         if isBad:
           if lambdasForBadAck.contains respondingTo:

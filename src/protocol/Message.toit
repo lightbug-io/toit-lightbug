@@ -12,6 +12,10 @@ class Message:
  constructor messageType/int:
   header_.messageType_ = messageType
 
+ constructor.withData messageType/int data/Data:
+  header_.messageType_ = messageType
+  data_ = data
+
  constructor.fromList bytes/List:
   header_ = Header.fromList bytes[1..] // skip protocol version
   data_ = Data.fromList bytes[1 + header_.size..]
@@ -34,9 +38,12 @@ class Message:
  msgType -> int:
   return header_.messageType_
 
- msgState -> int?:
+ msgStatus -> int?:
   if header.data.hasData Header.TYPE_MESSAGE_STATUS: return header.data.getDataIntn Header.TYPE_MESSAGE_STATUS
   return null
+
+ msgStatusIs status/int -> bool:
+  return header.data.hasData Header.TYPE_MESSAGE_STATUS and (header.data.getDataIntn Header.TYPE_MESSAGE_STATUS) == status
 
  wasForwarded -> bool:
   return header_.data.hasData Header.TYPE_FORWARDED_FOR or header_.data.hasData Header.TYPE_FORWARDED_FOR_TYPE
