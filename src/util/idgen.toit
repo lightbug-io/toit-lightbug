@@ -2,24 +2,24 @@ interface IdGenerator:
   next -> int
 
 class SequentialIdGenerator implements IdGenerator:
-  lastId := 0
-  maxId := 0
+  nextId_ := 0
+  maxId_ := 0
 
   constructor --start/int --maxId/int:
-    lastId = start
-    maxId = maxId
+    nextId_ = start - 1
+    maxId_ = maxId
 
   next -> int:
-    lastId = (lastId + 1) % maxId
-    return lastId
+    nextId_ = (nextId_ + 1) % maxId_
+    return nextId_
 
 class RandomIdGenerator implements IdGenerator:
-  lowerBound := 0
-  upperBound := 0
+  lowerBound_ := 0
+  upperBound_ := 0
 
   constructor --lowerBound/int --upperBound/int:
-      lowerBound = lowerBound
-      upperBound = upperBound
+    lowerBound_ = lowerBound
+    upperBound_ = upperBound
   
   next -> int:
-    return random lowerBound upperBound
+    return random lowerBound_ upperBound_
