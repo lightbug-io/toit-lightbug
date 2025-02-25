@@ -10,6 +10,8 @@ class RH2 implements Device:
   static I2C_DEVICE := LBI2CDevice --sda=RH2.I2C_SDA --scl=RH2.I2C_SCL
   static I2C_READER := Reader I2C_DEVICE
   static I2C_WRITER := Writer I2C_DEVICE
+  name -> string:
+    return "RH2"
   in -> io.Reader:
     return I2C_READER
   out -> io.Writer:

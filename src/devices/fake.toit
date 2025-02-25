@@ -5,6 +5,8 @@ import .i2c
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
+  name -> string:
+    return "Fake"
   in -> io.Reader:
     return FakeReader
   out -> io.Writer:

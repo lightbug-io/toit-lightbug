@@ -7,6 +7,8 @@ import io
 An interface representing a Lightbug device
 */
 interface Device extends Comms:
+  // A name identifying the type of device
+  name -> string
 
 /*
 An interface for communicationg to and from a Lightbug device

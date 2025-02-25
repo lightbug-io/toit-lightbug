@@ -1,12 +1,12 @@
-import ..protocol as protocol
-import ..devices as devices
-import ..messages as messages
-import ..devices as devices
-import ..messages as messages
-import ..util.docs show messageBytesToDocsURL
-import ..util.resilience show catchAndRestart
-import ..util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
-import ..util.bytes show stringifyAllBytes byteArrayToList
+import ...protocol as protocol
+import ...devices as devices
+import ...messages as messages
+import ...devices as devices
+import ...messages as messages
+import ...util.docs show messageBytesToDocsURL
+import ...util.resilience show catchAndRestart
+import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
+import ...util.bytes show stringifyAllBytes byteArrayToList
 import io.reader show Reader
 import io.writer show Writer
 import encoding.url
@@ -188,13 +188,17 @@ class Comms:
             task:: lambda.call msg
         lambdasForBadResponse.remove respondingTo
         lambdasForGoodResponse.remove respondingTo
+      
+      // yield, allowing the lambdas to do their thing, before releasing the latch
+      yield
+
       // If there are no waiting lambdas for the msg id, then latchForMessage can be released
       if (lambdasForBadAck.contains respondingTo) == false and (lambdasForGoodAck.contains respondingTo) == false and (lambdasForBadResponse.contains respondingTo) == false and (lambdasForGoodResponse.contains respondingTo) == false:
         // Remove remaining timeouts, and release the latch
         if waitTimeouts.contains respondingTo:
           waitTimeouts.remove respondingTo
         if latchForMessage.contains respondingTo:
-          latchForMessage[respondingTo].set (not isBad) // TODO consider returning something better here? like the message?
+          latchForMessage[respondingTo].set msg // latch response with the responding msg
           latchForMessage.remove respondingTo
 
   processOutbox_:
@@ -211,7 +215,8 @@ class Comms:
       --onNack/Lambda? = null
       --onResponse/Lambda? = null
       --onError/Lambda? = null
-      --timeout/Duration = (Duration --s=60) -> monitor.Latch:
+      --withLatch/bool = false
+      --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
     log.debug "Sending (and) message: " + msg.stringify + " " + ( messageBytesToDocsURL msg.bytes )
   
     // Ensure the message has a known message id
@@ -236,7 +241,7 @@ class Comms:
       lambdasForBadResponse[msg.msgId] = onError
       shouldTrack = true
 
-    if shouldTrack:
+    if shouldTrack or withLatch:
       latchForMessage[msg.msgId] = latch
       waitTimeouts[msg.msgId] = Time.now + timeout
     
@@ -248,7 +253,9 @@ class Comms:
     if postSend != null:
       postSend.call msg
 
-    return latch
+    if shouldTrack or withLatch:
+      return latch
+    return null
 
   // Send directly, or via the outbox
   sendSwitching_ msg/protocol.Message --now/bool?=false:

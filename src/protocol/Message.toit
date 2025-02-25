@@ -35,6 +35,10 @@ class Message:
   if header.data.hasData Header.TYPE_MESSAGE_ID: return header.data.getDataUintn Header.TYPE_MESSAGE_ID
   return null
 
+ responseTo -> int?:
+  if header.data.hasData Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header.data.getDataUintn Header.TYPE-RESPONSE-TO-MESSAGE-ID
+  return null
+
  msgType -> int:
   return header_.messageType_
 

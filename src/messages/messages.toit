@@ -1,6 +1,8 @@
 import .LastPosition
 import .Config
 import .HapticsControl
+import .BuzzerControl
+import .AlarmControl
 import .LinkControl
 import .GPSControl
 import .Open
