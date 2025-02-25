@@ -127,6 +127,7 @@ class HttpMsg:
                   lines.forEach(line => {
                     if (line.trim() !== '') {
                       const d = document.getElementById('l');
+                      d.prepend(document.createElement('br'));
                       const p = document.createElement('span');
                       p.textContent = line;
                       d.prepend(p);
@@ -138,7 +139,6 @@ class HttpMsg:
                           d.prepend(document.createTextNode(' '));
                           d.prepend(a);
                       });
-                      d.prepend(document.createElement('br'));
                     }
                   });
                   read();
