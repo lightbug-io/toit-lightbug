@@ -1,11 +1,11 @@
-import .LastPosition
-import .Config
-import .HapticsControl
-import .LinkControl
-import .GPSControl
-import .Open
-import .Heartbeat
-import .Ack
+import .last-position
+import .config
+import .haptics-control
+import .link-control
+import .gps-control
+import .open
+import .heartbeat
+import .ack
 import .types show *
 
 export *

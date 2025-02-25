@@ -1,10 +1,6 @@
-import .Data show Data
-import .DataField show DataField
-import .Header show Header
-import .Message show Message
+import .data show Data
+import .data-field show DataField
+import .header show Header
+import .message show Message
 
-export Data
-export DataField
-export Header
-export Message
 export *

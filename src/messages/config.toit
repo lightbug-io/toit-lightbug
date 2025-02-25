@@ -5,14 +5,14 @@ class Config extends protocol.Data:
   static KEY := 7
   static PAYLOAD := 9
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
-  
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   msg -> protocol.Message:
-    return protocol.Message.withData MT this
+    return protocol.Message.with-data MT this
 
   key -> int:
-    return getDataUintn KEY
+    return get-data-uintn KEY
 
   payload -> ByteArray:
-    return getData PAYLOAD
+    return get-data PAYLOAD
