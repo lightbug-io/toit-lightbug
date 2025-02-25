@@ -4,7 +4,7 @@ import log
 main:
   addAndGetData
   fromBytes
-  fromList
+  from-list
   toBytes
 
 fromBytes:
@@ -29,23 +29,23 @@ fromBytes:
     else:
         log.info "✅ Passed getting dataFieldCount of 2 data fields"
   
-fromList:
+from-list:
   // no data fileds
-  d := Data.fromList [0x00, 0x00]
+  d := Data.from-list [0x00, 0x00]
   if d.dataFieldCount != 0:
       log.error "❌ LIST Failed getting dataFieldCount of empty data, got: " + d.dataFieldCount.stringify
   else:
       log.info "✅ LIST Passed getting dataFieldCount of empty data"
   
   // a single uint8 of type 1 value 2
-  d = Data.fromList [0x01, 0x00, 0x01, 0x01, 0x02]
+  d = Data.from-list [0x01, 0x00, 0x01, 0x01, 0x02]
   if d.dataFieldCount != 1:
       log.error "❌ LIST Failed getting dataFieldCount of single data field, got: " + d.dataFieldCount.stringify
   else:
       log.info "✅ LIST Passed getting dataFieldCount of single data field"
   
   // uint8 of type 1 value 2, and 2 bytes of type 5, value 8 8
-  d = Data.fromList [0x02, 0x00, 0x01, 0x05, 0x01, 0x02, 0x02, 0x08, 0x08]
+  d = Data.from-list [0x02, 0x00, 0x01, 0x05, 0x01, 0x02, 0x02, 0x08, 0x08]
   if d.dataFieldCount != 2:
       log.error "❌ LIST Failed getting dataFieldCount of 2 data fields, got: " + d.dataFieldCount.stringify
   else:
@@ -53,15 +53,15 @@ fromList:
 
 toBytes:
   d := Data
-  d.addDataUint8 1 6
-  b := d.bytesForProtocol
+  d.add-data-uint8 1 6
+  b := d.bytes-for-protocol
   if b != #[0x01, 0x00, 0x01, 0x01, 0x06]:
       log.error "❌ Failed toBytes single uint8, got: $b"
   else:
       log.info "✅ Passed toBytes single uint8"
   
   d.addData 5 #[8, 8]
-  b = d.bytesForProtocol
+  b = d.bytes-for-protocol
   if b != #[0x02, 0x00, 0x01, 0x05, 0x01, 0x06, 0x02, 0x08, 0x08]:
       log.error "❌ Failed toBytes 2 data fields, got: $b"
   else:
@@ -74,7 +74,7 @@ addAndGetData:
   ////////////////
 
   // Test uint32
-  d.addDataUint32 1 290
+  d.add-data-uint32 1 290
   if (d.getData 1) != #[0x22, 0x01, 0x00, 0x00]:
       log.error "❌ Failed uint32 byte representation"
   else:
@@ -101,8 +101,8 @@ addAndGetData:
   ////////////////
 
   // Test uint32 roundtrip
-  d.addDataUint32 4 290
-  if (d.getDataUint32 4) != 290:
+  d.add-data-uint32 4 290
+  if (d.get-data-uint32 4) != 290:
     log.error "❌ Failed uint32 roundtrip"
   else:
     log.info "✅ Passed uint32 roundtrip"

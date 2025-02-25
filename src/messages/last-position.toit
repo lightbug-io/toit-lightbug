@@ -9,30 +9,30 @@ class LastPosition extends protocol.Data:
   static LONGITUDE := 3
   static ALTITUDE := 4
   static ACCURACY := 5
-  static COURSE_OVER_GROUND := 6
+  static COURSE-OVER-GROUND := 6
   static SPEED := 7
-  static NUMBER_OF_SATELLITES := 8
-  static AVERAGE_CN0 := 9
-  static POSITION_TYPE := 10
-  static POSITION_SOURCE := 11
+  static NUMBER-OF-SATELLITES := 8
+  static AVERAGE-CN0 := 9
+  static POSITION-TYPE := 10
+  static POSITION-SOURCE := 11
 
-  static LAT_LON_RAW_ADJUSTMENT := 1e7
+  static LAT-LON-RAW-ADJUSTMENT := 1e7
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
-  
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   msg -> protocol.Message:
-    return protocol.Message.withData MT this
-  
-  static subscribeMsg --intervalms/int -> protocol.Message:
+    return protocol.Message.with-data MT this
+
+  static subscribe-msg --interval-ms/int -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-SUBSCRIBE
-    msg.header.data.addDataUint32 protocol.Header.TYPE_SUBSCRIPTION_INTERVAL intervalms // must be uint32
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
+    msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL interval-ms // must be uint32
     return msg
 
   timestamp -> int:
     // TODO return a typed value
-    return getDataUintn TIMESTAMP
+    return get-data-uintn TIMESTAMP
   coordinate -> Coordinate:
     return Coordinate latitude longitude
   latitude -> float:
@@ -44,29 +44,29 @@ class LastPosition extends protocol.Data:
   longitudeFixed -> FixedPoint:
     return ( FixedPoint --decimals=7 longitude-float )
   latitude-float -> float:
-    return ( getDataIntn LATITUDE) / LAT_LON_RAW_ADJUSTMENT
+    return ( get-data-intn LATITUDE) / LAT-LON-RAW-ADJUSTMENT
   longitude-float -> float:
-    return ( getDataIntn LONGITUDE) / LAT_LON_RAW_ADJUSTMENT
+    return ( get-data-intn LONGITUDE) / LAT-LON-RAW-ADJUSTMENT
   latitude-raw -> int:
-    return getDataIntn LATITUDE
+    return get-data-intn LATITUDE
   longitude-raw -> int:
-    return getDataIntn LONGITUDE
+    return get-data-intn LONGITUDE
   altitude -> int:
-    return getDataUintn ALTITUDE
+    return get-data-uintn ALTITUDE
   accuracy -> int:
-    return getDataUintn ACCURACY
+    return get-data-uintn ACCURACY
   course-over-ground -> int:
-    return getDataUintn COURSE_OVER_GROUND
+    return get-data-uintn COURSE-OVER-GROUND
   speed -> int:
-    return getDataUintn SPEED
+    return get-data-uintn SPEED
   number-of-satellites -> int:
-    return getDataUintn NUMBER_OF_SATELLITES
+    return get-data-uintn NUMBER-OF-SATELLITES
   average-cn0 -> int:
-    return getDataUintn AVERAGE_CN0
+    return get-data-uintn AVERAGE-CN0
   position-type -> int:
-    return getDataUintn POSITION_TYPE
+    return get-data-uintn POSITION-TYPE
   position-source -> int:
-    return getDataUintn POSITION_SOURCE
+    return get-data-uintn POSITION-SOURCE
 
   stringify -> string:
     return {

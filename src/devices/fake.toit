@@ -3,21 +3,23 @@ import io
 import .base
 import .i2c
 
-// A fake device, that might be useful sometimes while testing
+// A fake device, that might be useful sometimes while testing.
 class Fake implements Device:
   in -> io.Reader:
     return FakeReader
   out -> io.Writer:
     return FakeWriter
 
-class FakeReader extends io.Reader with io.InMixin:
+// The FakeReader doesn't need an additional `.in` method.
+class FakeReader extends io.Reader:
   constructor:
 
   read_ -> ByteArray?:
       // log.debug "FakeReader: Simulating read operation"
       return #[]
 
-class FakeWriter extends io.Writer with io.OutMixin:
+// The FakeWriter doesn't need an additional `.out` method.
+class FakeWriter extends io.Writer:
   try-write_ data/io.Data from/int to/int -> int:
     bytes/ByteArray := ?
     if data is ByteArray:

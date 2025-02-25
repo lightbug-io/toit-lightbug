@@ -9,7 +9,7 @@ stringifyAllBytes bytes/ByteArray -> string:
     buffer.write "0x$(%02x it)"
   return buffer.to-string
 
-byteArrayToList ba/ByteArray -> List:
+byte-array-to-list ba/ByteArray -> List:
   l := []
   ba.do: | byte |
     l.add byte
