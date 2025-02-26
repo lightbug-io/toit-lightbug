@@ -8,6 +8,8 @@ import .GPSControl
 import .Open
 import .Heartbeat
 import .Ack
+import .TxNow
+import .DeviceStatus
 import .types show *
 
 export *
