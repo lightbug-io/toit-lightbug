@@ -9,6 +9,7 @@ I2C_ADDRESS_LIGHTBUG := 0x1b
 I2C_COMMAND_LIGHTBUG_READABLE_BYTES := 0x01 // Get the number of bytes available to read
 I2C_COMMAND_LIGHTBUG_READ := 0x02 // Read data
 I2C_COMMAND_LIGHTBUG_WRITE := 0x03 // Write data
+I2C_COMMAND_LIGHTBUG_WRITEABLE_BYTES := 0x04 // Get the number of bytes available to write
 
 LBI2CDevice --sda/int --scl/int -> i2c.Device:
   bus := i2c.Bus
@@ -80,6 +81,7 @@ class Reader extends io.Reader with io.InMixin:
 
 class Writer extends io.Writer with io.OutMixin:
   device /i2c.Device
+  canWriteBytes /int := 0
 
   constructor d/i2c.Device:
     device = d
@@ -95,8 +97,22 @@ class Writer extends io.Writer with io.OutMixin:
       bytes = data as ByteArray
     else:
       bytes = ByteArray.from data
-    log.debug "Writing $bytes.size bytes"
+    log.info "Going to write $bytes.size bytes"
     log.debug "Bytes: $bytes"
+
+    // Check the receiver has enough space for our bytes before sending...
+    // TODO could refactor this to send in smaller chunks if needed?!
+    while canWriteBytes < bytes.size:
+      log.info "Updating or waiting for writeable bytes"
+      lenBytes := device.read-address #[I2C_COMMAND_LIGHTBUG_WRITEABLE_BYTES] 2
+      canWriteBytes = LITTLE-ENDIAN.uint16 lenBytes 0
+      log.info "Can write $canWriteBytes bytes"
+      if canWriteBytes < bytes.size:
+        log.info "Waiting for $bytes.size bytes to be writeable, only $canWriteBytes writeable"
+        sleep (Duration --ms=50)
+      else:
+        log.info "Can write $bytes.size bytes, continuing"
+    canWriteBytes -= bytes.size
     
     currentIndex := 0
     readToIndex := 0
@@ -106,7 +122,7 @@ class Writer extends io.Writer with io.OutMixin:
       if readToIndex > bytes.size:
         readToIndex = bytes.size
     
-      log.debug "Writing bytes $currentIndex to $readToIndex"
+      log.info "Writing bytes $currentIndex to $readToIndex"
       log.debug "Bytes: $bytes[currentIndex..readToIndex]"
       sendLen := #[0]
       LITTLE-ENDIAN.put-uint8 sendLen 0 (readToIndex - currentIndex)
