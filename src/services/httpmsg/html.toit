@@ -1,0 +1,346 @@
+import ...util.bytes show stringifyAllBytes
+import .msgs
+
+html-page deviceName/string docsUrl/string -> string:
+  return """<html><body>
+  <h1>Lightbug $(deviceName)</h1>
+  <input type="button" value="Send bytes" onclick="submit()">
+  <input type="text" id="post" name="post" style="width: 50%;">
+  <div style="display: flex; gap: 10px;">
+  <div>
+  <h2>Presets</h2>
+  $(generate-msg-buttons)
+  </div>
+  <div>
+  <h2>Screen</h2>
+  $(generate-screen-html)
+  </div>
+  </div>
+  </br><a href="$(docsUrl)/devices/api/generate" target="_blank">You can also generate your own messages</a>
+  <h2>Log</h2>
+  <div id="l"><span>Sent messages, and their responses will appear here...</span></div>
+<script>
+    function submit(input = null) {
+        submitMulti([input]);
+    }
+    function submitMulti(inputs = []) {
+        let post = inputs.map(input => {
+            let p = input || document.getElementById('post').value;
+            return p.split(/[, ]+/).map(s => s.trim()).map(s => {
+                if (s.startsWith('0x')) {
+                    return parseInt(s, 16);
+                } else {
+                    return parseInt(s, 10);
+                }
+            }).join(' ');
+        }).join('\\n');
+
+        fetch('/post', {
+            method: 'POST',
+            body: post,
+        })
+        .then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        return;
+                    }
+                    const text = decoder.decode(value, { stream: true });
+                    const lines = text.split('\\n');
+                    lines.forEach(line => {
+                        if (line.trim() !== '') {
+                            const d = document.getElementById('l');
+                            d.prepend(document.createElement('br'));
+                            const p = document.createElement('span');
+                            p.textContent = line;
+                            d.prepend(p);
+                            const matches = line.match(/(\\d{1,3}(\\s\\d{1,3})+)/g);
+                            if (matches) {
+                                matches.forEach(b => {
+                                    const a = document.createElement('a');
+                                    a.href = "$(docsUrl)/devices/api/parse?bytes=" + b;
+                                    a.textContent = "(parse)";
+                                    a.target = "_blank";
+                                    d.prepend(document.createTextNode(' '));
+                                    d.prepend(a);
+                                });
+                            }
+                        }
+                    });
+                    read();
+                }).catch(error => {
+                    console.error('Error reading stream:', error);
+                });
+            }
+            read();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    let fetching = false;
+</script>
+</body></html>"""
+
+generate-msg-buttons -> string:
+  dynamicHtml := ""
+  sample-messages.keys.map: |key|
+    dynamicHtml = dynamicHtml + """$key:\n"""
+    sample-messages[key].keys.map: |action|
+      dynamicHtml = dynamicHtml + """<input type="button" value="$action" onclick="submit('$(stringifyAllBytes sample-messages[key][action] --short=true --commas=false --hex=false)')">\n"""
+    dynamicHtml = dynamicHtml + """</br>\n"""
+  return dynamicHtml
+
+SCREEN_WIDTH := 250
+SCREEN_HEIGHT := 122
+PIXEL_SIZE := 2
+BRUSH_SIZE := PIXEL-SIZE * 2
+generate-screen-html -> string:
+    return """
+<canvas id="c" width="$(SCREEN_WIDTH * PIXEL_SIZE)" height="$(SCREEN_HEIGHT * PIXEL_SIZE)" style="border: 1px solid black;"></canvas>
+<button onclick="exportBitmap()">Draw</button>
+<button onclick="clearCanvas()">Clear</button>
+<script>
+    const c = document.getElementById('c');
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = "#FFF";
+    ctx.fillRect(0, 0, c.width, c.height);
+    let isDrawing = false;
+    const PIXEL_SIZE = $(PIXEL_SIZE);
+    const brushSize = $(BRUSH_SIZE);
+    let exportBoxes = [];
+
+    c.addEventListener("mousedown", () => isDrawing = true);
+    c.addEventListener("mouseup", () => isDrawing = false);
+    c.addEventListener("mousemove", handleMouseMove);
+    c.addEventListener("click", fillPixel);
+
+    function clearCanvas() {
+        ctx.fillStyle = "#FFF";
+        ctx.fillRect(0, 0, c.width, c.height);
+    }
+
+    function handleMouseMove(event) {
+        if (isDrawing) {
+            fillPixel(event);
+        }
+    }
+
+    function fillPixel(event) {
+        const { x, y } = getMousePos(event);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, brushSize, brushSize);
+    }
+
+    function getMousePos(event) {
+        const rect = c.getBoundingClientRect();
+        return {
+            x: Math.floor((event.clientX - rect.left) / PIXEL_SIZE),
+            y: Math.floor((event.clientY - rect.top) / PIXEL_SIZE)
+        };
+    }
+
+    function exportBitmap() {
+        const imgData = ctx.getImageData(0, 0, c.width, c.height);
+        const data = imgData.data;
+
+        // Determine bounding box in canvas (physical pixel) coordinates.
+        let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+        for (let y = 0; y < c.height; y++) {
+            for (let x = 0; x < c.width; x++) {
+                const index = (y * c.width + x) * 4;
+                const r = data[index];
+                const g = data[index + 1];
+                const b = data[index + 2];
+                // Assuming drawn pixels are pure black and background is white.
+                if (r < 128 && g < 128 && b < 128) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        // If no black pixel found, clear export fields.
+        if (maxX === -1) {
+            exportBoxes = [];
+            return;
+        }
+
+        // Convert canvas coordinates to grid coordinates.
+        const gridX = Math.floor(minX / PIXEL_SIZE);
+        const gridY = Math.floor(minY / PIXEL_SIZE);
+        const gridMaxX = Math.floor(maxX / PIXEL_SIZE);
+        const gridMaxY = Math.floor(maxY / PIXEL_SIZE);
+        const gridWidth = gridMaxX - gridX + 1;
+        const gridHeight = gridMaxY - gridY + 1;
+
+        // Build a binary grid representing filled cells.
+        const binaryGrid = [];
+        for (let row = 0; row < gridHeight; row++) {
+            binaryGrid[row] = [];
+            for (let col = 0; col < gridWidth; col++) {
+                // Calculate the cell's top-left canvas coordinate.
+                const cellX = (gridX + col) * PIXEL_SIZE;
+                const cellY = (gridY + row) * PIXEL_SIZE;
+                let isBlackCell = false;
+                // Check every pixel in the cell.
+                for (let j = 0; j < PIXEL_SIZE; j++) {
+                    for (let i = 0; i < PIXEL_SIZE; i++) {
+                        const cx = cellX + i;
+                        const cy = cellY + j;
+                        if (cx >= c.width || cy >= c.height) continue;
+                        const idx = (cy * c.width + cx) * 4;
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
+                        if (r < 128 && g < 128 && b < 128) {
+                            isBlackCell = true;
+                            break;
+                        }
+                    }
+                    if (isBlackCell) break;
+                }
+                binaryGrid[row][col] = isBlackCell ? 1 : 0;
+            }
+        }
+
+        // Function to pack binary grid into bytes and generate C array.
+        const packBinaryGrid = (startRow, endRow) => {
+            const cArray = [];
+            const bytesPerRow = Math.ceil(gridWidth / 8);
+            for (let row = startRow; row <= endRow; row++) {
+                for (let byteIndex = 0; byteIndex < bytesPerRow; byteIndex++) {
+                    let byte = 0;
+                    for (let bit = 0; bit < 8; bit++) {
+                        const col = byteIndex * 8 + bit;
+                        const bitValue = col < gridWidth ? binaryGrid[row][col] : 0;
+                        byte |= (bitValue << (7 - bit));
+                    }
+                    // Format byte as hex (e.g., 0X3F)
+                    cArray.push('0X' + byte.toString(16).padStart(2, '0').toUpperCase());
+                }
+            }
+            return cArray;
+        };
+
+        // Split into bounding boxes
+        const maxBytes = 255;
+        const bytesPerRow = Math.ceil(gridWidth / 8);
+        const maxRowsPerBox = Math.floor(maxBytes / bytesPerRow);
+        let startRow = 0;
+        exportBoxes = [];
+
+        // const splitForExport = true; // Always split for export
+        let splitForExport = true;
+        let pageId = Math.floor(Math.random() * 245) + 10;
+
+        if (splitForExport) {
+            while (startRow < gridHeight) {
+                const endRow = Math.min(startRow + maxRowsPerBox - 1, gridHeight - 1);
+                const cArray = packBinaryGrid(startRow, endRow);
+                let box = {
+                    exportPositionX: gridX,
+                    exportPositionY: gridY + startRow,
+                    exportSizeX: gridWidth,
+                    exportSizeY: endRow - startRow + 1,
+                    bytes: cArray.length,
+                    pixels: (endRow - startRow + 1) * gridWidth,
+                    cArrayOutput: cArray.join(','),
+                }
+                const isLastRow = endRow === gridHeight - 1;
+                box.msgBytes = box2msgb(box, pageId, isLastRow);
+                exportBoxes.push(box);
+                startRow = endRow + 1;
+            }
+        } else {
+            const cArray = packBinaryGrid(0, gridHeight - 1);
+            let box = {
+                exportPositionX: gridX,
+                exportPositionY: gridY,
+                exportSizeX: gridWidth,
+                exportSizeY: gridHeight,
+                bytes: cArray.length,
+                pixels: gridWidth * gridHeight,
+                cArrayOutput: cArray.join(',')
+            };
+            if (box.bytes <= 255) {
+                box.msgBytes = box2msgb(box,pageId);
+            } else {
+                box.msgBytes = "Too many bytes to fit in a message";
+            }
+            exportBoxes.push(box);
+        }
+        let toSend = [];
+        exportBoxes.forEach(box => {
+            toSend.push(box.msgBytes);
+        });
+        submitMulti(toSend);
+    }
+
+    function box2msgb(box, pageId, draw = true) {
+        const ui16le = (num) => {
+            return [num & 0xff, (num >> 8) & 0xff];
+        };
+        let b = [];
+        b.push(3);
+        b.push(255);
+        b.push(255);
+        b.push(...ui16le(10011));
+        b.push(0);
+        b.push(0);
+        let d = new Map();
+        d.set(3, [pageId]);
+        d.set(21, [box.exportPositionX]);
+        d.set(22, [box.exportPositionY]);
+        d.set(23, [box.exportSizeX]);
+        d.set(24, [box.exportSizeY]);
+        d.set(25, box.cArrayOutput.split(',').map(byte => parseInt(byte, 16)));
+        if(!draw) {
+            d.set(27, [1]);
+        }
+        b.push(...ui16le(d.size));
+        for (let [key, value] of d) {
+            b.push(key);
+        }
+        for (let [key, value] of d) {
+            b.push(value.length);
+            b.push(...value);
+        }
+        const length = b.length + 2;
+        b[1] = length & 0xff;
+        b[2] = (length >> 8) & 0xff;
+        const calculateChecksum = (message) => {
+            let crc = crc16(new Int8Array(message));
+            return crc.toString(16);
+        };
+        let csumHex = calculateChecksum(b);
+        let csumNum = parseInt(csumHex, 16);
+        b.push(...ui16le(csumNum));
+        return b.toString();
+    }
+
+    // (Poly: 0x1021, Initial value: 0xFFFF)
+    function crc16(data) {
+        let crc = 0xFFFF;
+        for (let i = 0; i < data.length; i++) {
+            let byte = data[i] & 0xFF;
+            for (let j = 0; j < 8; j++) {
+                let bit = ((byte >> (7 - j) & 1) == 1);
+                let c15 = ((crc >> 15 & 1) == 1);
+                crc <<= 1;
+                crc &= 0xFFFF;
+                if (c15 ^ bit) {
+                    crc ^= 0x1021;
+                    crc &= 0xFFFF;
+                }
+            }
+        }
+        return crc;
+    }
+</script>
+"""
