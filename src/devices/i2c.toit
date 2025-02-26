@@ -97,21 +97,21 @@ class Writer extends io.Writer with io.OutMixin:
       bytes = data as ByteArray
     else:
       bytes = ByteArray.from data
-    log.info "Going to write $bytes.size bytes"
+    log.debug "Going to write $bytes.size bytes"
     log.debug "Bytes: $bytes"
 
     // Check the receiver has enough space for our bytes before sending...
     // TODO could refactor this to send in smaller chunks if needed?!
     while canWriteBytes < bytes.size:
-      log.info "Updating or waiting for writeable bytes"
+      log.debug "Updating or waiting for writeable bytes"
       lenBytes := device.read-address #[I2C_COMMAND_LIGHTBUG_WRITEABLE_BYTES] 2
       canWriteBytes = LITTLE-ENDIAN.uint16 lenBytes 0
-      log.info "Can write $canWriteBytes bytes"
+      log.debug "Can write $canWriteBytes bytes"
       if canWriteBytes < bytes.size:
-        log.info "Waiting for $bytes.size bytes to be writeable, only $canWriteBytes writeable"
+        log.debug "Waiting for $bytes.size bytes to be writeable, only $canWriteBytes writeable"
         sleep (Duration --ms=50)
       else:
-        log.info "Can write $bytes.size bytes, continuing"
+        log.debug "Can write $bytes.size bytes, continuing"
     canWriteBytes -= bytes.size
     
     currentIndex := 0
@@ -122,7 +122,7 @@ class Writer extends io.Writer with io.OutMixin:
       if readToIndex > bytes.size:
         readToIndex = bytes.size
     
-      log.info "Writing bytes $currentIndex to $readToIndex"
+      log.debug "Writing bytes $currentIndex to $readToIndex"
       log.debug "Bytes: $bytes[currentIndex..readToIndex]"
       sendLen := #[0]
       LITTLE-ENDIAN.put-uint8 sendLen 0 (readToIndex - currentIndex)

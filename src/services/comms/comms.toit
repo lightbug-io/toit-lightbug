@@ -1,8 +1,6 @@
 import ...protocol as protocol
 import ...devices as devices
 import ...messages as messages
-import ...devices as devices
-import ...messages as messages
 import ...util.docs show messageBytesToDocsURL
 import ...util.resilience show catchAndRestart
 import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
@@ -36,6 +34,7 @@ class Comms:
 
   constructor
       --device/devices.Device? = null
+      --sendOpen/bool = true
       --idGenerator/IdGenerator? = null:
 
     device_ = device
@@ -52,13 +51,21 @@ class Comms:
     // TODO allow optional injection of an outbox?!
     outbox_ = Channel 15
     
-    start_
+    start_ sendOpen
 
-  start_:
+  start_ sendOpen/bool:
     log.info "Comms starting"
     task:: catchAndRestart "processInbound_" (:: processInbound_)
     task:: catchAndRestart "processOutbox_" (:: processOutbox_)
     task:: catchAndRestart "processAwaitTimeouts_" (:: processAwaitTimeouts)
+    yield // allow the tasks to start
+
+    // In order for the Lightbug device to talk back to us, we have to open the conn!
+    if sendOpen:
+      if not (send (messages.Open).msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
+        throw "Failed to open device link"
+      log.debug "Opened device link"
+    
     log.info "Comms started"
 
   // Creates or gets an inbox by name
@@ -152,8 +159,9 @@ class Comms:
       if inbox.size >= inbox.capacity:
         dropped := inbox.receive
         log.warn "Inbox full, Dropped message of type: " + dropped.type.stringify + " in favour of new message of type: " + msg.type.stringify
+      log.debug "Adding message to inbox: " + msg.type.stringify
       inbox.send msg
-      yield // on each inbox population
+      yield // on each inbox population, as the inbox might cause other code to run
 
     // Process awaiting lambdas
     // TODO possibly have a timeout for the age of waiting for a response?
