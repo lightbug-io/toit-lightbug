@@ -20,7 +20,7 @@ sample-messages := {
         "$(messages.TxNow.MT) Transmit Now": (messages.TxNow.doMsg --data="hello".to-byte-array).bytesForProtocol,
     },
     "Screen": {
-        "$(messages.PresetPage.MT) Home page": messages.PresetPage.getMsg.bytesForProtocol,
+        "$(messages.PresetPage.MT) Home page": messages.PresetPage.toMsg.bytesForProtocol,
         "$(messages.MenuPage.MT) Menu 3 items": (messages.MenuPage.toMsg --pageId=101 --items=["Option 1", "Option 2", "Option 3"]).bytesForProtocol,
         "$(messages.TextPage.MT) Text page": (messages.TextPage.toMsg --pageId=102 --pageTitle="Page 101" --line1="First Line" --line2="Second Line").bytesForProtocol,
         "$(messages.DrawBitmap.MT) Lightbug Logo": (messages.DrawBitmap.toMsg --pageId=103 --bitmapData=lightbug4040 --bitmapHeight=40 --bitmapWidth=40).bytesForProtocol,

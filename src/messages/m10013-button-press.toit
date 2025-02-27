@@ -6,21 +6,6 @@ class ButtonPress extends protocol.Data:
   static BUTTON_ID := 4
   static SELECTION_ID := 5
 
-  static setMsg --pageId/int --buttonId/int --selectionId/int?=null -> protocol.Message:
-    msg := protocol.Message MT
-    msg.data.addDataUintn PAGE_ID pageId
-    msg.data.addDataUintn BUTTON_ID buttonId
-    if selectionId:
-      msg.data.addDataUintn SELECTION_ID selectionId
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
-    return msg
-
-  static getMsg --pageId/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.data.addDataUintn PAGE_ID pageId
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_GET
-    return msg
-
   constructor.fromData data/protocol.Data:
     super.fromData data
 
