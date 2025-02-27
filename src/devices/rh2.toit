@@ -3,29 +3,24 @@ import io
 import .base
 import .i2c
 
-// The RH2 device, currently at revision 3
-class RH2 implements Device:
-  static I2C_SDA := 6
-  static I2C_SCL := 7
-  static I2C_DEVICE := LBI2CDevice --sda=RH2.I2C_SDA --scl=RH2.I2C_SCL
-  static I2C_READER := Reader I2C_DEVICE
-  static I2C_WRITER := Writer I2C_DEVICE
-  name -> string:
-    return "RH2"
-  in -> io.Reader:
-    return I2C_READER
-  out -> io.Writer:
-    return I2C_WRITER
+RH2-MESSAGES := [
+    // TODO
+]
 
-class RH2rev2 implements Device:
+// The RH2 device, currently at revision 3
+// Introduced Feb 2025
+class RH2 extends LightbugDevice:
+  constructor:
+    super "RH2"
+  messages-supported -> List:
+    return RH2-MESSAGES
+
+// A previous version of the RH2 device, that had a different I2C setup
+// Retired Feb 2025
+class RH2rev2 extends LightbugDevice:
   static I2C_SDA := 0
   static I2C_SCL := 1
-  static I2C_DEVICE := LBI2CDevice --sda=RH2.I2C_SDA --scl=RH2.I2C_SCL
-  static I2C_READER := Reader I2C_DEVICE
-  static I2C_WRITER := Writer I2C_DEVICE
-  name -> string:
-    return "RH2 rev2"
-  in -> io.Reader:
-    return I2C_READER
-  out -> io.Writer:
-    return I2C_WRITER
+  constructor:
+    super "RH2 rev2" I2C_SDA I2C_SCL
+  messages-supported -> List:
+    return RH2-MESSAGES

@@ -7,6 +7,8 @@ import .i2c
 class Fake implements Device:
   name -> string:
     return "Fake"
+  messages-supported -> List:
+    return []
   in -> io.Reader:
     return FakeReader
   out -> io.Writer:
