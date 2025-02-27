@@ -14,7 +14,7 @@ import .m41-temperature show Temperature
 import .m42-buzzer-control show BuzzerControl
 import .m43-battery-status show BatteryStatus
 import .m44-pressure show Pressure
-import .m45-alarm-ontrol show AlarmControl
+import .m45-alarm-control show AlarmControl
 import .m50-link-control show LinkControl
 import .m10008-preset-page show PresetPage
 import .m10009-text-page show TextPage

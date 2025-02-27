@@ -28,18 +28,18 @@ class MenuPage extends protocol.Data:
   static ITEM_19 := 118
   static ITEM_20 := 119
 
-  static setMsg --itemCount/int --pageId/int --pageTitle/string --initialItemSelection/int?=null --items/List -> protocol.Message:
+  static toMsg --pageId/int --pageTitle/string?=null --initialItemSelection/int?=null --items/List -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUint8 ITEM_COUNT itemCount
+    msg.data.addDataUint8 ITEM_COUNT items.size
     msg.data.addDataUintn PAGE_ID pageId
-    msg.data.addDataS PAGE_TITLE pageTitle
+    if pageTitle:
+      msg.data.addDataS PAGE_TITLE pageTitle
     if initialItemSelection:
       msg.data.addDataUint8 INITIAL_ITEM_SELECTION initialItemSelection
     i := 0
     items.do: 
      msg.data.addDataS (ITEM_1 + i) it
      i += 1     
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
     return msg
 
   static getMsg --pageId/int -> protocol.Message:

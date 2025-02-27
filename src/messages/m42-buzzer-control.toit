@@ -8,6 +8,15 @@ class BuzzerControl extends protocol.Data:
     static RUN_COUNT := 4
     static FREQUENCY := 5 // Frequency of buzzer of KHz.
 
+    static SOUND_SOLID := 0
+    static SOUND_SIREN := 1
+    static SOUND_BEEP_BEEP := 2
+    static SOUND_AMBULANCE := 3
+    static SOUND_FIRE_TRUCK := 4
+    static SOUND_POSITIVE1 := 5
+    static SOUND_SLOW_BEEP := 6
+    static SOUND_ALARM := 7
+
     static doMsg --duration/int?=null --soundType/int?=null --intensity/int?=null --runCount/int?=null --frequency/float?=null -> protocol.Message:
         msg := protocol.Message MT
         if duration:

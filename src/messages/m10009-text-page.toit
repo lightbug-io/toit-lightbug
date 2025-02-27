@@ -11,16 +11,23 @@ class TextPage extends protocol.Data:
   static LINE_4 := 103
   static LINE_5 := 104
 
-  static setMsg --pageId/int --pageTitle/string --statusBar/int --line1/string --line2/string --line3/string --line4/string --line5/string -> protocol.Message:
+  static toMsg --pageId/int --pageTitle/string?=null --statusBar/bool?=false --line1/string?=null --line2/string?=null --line3/string?=null --line4/string?=null --line5/string?=null -> protocol.Message:
     msg := protocol.Message MT
     msg.data.addDataUintn PAGE_ID pageId
-    msg.data.addDataS PAGE_TITLE pageTitle
-    msg.data.addDataUint8 STATUS_BAR statusBar
-    msg.data.addDataS LINE_1 line1
-    msg.data.addDataS LINE_2 line2
-    msg.data.addDataS LINE_3 line3
-    msg.data.addDataS LINE_4 line4
-    msg.data.addDataS LINE_5 line5
+    if pageTitle:
+        msg.data.addDataS PAGE_TITLE pageTitle
+    if statusBar:
+        msg.data.addDataUint8 STATUS_BAR 1
+    if line1:
+        msg.data.addDataS LINE_1 line1
+    if line2:
+        msg.data.addDataS LINE_2 line2
+    if line3:
+        msg.data.addDataS LINE_3 line3
+    if line4:
+        msg.data.addDataS LINE_4 line4
+    if line5:
+        msg.data.addDataS LINE_5 line5
     msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
     return msg
 

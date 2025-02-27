@@ -11,16 +11,19 @@ class DrawBitmap extends protocol.Data:
   static BITMAP_OVERLAY := 26
   static DONT_DRAW := 27
 
-  static setMsg --pageId/int --bitmapX/int --bitmapY/int --bitmapWidth/int --bitmapHeight/int --bitmapData/ByteArray --bitmapOverlay/int --dontDraw/int -> protocol.Message:
+  static toMsg --pageId/int?=null --bitmapX/int=0 --bitmapY/int=0 --bitmapWidth/int --bitmapHeight/int --bitmapData/ByteArray --bitmapOverlay/bool=false --dontDraw/bool=false -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUintn PAGE_ID pageId
+    if pageId:
+      msg.data.addDataUintn PAGE_ID pageId
     msg.data.addDataUintn BITMAP_X bitmapX
     msg.data.addDataUintn BITMAP_Y bitmapY
     msg.data.addDataUintn BITMAP_WIDTH bitmapWidth
     msg.data.addDataUintn BITMAP_HEIGHT bitmapHeight
     msg.data.addData BITMAP_DATA bitmapData
-    msg.data.addDataUint8 BITMAP_OVERLAY bitmapOverlay
-    msg.data.addDataUint8 DONT_DRAW dontDraw
+    if bitmapOverlay:
+      msg.data.addDataUint8 BITMAP_OVERLAY 1
+    if dontDraw:
+      msg.data.addDataUint8 DONT_DRAW 1
     msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
     return msg
 
