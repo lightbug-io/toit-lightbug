@@ -6,15 +6,9 @@ html-page deviceName/string docsUrl/string -> string:
   <h1>Lightbug $(deviceName)</h1>
   <input type="button" value="Send bytes" onclick="submit()">
   <input type="text" id="post" name="post" style="width: 50%;">
-  <div style="display: flex; gap: 10px;">
   <div>
-  <h2>Presets</h2>
-  $(generate-msg-buttons)
-  </div>
-  <div>
-  <h2>Screen</h2>
-  $(generate-screen-html)
-  </div>
+  <div><h2>Presets</h2>$(generate-msg-buttons)</div>
+  <div><h2>Screen</h2>$(generate-screen-html)</div>
   </div>
   </br><a href="$(docsUrl)/devices/api/generate" target="_blank">You can also generate your own messages</a>
   <h2>Log</h2>
@@ -96,11 +90,12 @@ generate-msg-buttons -> string:
 
 SCREEN_WIDTH := 250
 SCREEN_HEIGHT := 122
-PIXEL_SIZE := 2
+PIXEL_SIZE := 1
 BRUSH_SIZE := PIXEL-SIZE * 2
 generate-screen-html -> string:
     return """
 <canvas id="c" width="$(SCREEN_WIDTH * PIXEL_SIZE)" height="$(SCREEN_HEIGHT * PIXEL_SIZE)" style="border: 1px solid black;"></canvas>
+</br>
 <button onclick="exportBitmap()">Draw</button>
 <button onclick="clearCanvas()">Clear</button>
 <script>

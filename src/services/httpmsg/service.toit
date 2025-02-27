@@ -33,7 +33,7 @@ class HttpMsg:
     network := net.open
     tcp_socket := network.tcp_listen serve-port
     // Only log INFO level server messages (especially as these come back through this log server..)
-    server := http.Server --logger=(log.Logger log.INFO-LEVEL log.DefaultTarget) --max-tasks=20
+    server := http.Server --logger=(log.Logger log.INFO-LEVEL log.DefaultTarget) --max-tasks=25
     server.listen tcp_socket:: | request/http.RequestIncoming writer/http.ResponseWriter |
       handle-http-request request writer
   
