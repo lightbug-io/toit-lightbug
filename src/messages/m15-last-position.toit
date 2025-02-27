@@ -18,6 +18,11 @@ class LastPosition extends protocol.Data:
 
   static LAT_LON_RAW_ADJUSTMENT := 1e7
 
+  static getMsg -> protocol.Message:
+    msg := protocol.Message MT
+    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-GET
+    return msg
+
   constructor.fromData data/protocol.Data:
     super.fromData data
   

@@ -1,6 +1,6 @@
 import ..protocol as protocol
 
-class DeviceStatus extends protocol.Data:
+class Status extends protocol.Data:
   static MT := 34
   static BATTERY := 1
   static SIGNAL_STRENGTH := 2
