@@ -11,9 +11,9 @@ main:
   // Setup the comms service, which allows communication with the Lightbug device
   comms := services.Comms --device=device
 
-  // Start the HTTP Message server on the default port which is 18019
+  // Start the HTTP Message server on port 80
   // This allows communicating with the device via a HTTP page
-  services.HttpMsg device.name comms
+  services.HttpMsg device.name comms --port=80
 
   // And start a service that prints all received messages to the console
   // To see the messages, `jag monitor` the device that is running this code

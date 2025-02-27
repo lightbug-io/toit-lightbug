@@ -13,7 +13,7 @@ import log
 // Hosts a small HTTP server that serves a page for directly sending bytes or messages to a Lightbug device
 class HttpMsg:
 
-  static DEFAULT_PORT /int := 18019
+  static DEFAULT_PORT /int := 80
   serve-port /int
   device-comms_ /services.Comms
   device-name_ /string // TODO could pass in the whole device?

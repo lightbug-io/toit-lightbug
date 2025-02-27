@@ -2,7 +2,7 @@ import ...util.bytes show stringifyAllBytes
 import .msgs
 
 html-page deviceName/string docsUrl/string -> string:
-  return """<html><body>
+  return """<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body>
   <h1>Lightbug $(deviceName)</h1>
   <input type="button" value="Send bytes" onclick="submit()">
   <input type="text" id="post" name="post" style="width: 50%;">
