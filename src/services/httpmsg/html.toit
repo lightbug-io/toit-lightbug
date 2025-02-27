@@ -117,6 +117,19 @@ generate-screen-html -> string:
     c.addEventListener("mouseup", () => isDrawing = false);
     c.addEventListener("mousemove", handleMouseMove);
     c.addEventListener("click", fillPixel);
+    c.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        isDrawing = true
+    });
+    c.addEventListener("touchend", (event) => {
+        event.preventDefault();
+        isDrawing = false
+    });
+    c.addEventListener("touchmove", (event) => {
+        event.preventDefault();
+        const touch = event.touches[0];
+        handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+    });
 
     function clearCanvas() {
         ctx.fillStyle = "#FFF";
