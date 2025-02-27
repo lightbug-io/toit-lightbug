@@ -23,7 +23,10 @@ class HttpMsg:
     device-comms_ = device-comms
     device-name_ = device-name
     if serve:
-      task:: catchAndRestart "lightbug-HttpMsg::serve-http" (:: serve-http)
+      service-http-catchAndRestart
+
+  service-http-catchAndRestart:
+    catchAndRestart "lightbug-HttpMsg::serve-http" (:: serve-http)
 
   serve-http:
     log.debug "Starting lightbug-HtmlMsgServer on port $serve-port"
