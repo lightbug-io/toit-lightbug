@@ -15,13 +15,13 @@ class DeviceIds extends protocol.Data:
     super.fromData data
 
   id -> int:
-    return getDataUintn ID
+    return getDataUint ID
 
   imei -> string:
-    return getDataS IMEI
+    return getDataAscii IMEI
 
   iccid -> string:
-    return getDataS ICCID
+    return getDataAscii ICCID
 
   stringify -> string:
     return {

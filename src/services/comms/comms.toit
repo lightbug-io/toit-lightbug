@@ -167,7 +167,7 @@ class Comms:
     // TODO possibly have a timeout for the age of waiting for a response?
     // That could be its own lambda to act on, but also remove the lambdas from the list
     if msg.header.data.hasData protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
-      respondingTo := msg.header.data.getDataUintn protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
+      respondingTo := msg.header.data.getDataUint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
       isAck := msg.header.messageType == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
       isBad := msg.header.data.hasData protocol.Header.TYPE-MESSAGE-STATUS and msg.msgStatus > 0
       if isAck:

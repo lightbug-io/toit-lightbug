@@ -77,7 +77,7 @@ class Data:
       s += dataTypes_[i].stringify + ": " + data_[i].stringify + ", "
     return s
 
-  addDataS dataType/int data/string -> none:
+  addDataAscii dataType/int data/string -> none:
     addData dataType data.to-byte-array
 
   addDataUint8 dataType/int data/int -> none:
@@ -101,7 +101,7 @@ class Data:
     LITTLE-ENDIAN.put-uint b 8 0 data
     addData dataType b
   
-  addDataUintn dataType/int data/int -> none:
+  addDataUint dataType/int data/int -> none:
     if data < 256:
       addDataUint8 dataType data
     else if data < 65536:
@@ -115,7 +115,7 @@ class Data:
     else:
       log.error "Data too large for uintn: " + data.stringify
 
-  addDataFloat dataType/int data/float -> none:
+  addDataFloat32 dataType/int data/float -> none:
     b := #[0,0,0,0]
     LITTLE-ENDIAN.put-float32 b 0 data
     addData dataType b
@@ -160,7 +160,7 @@ class Data:
       log.warn "Failed to get data: " + e.stringify
     return #[]
 
-  getDataS dataType/int -> string:
+  getDataAscii dataType/int -> string:
     data := getData dataType
     return data.to-string
 
@@ -265,11 +265,11 @@ class Data:
       l.add (Coordinate ((LITTLE-ENDIAN.int32 data i) / 1e7) ((LITTLE-ENDIAN.int32 data (i + 4)) / 1e7))
     return l
 
-  getDataFloat dataType/int -> float:
+  getDataFloat32 dataType/int -> float:
     d := getData dataType
     return LITTLE-ENDIAN.float32 d 0
 
-  getDataUintn dataType/int -> int:
+  getDataUint dataType/int -> int:
     // TODO use LITTLE-ENDIAN more consistently
     // read the data for the type, and decide which size it fits in
     // ie 1 bytes is unint8

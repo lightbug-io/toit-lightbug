@@ -13,21 +13,21 @@ class TextPage extends protocol.Data:
 
   static toMsg --pageId/int --pageTitle/string?=null --statusBar/bool?=false --line1/string?=null --line2/string?=null --line3/string?=null --line4/string?=null --line5/string?=null -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUintn PAGE_ID pageId
+    msg.data.addDataUint PAGE_ID pageId
     if pageTitle:
-        msg.data.addDataS PAGE_TITLE pageTitle
+        msg.data.addDataAscii PAGE_TITLE pageTitle
     if statusBar:
         msg.data.addDataUint8 STATUS_BAR 1
     if line1:
-        msg.data.addDataS LINE_1 line1
+        msg.data.addDataAscii LINE_1 line1
     if line2:
-        msg.data.addDataS LINE_2 line2
+        msg.data.addDataAscii LINE_2 line2
     if line3:
-        msg.data.addDataS LINE_3 line3
+        msg.data.addDataAscii LINE_3 line3
     if line4:
-        msg.data.addDataS LINE_4 line4
+        msg.data.addDataAscii LINE_4 line4
     if line5:
-        msg.data.addDataS LINE_5 line5
+        msg.data.addDataAscii LINE_5 line5
     msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
     return msg
 
@@ -35,28 +35,28 @@ class TextPage extends protocol.Data:
     super.fromData data
 
   pageId -> int:
-    return getDataUintn PAGE_ID
+    return getDataUint PAGE_ID
 
   pageTitle -> string:
-    return getDataS PAGE_TITLE
+    return getDataAscii PAGE_TITLE
 
   statusBar -> int:
     return getDataUint8 STATUS_BAR
 
   line1 -> string:
-    return getDataS LINE_1
+    return getDataAscii LINE_1
 
   line2 -> string:
-    return getDataS LINE_2
+    return getDataAscii LINE_2
 
   line3 -> string:
-    return getDataS LINE_3
+    return getDataAscii LINE_3
 
   line4 -> string:
-    return getDataS LINE_4
+    return getDataAscii LINE_4
 
   line5 -> string:
-    return getDataS LINE_5
+    return getDataAscii LINE_5
 
   stringify -> string:
     return {

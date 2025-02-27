@@ -31,14 +31,14 @@ class MenuPage extends protocol.Data:
   static toMsg --pageId/int --pageTitle/string?=null --initialItemSelection/int?=null --items/List -> protocol.Message:
     msg := protocol.Message MT
     msg.data.addDataUint8 ITEM_COUNT items.size
-    msg.data.addDataUintn PAGE_ID pageId
+    msg.data.addDataUint PAGE_ID pageId
     if pageTitle:
-      msg.data.addDataS PAGE_TITLE pageTitle
+      msg.data.addDataAscii PAGE_TITLE pageTitle
     if initialItemSelection:
       msg.data.addDataUint8 INITIAL_ITEM_SELECTION initialItemSelection
     i := 0
     items.do: 
-     msg.data.addDataS (ITEM_1 + i) it
+     msg.data.addDataAscii (ITEM_1 + i) it
      i += 1     
     return msg
 
@@ -49,10 +49,10 @@ class MenuPage extends protocol.Data:
     return getDataUint8 ITEM_COUNT
 
   pageId -> int:
-    return getDataUintn PAGE_ID
+    return getDataUint PAGE_ID
 
   pageTitle -> string:
-    return getDataS PAGE_TITLE
+    return getDataAscii PAGE_TITLE
 
   initialItemSelection -> int:
     return getDataUint8 INITIAL_ITEM_SELECTION
@@ -61,7 +61,7 @@ class MenuPage extends protocol.Data:
     items := []
     i := 0
     20.repeat:
-      item := getDataS (ITEM_1 + it)
+      item := getDataAscii (ITEM_1 + it)
       if item != "":
         items.add item
     return items

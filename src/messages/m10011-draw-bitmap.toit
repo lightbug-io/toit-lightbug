@@ -14,11 +14,11 @@ class DrawBitmap extends protocol.Data:
   static toMsg --pageId/int?=null --bitmapX/int=0 --bitmapY/int=0 --bitmapWidth/int --bitmapHeight/int --bitmapData/ByteArray --bitmapOverlay/bool=false --dontDraw/bool=false -> protocol.Message:
     msg := protocol.Message MT
     if pageId:
-      msg.data.addDataUintn PAGE_ID pageId
-    msg.data.addDataUintn BITMAP_X bitmapX
-    msg.data.addDataUintn BITMAP_Y bitmapY
-    msg.data.addDataUintn BITMAP_WIDTH bitmapWidth
-    msg.data.addDataUintn BITMAP_HEIGHT bitmapHeight
+      msg.data.addDataUint PAGE_ID pageId
+    msg.data.addDataUint BITMAP_X bitmapX
+    msg.data.addDataUint BITMAP_Y bitmapY
+    msg.data.addDataUint BITMAP_WIDTH bitmapWidth
+    msg.data.addDataUint BITMAP_HEIGHT bitmapHeight
     msg.data.addData BITMAP_DATA bitmapData
     if bitmapOverlay:
       msg.data.addDataUint8 BITMAP_OVERLAY 1
@@ -31,19 +31,19 @@ class DrawBitmap extends protocol.Data:
     super.fromData data
 
   pageId -> int:
-    return getDataUintn PAGE_ID
+    return getDataUint PAGE_ID
 
   bitmapX -> int:
-    return getDataUintn BITMAP_X
+    return getDataUint BITMAP_X
 
   bitmapY -> int:
-    return getDataUintn BITMAP_Y
+    return getDataUint BITMAP_Y
 
   bitmapWidth -> int:
-    return getDataUintn BITMAP_WIDTH
+    return getDataUint BITMAP_WIDTH
 
   bitmapHeight -> int:
-    return getDataUintn BITMAP_HEIGHT
+    return getDataUint BITMAP_HEIGHT
 
   bitmapData -> ByteArray:
     return getData BITMAP_DATA

@@ -14,7 +14,7 @@ class BatteryStatus extends protocol.Data:
     super.fromData data
 
   voltage -> float:
-    return getDataFloat VOLTAGE
+    return getDataFloat32 VOLTAGE
 
   percent -> int:
     return getDataUint8 PERCENT

@@ -13,7 +13,7 @@ class Temperature extends protocol.Data:
     super.fromData data
 
   temperature -> float:
-    return getDataFloat TEMPERATURE
+    return getDataFloat32 TEMPERATURE
 
   stringify -> string:
     return {

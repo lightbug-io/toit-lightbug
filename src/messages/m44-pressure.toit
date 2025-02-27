@@ -13,7 +13,7 @@ class Pressure extends protocol.Data:
     super.fromData data
 
   pressure -> float:
-    return getDataFloat PRESSURE
+    return getDataFloat32 PRESSURE
 
   stringify -> string:
     return {

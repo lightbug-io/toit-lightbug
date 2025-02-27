@@ -35,15 +35,15 @@ class AlarmControl extends protocol.Data:
         if strobeIntensity:
             msg.data.addDataUint8 STROBE_INTENSITY strobeIntensity
         if promptMessage:
-            msg.data.addDataS PROMPT_MESSAGE promptMessage
+            msg.data.addDataAscii PROMPT_MESSAGE promptMessage
         if promptTimeout:
             msg.data.addDataUint8 PROMPT_TIMEOUT promptTimeout
         if promptButton1Text:
-            msg.data.addDataS PROMPT_BUTTON_1_TEXT promptButton1Text
+            msg.data.addDataAscii PROMPT_BUTTON_1_TEXT promptButton1Text
         if promptButton2Text:
-            msg.data.addDataS PROMPT_BUTTON_2_TEXT promptButton2Text
+            msg.data.addDataAscii PROMPT_BUTTON_2_TEXT promptButton2Text
         if promptButton3Text:
-            msg.data.addDataS PROMPT_BUTTON_3_TEXT promptButton3Text
+            msg.data.addDataAscii PROMPT_BUTTON_3_TEXT promptButton3Text
         msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_DO
         return msg
 
@@ -75,19 +75,19 @@ class AlarmControl extends protocol.Data:
         return getDataUint8 STROBE_INTENSITY
 
     promptMessage -> string:
-        return getDataS PROMPT_MESSAGE
+        return getDataAscii PROMPT_MESSAGE
 
     promptTimeout -> int:
         return getDataUint8 PROMPT_TIMEOUT
 
     promptButton1Text -> string:
-        return getDataS PROMPT_BUTTON_1_TEXT
+        return getDataAscii PROMPT_BUTTON_1_TEXT
 
     promptButton2Text -> string:
-        return getDataS PROMPT_BUTTON_2_TEXT
+        return getDataAscii PROMPT_BUTTON_2_TEXT
 
     promptButton3Text -> string:
-        return getDataS PROMPT_BUTTON_3_TEXT
+        return getDataAscii PROMPT_BUTTON_3_TEXT
 
     stringify -> string:
         return {

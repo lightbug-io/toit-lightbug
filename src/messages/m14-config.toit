@@ -12,7 +12,7 @@ class Config extends protocol.Data:
     return protocol.Message.withData MT this
 
   key -> int:
-    return getDataUintn KEY
+    return getDataUint KEY
 
   payload -> ByteArray:
     return getData PAYLOAD

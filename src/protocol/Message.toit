@@ -32,11 +32,11 @@ class Message:
   return this
 
  msgId -> int?:
-  if header.data.hasData Header.TYPE_MESSAGE_ID: return header.data.getDataUintn Header.TYPE_MESSAGE_ID
+  if header.data.hasData Header.TYPE_MESSAGE_ID: return header.data.getDataUint Header.TYPE_MESSAGE_ID
   return null
 
  responseTo -> int?:
-  if header.data.hasData Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header.data.getDataUintn Header.TYPE-RESPONSE-TO-MESSAGE-ID
+  if header.data.hasData Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header.data.getDataUint Header.TYPE-RESPONSE-TO-MESSAGE-ID
   return null
 
  msgType -> int:

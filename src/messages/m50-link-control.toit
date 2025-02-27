@@ -7,7 +7,7 @@ class LinkControl extends protocol.Data:
   static ENABLE := 3
 
   constructor --ip/string --port/int --enable/bool:
-    this.addDataS ADDRESS ip
+    this.addDataAscii ADDRESS ip
     this.addDataUint16 PORT port
     this.addDataUint8 ENABLE (if enable: 1 else: 0)
 

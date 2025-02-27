@@ -10,13 +10,13 @@ class ButtonPress extends protocol.Data:
     super.fromData data
 
   pageId -> int:
-    return getDataUintn PAGE_ID
+    return getDataUint PAGE_ID
 
   buttonId -> int:
-    return getDataUintn BUTTON_ID
+    return getDataUint BUTTON_ID
 
   selectionId -> int:
-    return getDataUintn SELECTION_ID
+    return getDataUint SELECTION_ID
 
   stringify -> string:
     return {

@@ -28,7 +28,7 @@ class BuzzerControl extends protocol.Data:
         if runCount:
             msg.data.addDataUint8 RUN_COUNT runCount
         if frequency:
-            msg.data.addDataFloat FREQUENCY frequency
+            msg.data.addDataFloat32 FREQUENCY frequency
         msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_DO
         return msg
 
@@ -48,7 +48,7 @@ class BuzzerControl extends protocol.Data:
         return getDataUint8 RUN_COUNT
 
     frequency -> float:
-        return getDataFloat FREQUENCY
+        return getDataFloat32 FREQUENCY
 
     stringify -> string:
         return {

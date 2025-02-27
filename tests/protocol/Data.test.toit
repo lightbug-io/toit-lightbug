@@ -88,7 +88,7 @@ addAndGetData:
       log.info "✅ Passed int32 byte representation"
 
   // Test float
-  d.addDataFloat 3 3.1415927
+  d.addDataFloat32 3 3.1415927
   got := d.getData 3
   expect := #[0xdb, 0x0f, 0x49, 0x40]
   if got != expect:
@@ -116,8 +116,8 @@ addAndGetData:
   
   // Float roundtrip
   expected := 3.1400001049041748047
-  d.addDataFloat 6 expected
-  gotFloat := d.getDataFloat 6
+  d.addDataFloat32 6 expected
+  gotFloat := d.getDataFloat32 6
   if gotFloat != expected:
       log.error "❌ Failed float roundtrip. Expected: $expected, got: $gotFloat"
   else:

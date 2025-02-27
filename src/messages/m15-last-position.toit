@@ -37,7 +37,7 @@ class LastPosition extends protocol.Data:
 
   timestamp -> int:
     // TODO return a typed value
-    return getDataUintn TIMESTAMP
+    return getDataUint TIMESTAMP
   coordinate -> Coordinate:
     return Coordinate latitude longitude
   latitude -> float:
@@ -57,21 +57,21 @@ class LastPosition extends protocol.Data:
   longitude-raw -> int:
     return getDataIntn LONGITUDE
   altitude -> int:
-    return getDataUintn ALTITUDE
+    return getDataUint ALTITUDE
   accuracy -> int:
-    return getDataUintn ACCURACY
+    return getDataUint ACCURACY
   course-over-ground -> int:
-    return getDataUintn COURSE_OVER_GROUND
+    return getDataUint COURSE_OVER_GROUND
   speed -> int:
-    return getDataUintn SPEED
+    return getDataUint SPEED
   number-of-satellites -> int:
-    return getDataUintn NUMBER_OF_SATELLITES
+    return getDataUint NUMBER_OF_SATELLITES
   average-cn0 -> int:
-    return getDataUintn AVERAGE_CN0
+    return getDataUint AVERAGE_CN0
   position-type -> int:
-    return getDataUintn POSITION_TYPE
+    return getDataUint POSITION_TYPE
   position-source -> int:
-    return getDataUintn POSITION_SOURCE
+    return getDataUint POSITION_SOURCE
 
   stringify -> string:
     return {
