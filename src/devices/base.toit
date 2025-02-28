@@ -12,6 +12,8 @@ interface Device extends Comms:
   name -> string
   // A list of ints, mapping to supported Lightbug message typess
   messages-supported -> List
+  // A list of ints, mapping to not supported Lightbug message typess
+  messages-not-supported -> List
 
 /*
 An interface for communicationg to and from a Lightbug device
@@ -45,6 +47,8 @@ abstract class LightbugDevice implements Device:
   name -> string:
     return name_
   messages-supported -> List:
+    return []
+  messages-not-supported -> List:
     return []
   i2c-device -> i2c.Device:
     return i2c-device_

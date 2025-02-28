@@ -1,7 +1,8 @@
 import ...util.bytes show stringifyAllBytes
+import ...devices as devices
 import .msgs
 
-html-page deviceName/string docsUrl/string custom-actions/Map -> string:
+html-page device/devices.Device docsUrl/string custom-actions/Map -> string:
   return """<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     button, input[type="button"] {
@@ -16,11 +17,11 @@ html-page deviceName/string docsUrl/string custom-actions/Map -> string:
     }
   </style>
   </head><body>
-  <h1>Lightbug $(deviceName)</h1>
+  <h1>Lightbug $(device.name)</h1>
   <input type="button" value="Send bytes" onclick="submit()">
   <input type="text" id="post" name="post" style="width: 50%;">
   <div>
-  <div><h2>Presets</h2>$(generate-msg-buttons custom-actions)</div>
+  <div><h2>Presets</h2>$(generate-msg-buttons device custom-actions)</div>
   <div><h2>Screen</h2>$(generate-screen-html)</div>
   </div>
   </br><a href="$(docsUrl)/devices/api/generate" target="_blank">You can also generate your own messages</a>
@@ -93,13 +94,27 @@ html-page deviceName/string docsUrl/string custom-actions/Map -> string:
 </script>
 </body></html>"""
 
-generate-msg-buttons custom-actions/Map -> string:
+generate-msg-buttons device/devices.Device custom-actions/Map -> string:
   dynamicHtml := ""
   sample-messages.keys.map: |key|
-    dynamicHtml = dynamicHtml + """$key<br>"""
-    sample-messages[key].keys.map: |action|
-      dynamicHtml = dynamicHtml + """<input type="button" value="$action" onclick="submit('$(stringifyAllBytes sample-messages[key][action] --short=true --commas=false --hex=false)')">\n"""
-    dynamicHtml = dynamicHtml + """<br>\n"""
+    unsupported := false
+    device.messages-not-supported.map: |id|
+        if key.contains "$id":
+          unsupported = true
+    if not unsupported:
+      sectionHtml := """$key<br>"""
+      hasEntries := false
+      sample-messages[key].keys.map: |action|
+        unsupported = false
+        device.messages-not-supported.map: |id|
+            if action.contains "$id":
+              unsupported = true
+        if not unsupported:
+          hasEntries = true
+          sectionHtml = sectionHtml + """<input type="button" value="$action" onclick="submit('$(stringifyAllBytes sample-messages[key][action] --short=true --commas=false --hex=false)')">\n"""
+      sectionHtml = sectionHtml + """<br>\n"""
+      if hasEntries:
+        dynamicHtml = dynamicHtml + sectionHtml
   custom-actions.keys.map: |key|
     dynamicHtml = dynamicHtml + """$key<br>\n"""
     custom-actions[key].keys.map: |action|

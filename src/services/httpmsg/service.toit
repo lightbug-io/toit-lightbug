@@ -16,19 +16,22 @@ class HttpMsg:
   static DEFAULT_PORT /int := 80
   serve-port /int
   custom-actions_ /Map
+  response-message-formatter_ /Lambda
   device-comms_ /services.Comms
-  device-name_ /string // TODO could pass in the whole device?
+  device_/devices.Device
 
   constructor
-      device-name/string
+      device/devices.Device
       device-comms/services.Comms
       --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
+      --response-message-formatter/Lambda?=null // A function that takes a writer and message and returns a string to be displayed in the response. Otherwise bytes will be shown...
       --port/int=DEFAULT_PORT
       --serve/bool=true:
     serve-port = port
+    device_ = device
     device-comms_ = device-comms
-    device-name_ = device-name
     custom-actions_ = custom-actions
+    response-message-formatter_ = response-message-formatter
     if serve:
       service-http-catchAndRestart
 
@@ -57,7 +60,7 @@ class HttpMsg:
     writer.close
 
   handle-page request/http.RequestIncoming writer/http.ResponseWriter:
-    html := html-page device-name_ docsUrl custom-actions_
+    html := html-page device_ docsUrl custom-actions_
     writer.headers.set "Content-Type" "text/html"
     writer.headers.set "Content-Length" html.size.stringify
     writer.write_headers 200
@@ -93,7 +96,10 @@ class HttpMsg:
         if response == false:
           writer.out.write "$(msg.msgId) No response...\n"
         else:
-          writer.out.write "$(msg.msgId) Response $(response.msgId): $(stringifyAllBytes response.bytesForProtocol --short=true --commas=false --hex=false)\n"
+          if response-message-formatter_ != null:
+            response-message-formatter_.call writer response "$(msg.msgId) Response $(response.msgId):"
+          else:
+            writer.out.write "$(msg.msgId) Response $(response.msgId): $(stringifyAllBytes response.bytesForProtocol --short=true --commas=false --hex=false)\n"
         tasksDone++
     while tasksDone < tasksWaiting:
       sleep (Duration --ms=100)
