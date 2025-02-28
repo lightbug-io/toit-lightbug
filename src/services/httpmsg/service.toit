@@ -9,6 +9,7 @@ import .html
 import http
 import net
 import log
+import monitor show Channel
 
 // Hosts a small HTTP server that serves a page for directly sending bytes or messages to a Lightbug device
 class HttpMsg:
@@ -53,6 +54,8 @@ class HttpMsg:
       handle-page request writer
     else if resource == "/post":
       handle-post request writer
+    else if resource == "/poll":
+      handle-poll request writer
     else :
       writer.headers.set "Content-Type" "text/plain"
       writer.write_headers 404
@@ -96,14 +99,47 @@ class HttpMsg:
         if response == false:
           writer.out.write "$(msg.msgId) No response...\n"
         else:
-          if response-message-formatter_ != null:
-            response-message-formatter_.call writer response "$(msg.msgId) Response $(response.msgId):"
-          else:
-            writer.out.write "$(msg.msgId) Response $(response.msgId): $(stringifyAllBytes response.bytesForProtocol --short=true --commas=false --hex=false)\n"
+          write-msg-out writer response
         tasksDone++
     while tasksDone < tasksWaiting:
       sleep (Duration --ms=100)
     writer.close
+
+  write-msg-out writer/http.ResponseWriter msg/protocol.Message:
+    if response-message-formatter_ != null:
+      response-message-formatter_.call writer msg "$(msg.msgId) Response $(msg.msgId):"
+    else:
+      writer.out.write "$(msg.msgId) Response $(msg.msgId): $(stringifyAllBytes msg.bytesForProtocol --short=true --commas=false --hex=false)\n"
+
+  // It might be more efficient to store messages that have been received, to send
+  // TODO having a "force-send" on monitor would be nice..
+  polling-queue /Channel := Channel 10
+  queue-output-for-polling line/string:
+    if polling-queue.size > 10:
+      log.warn "Dropping line from queue as it is full"
+      polling-queue.receive
+      polling-queue.send line
+    else:
+      polling-queue.send line
+  polling-messages /Channel := Channel 10
+  queue-messages-for-polling msg/protocol.Message:
+    if polling-messages.size > 10:
+      log.warn "Dropping message from queue as it is full"
+      polling-messages.receive
+      polling-messages.send msg
+    else:
+      polling-messages.send msg
+
+  handle-poll request/http.RequestIncoming writer/http.ResponseWriter:
+    writer.headers.set "Content-Type" "text/plain"
+    writer.headers.set "Access-Control-Allow-Origin" "*"
+    writer.write_headers 200
+    while polling-queue.size > 0:
+      writer.out.write polling-queue.receive
+    while polling-messages.size > 0:
+      write-msg-out writer polling-messages.receive
+    writer.close
+
 
 list-to-byte-array l/List -> ByteArray:
   b := ByteArray l.size

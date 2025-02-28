@@ -89,7 +89,37 @@ html-page device/devices.Device docsUrl/string custom-actions/Map -> string:
             console.error('Error:', error);
         });
     }
-
+    function poll() {
+        fetch('/poll')
+        .then(response => response.text())
+        .then(text => {
+            const lines = text.split('\\n');
+            lines.forEach(line => {
+                if (line.trim() !== '') {
+                    const d = document.getElementById('l');
+                    d.prepend(document.createElement('br'));
+                    const p = document.createElement('span');
+                    p.textContent = line;
+                    d.prepend(p);
+                    const matches = line.match(/(\\d{1,3}(\\s\\d{1,3})+)/g);
+                    if (matches) {
+                        matches.forEach(b => {
+                            const a = document.createElement('a');
+                            a.href = "$(docsUrl)/devices/api/parse?bytes=" + b;
+                            a.textContent = "(parse)";
+                            a.target = "_blank";
+                            d.prepend(document.createTextNode(' '));
+                            d.prepend(a);
+                        });
+                    }
+                }
+            });
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+    setInterval(poll, 2000);
     let fetching = false;
 </script>
 </body></html>"""

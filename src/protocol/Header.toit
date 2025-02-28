@@ -16,6 +16,7 @@ class Header:
   static TYPE_FORWARD_TO := 14
 
   // For use with TYPE_MESSAGE_STATUS
+  static STATUS_OK /int ::= 0
   static STATUS_GENERIC_ERROR /int ::= 1
   static STATUS_MISSING_PARAMETER /int ::= 2
   static STATUS_METHOD_NOT_SUPPORTED /int ::= 3
@@ -28,6 +29,8 @@ class Header:
   static STATUS_UNKNOWN_MESSAGE /int ::= 10
 
   static STATUS_MAP /Map := {
+    // null: "null", // TODO ask toit to fix this, as null cannot be .geted
+    STATUS_OK: "OK",
     STATUS_GENERIC_ERROR: "Generic error",
     STATUS_MISSING_PARAMETER: "Missing parameter",
     STATUS_METHOD_NOT_SUPPORTED: "Method not supported",
