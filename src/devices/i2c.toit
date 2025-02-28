@@ -97,37 +97,40 @@ class Writer extends io.Writer with io.OutMixin:
       bytes = data as ByteArray
     else:
       bytes = ByteArray.from data
-    log.debug "Going to write $bytes.size bytes"
+    
+    bytesInWindow := to - from
+    log.debug "Going to write $bytesInWindow bytes"
     log.debug "Bytes: $bytes"
 
     // Check the receiver has enough space for our bytes before sending...
     // TODO could refactor this to send in smaller chunks if needed?!
-    while canWriteBytes < bytes.size:
+    while canWriteBytes == 0:
       log.debug "Updating or waiting for writeable bytes"
       lenBytes := device.read-address #[I2C_COMMAND_LIGHTBUG_WRITEABLE_BYTES] 2
       canWriteBytes = LITTLE-ENDIAN.uint16 lenBytes 0
       log.debug "Can write $canWriteBytes bytes"
-      if canWriteBytes < bytes.size:
-        log.debug "Waiting for $bytes.size bytes to be writeable, only $canWriteBytes writeable"
+      if canWriteBytes == 0:
+        log.debug "Waiting for some bytes to be writeable"
         sleep (Duration --ms=50)
       else:
-        log.debug "Can write $bytes.size bytes, continuing"
-    canWriteBytes -= bytes.size
+        log.debug "Can write $canWriteBytes bytes, continuing"
     
-    currentIndex := 0
+    currentIndex := from
     readToIndex := 0
-    while currentIndex < bytes.size:
-      // Send in batches of 255
-      readToIndex = currentIndex + 255
-      if readToIndex > bytes.size:
-        readToIndex = bytes.size
+    written := 0
+    while currentIndex < to and canWriteBytes > 0:
+      // Send in batches of 254 
+      writing := min (to - currentIndex) (min canWriteBytes 255)
+      readToIndex = currentIndex + writing
     
-      log.debug "Writing bytes $currentIndex to $readToIndex"
+      log.debug "Writing bytes $currentIndex to $readToIndex, $writing bytes"
       log.debug "Bytes: $bytes[currentIndex..readToIndex]"
       sendLen := #[0]
-      LITTLE-ENDIAN.put-uint8 sendLen 0 (readToIndex - currentIndex)
+      LITTLE-ENDIAN.put-uint8 sendLen 0 writing
       device.write-address #[I2C_COMMAND_LIGHTBUG_WRITE] sendLen + bytes[currentIndex..readToIndex]
-
+      written += writing
+      canWriteBytes -= writing
       currentIndex = readToIndex
     
-    return bytes.size
+    log.debug "Wrote $written bytes"
+    return written
