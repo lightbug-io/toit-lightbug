@@ -34,7 +34,8 @@ class Comms:
 
   constructor
       --device/devices.Device? = null
-      --sendOpen/bool = true
+      --sendOpen/bool = true // An Open is required to start comms and get responses ot messages. Only set to false if you will control the Open in your own code.
+      --sendHearbeat/bool = true // Send a heartbeat message every now and again to keep the connection open. Only set to false if you will control the heartbeat in your own code.
       --idGenerator/IdGenerator? = null:
 
     device_ = device
@@ -51,22 +52,37 @@ class Comms:
     // TODO allow optional injection of an outbox?!
     outbox_ = Channel 15
     
-    start_ sendOpen
+    start_ sendOpen sendHearbeat
 
-  start_ sendOpen/bool:
+  start_ sendOpen/bool sendHearbeat/bool:
     log.info "Comms starting"
+
     task:: catchAndRestart "processInbound_" (:: processInbound_)
     task:: catchAndRestart "processOutbox_" (:: processOutbox_)
     task:: catchAndRestart "processAwaitTimeouts_" (:: processAwaitTimeouts)
-    yield // allow the tasks to start
 
-    // In order for the Lightbug device to talk back to us, we have to open the conn!
+    // In order for the Lightbug device to talk back to us, we have to open the conn
+    // and keep it open with heartbeats
     if sendOpen:
-      if not (send (messages.Open).msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
-        throw "Failed to open device link"
-      log.debug "Opened device link"
+      sendOpen_
+    if sendHearbeat:
+      task:: catchAndRestart "sendHeartbeats_" (:: sendHeartbeats_)
     
     log.info "Comms started"
+
+  sendOpen_:
+    if not (send (messages.Open).msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
+      throw "Failed to open device link"
+    log.debug "Opened device link"
+
+  sendHeartbeats_:
+    while true:
+      // Send a heartbeat message every 10 seconds (via outbox)
+      if not (send (messages.Heartbeat).msg --withLatch=true).get:
+        log.error "Failed to send heartbeat"
+      else:
+        log.debug "Sent heartbeat"
+      sleep (Duration --s=15)
 
   // Creates or gets an inbox by name
   // A single inbox will only deliver messages once
