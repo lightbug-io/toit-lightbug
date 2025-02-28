@@ -27,6 +27,19 @@ class Header:
   static STATUS_FAILED_PERMANENTLY /int ::= 9
   static STATUS_UNKNOWN_MESSAGE /int ::= 10
 
+  static STATUS_MAP /Map := {
+    STATUS_GENERIC_ERROR: "Generic error",
+    STATUS_MISSING_PARAMETER: "Missing parameter",
+    STATUS_METHOD_NOT_SUPPORTED: "Method not supported",
+    STATUS_INVALID_PARAMETER: "Invalid parameter",
+    STATUS_INVALID_STATE: "Invalid state",
+    STATUS_NO_DATA: "No data",
+    STATUS_NOT_SUPPORTED: "Not supported",
+    STATUS_FAILED_WILL_RETRY: "Failed, will retry",
+    STATUS_FAILED_PERMANENTLY: "Failed permanently",
+    STATUS_UNKNOWN_MESSAGE: "Unknown message",
+  }
+
   // For use with TYPE_MESSAGE_METHOD
   static METHOD_SET /int ::= 1
   static METHOD_GET /int ::= 2
