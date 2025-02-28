@@ -91,7 +91,7 @@ class HttpMsg:
       task::
         response := msgLatch.get
         if response == false:
-          writer.out.write "$(msg.msgId) Error: No response\n"
+          writer.out.write "$(msg.msgId) No response...\n"
         else:
           writer.out.write "$(msg.msgId) Response $(response.msgId): $(stringifyAllBytes response.bytesForProtocol --short=true --commas=false --hex=false)\n"
         tasksDone++
