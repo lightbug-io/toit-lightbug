@@ -15,13 +15,20 @@ class HttpMsg:
 
   static DEFAULT_PORT /int := 80
   serve-port /int
+  custom-actions_ /Map
   device-comms_ /services.Comms
   device-name_ /string // TODO could pass in the whole device?
 
-  constructor device-name/string device-comms/services.Comms --port/int=DEFAULT_PORT --serve/bool=true:
+  constructor
+      device-name/string
+      device-comms/services.Comms
+      --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
+      --port/int=DEFAULT_PORT
+      --serve/bool=true:
     serve-port = port
     device-comms_ = device-comms
     device-name_ = device-name
+    custom-actions_ = custom-actions
     if serve:
       service-http-catchAndRestart
 
@@ -50,7 +57,7 @@ class HttpMsg:
     writer.close
 
   handle-page request/http.RequestIncoming writer/http.ResponseWriter:
-    html := html-page device-name_ docsUrl
+    html := html-page device-name_ docsUrl custom-actions_
     writer.headers.set "Content-Type" "text/html"
     writer.headers.set "Content-Length" html.size.stringify
     writer.write_headers 200

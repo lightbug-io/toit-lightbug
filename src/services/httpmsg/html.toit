@@ -1,23 +1,37 @@
 import ...util.bytes show stringifyAllBytes
 import .msgs
 
-html-page deviceName/string docsUrl/string -> string:
-  return """<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body>
+html-page deviceName/string docsUrl/string custom-actions/Map -> string:
+  return """<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    button, input[type="button"] {
+        outline: none;
+        border: none;
+        background-color: #fc7c3d;
+        color: #fff;
+        padding: 10px;
+        margin: 3px 5px 3px 0;
+        cursor: pointer;
+        
+    }
+  </style>
+  </head><body>
   <h1>Lightbug $(deviceName)</h1>
   <input type="button" value="Send bytes" onclick="submit()">
   <input type="text" id="post" name="post" style="width: 50%;">
   <div>
-  <div><h2>Presets</h2>$(generate-msg-buttons)</div>
+  <div><h2>Presets</h2>$(generate-msg-buttons custom-actions)</div>
   <div><h2>Screen</h2>$(generate-screen-html)</div>
   </div>
   </br><a href="$(docsUrl)/devices/api/generate" target="_blank">You can also generate your own messages</a>
   <h2>Log</h2>
   <div id="l"><span>Sent messages, and their responses will appear here...</span></div>
+  
 <script>
-    function submit(input = null) {
-        submitMulti([input]);
+    function submit(input = null, end = '/post') {
+        submitMulti([input], end);
     }
-    function submitMulti(inputs = []) {
+    function submitMulti(inputs = [], end = '/post') {
         let post = inputs.map(input => {
             let p = input || document.getElementById('post').value;
             return p.split(/[, ]+/).map(s => s.trim()).map(s => {
@@ -29,7 +43,7 @@ html-page deviceName/string docsUrl/string -> string:
             }).join(' ');
         }).join('\\n');
 
-        fetch('/post', {
+        fetch(end, {
             method: 'POST',
             body: post,
         })
@@ -79,13 +93,18 @@ html-page deviceName/string docsUrl/string -> string:
 </script>
 </body></html>"""
 
-generate-msg-buttons -> string:
+generate-msg-buttons custom-actions/Map -> string:
   dynamicHtml := ""
   sample-messages.keys.map: |key|
-    dynamicHtml = dynamicHtml + """$key:\n"""
+    dynamicHtml = dynamicHtml + """$key<br>"""
     sample-messages[key].keys.map: |action|
       dynamicHtml = dynamicHtml + """<input type="button" value="$action" onclick="submit('$(stringifyAllBytes sample-messages[key][action] --short=true --commas=false --hex=false)')">\n"""
-    dynamicHtml = dynamicHtml + """</br>\n"""
+    dynamicHtml = dynamicHtml + """<br>\n"""
+  custom-actions.keys.map: |key|
+    dynamicHtml = dynamicHtml + """$key<br>\n"""
+    custom-actions[key].keys.map: |action|
+      dynamicHtml = dynamicHtml + """<input type="button" value="$action" onclick="submit('$(custom-actions[key][action])','/custom')">\n"""
+    dynamicHtml = dynamicHtml + """<br>\n"""
   return dynamicHtml
 
 SCREEN_WIDTH := 250
