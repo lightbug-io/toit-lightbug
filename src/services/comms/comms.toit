@@ -310,9 +310,13 @@ class Comms:
     outbox_.send msg
 
   // Send raw bytes, without any protocol wrapping
-  sendRawBytes bytes/ByteArray:
-    device_.out.write bytes --flush=true
-    log.debug "SNT raw: " + (stringifyAllBytes bytes) + " " + ( messageBytesToDocsURL bytes )
+  sendRawBytes bytes/ByteArray --flush=true:
+    device_.out.write bytes --flush=flush
+    // If there are less than 500 bytes, log them
+    if bytes.size < 500:
+      log.debug "SNT raw: " + (stringifyAllBytes bytes) + " " + ( messageBytesToDocsURL bytes )
+    else:
+      log.debug "SNT raw: " + bytes.size.stringify + " bytes"
 
   processAwaitTimeouts:
     while true:
