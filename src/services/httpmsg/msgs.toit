@@ -42,7 +42,7 @@ sample-messages := {
         "3s pattern 4 intensity 1": (messages.AlarmControl.doMsg --duration=3 --buzzerPattern=4 --buzzerIntensity=1).bytesForProtocol,
     },
     "$(messages.Lora.MT) LORA": {
-      "Transmit lblb, receive 5s": (messages.Lora.doMsg --payload="lblb".to-byte-array --receiveMs=5000).bytesForProtocol,
+      "Transmit lblb, receive 10s": (messages.Lora.doMsg --payload="lblb".to-byte-array --receiveMs=10000).bytesForProtocol,
       "Subscribe": (messages.Lora.subscribeMsg).bytesForProtocol,
       "Unsubscribe": (messages.Lora.unsubscribeMsg).bytesForProtocol,
     },
