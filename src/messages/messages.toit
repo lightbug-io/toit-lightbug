@@ -16,6 +16,7 @@ import .m43-battery-status show BatteryStatus
 import .m44-pressure show Pressure
 import .m45-alarm-control show AlarmControl
 import .m50-link-control show LinkControl
+import .m1004-lora show Lora
 import .m10008-preset-page show PresetPage
 import .m10009-text-page show TextPage
 import .m10010-menu-page show MenuPage

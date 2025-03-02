@@ -48,6 +48,7 @@ class Header:
   static METHOD_GET /int ::= 2
   static METHOD_SUBSCRIBE /int ::= 3
   static METHOD_DO /int ::= 4
+  static METHOD_UNSUBSCRIBE /int ::= 5
 
   messageLength_ /int := 0
   messageType_ /int := 0

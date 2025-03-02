@@ -41,10 +41,10 @@ sample-messages := {
         "Duration 0": (messages.AlarmControl.doMsg --duration=0).bytesForProtocol,
         "3s pattern 4 intensity 1": (messages.AlarmControl.doMsg --duration=3 --buzzerPattern=4 --buzzerIntensity=1).bytesForProtocol,
     },
-    "1004 LORA": {
-      "Transmit": #[0X03, 0X18, 0X00, 0XEC, 0X03, 0X01, 0X00, 0X05, 0X01, 0X04, 0X02, 0X00, 0X02, 0X0A, 0X04, 0X6C, 0X62, 0X6C, 0X62, 0X02, 0X10, 0X27, 0X80, 0X55],
-      "Subscribe": #[0X03, 0X0E, 0X00, 0XEC, 0X03, 0X01, 0X00, 0X05, 0X01, 0X03, 0X00, 0X00, 0XC5, 0XD8],
-      "Unsubscribe": #[0X03, 0X0E, 0X00, 0XEC, 0X03, 0X01, 0X00, 0X05, 0X01, 0X05, 0X00, 0X00, 0X65, 0X6A],
+    "$(messages.Lora.MT) LORA": {
+      "Transmit lblb, receive 5s": (messages.Lora.doMsg --payload="lblb".to-byte-array --receiveMs=5000).bytesForProtocol,
+      "Subscribe": (messages.Lora.subscribeMsg).bytesForProtocol,
+      "Unsubscribe": (messages.Lora.unsubscribeMsg).bytesForProtocol,
     },
     // "GSM": {
     //     "SET Normal mode": #[0x03, 0x17, 0x00, 0x31, 0x00, 0x01, 0x00, 0x05, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x75, 0x30],

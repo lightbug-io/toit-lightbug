@@ -21,7 +21,7 @@ ZCARD-MESSAGES := [
     BatteryStatus.MT,
     AlarmControl.MT,
     LinkControl.MT,
-    1004, // LORA
+    Lora.MT,
     PresetPage.MT,
     TextPage.MT,
     MenuPage.MT,
