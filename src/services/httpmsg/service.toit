@@ -33,6 +33,10 @@ class HttpMsg:
     device-comms_ = device-comms
     custom-actions_ = custom-actions
     response-message-formatter_ = response-message-formatter
+
+    // This service always wants us to be subscribing to LORA data (if possible)
+    device-comms.send messages.Lora.subscribeMsg
+
     if serve:
       service-http-catchAndRestart
 

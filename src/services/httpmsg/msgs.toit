@@ -41,10 +41,12 @@ sample-messages := {
         "Duration 0": (messages.AlarmControl.doMsg --duration=0).bytesForProtocol,
         "3s pattern 4 intensity 1": (messages.AlarmControl.doMsg --duration=3 --buzzerPattern=4 --buzzerIntensity=1).bytesForProtocol,
     },
-    "$(messages.Lora.MT) LORA": {
-      "Transmit lblb, receive 10s": (messages.Lora.doMsg --payload="lblb".to-byte-array --receiveMs=10000).bytesForProtocol,
-      "Subscribe": (messages.Lora.subscribeMsg).bytesForProtocol,
-      "Unsubscribe": (messages.Lora.unsubscribeMsg).bytesForProtocol,
+    "$(messages.Lora.MT) LORA, Transmit & Receive for 10s": {
+      "Lightbug": (messages.Lora.doMsg --payload="Lightbug".to-byte-array --receiveMs=10000).bytesForProtocol,
+      "MWC": (messages.Lora.doMsg --payload="MWC".to-byte-array --receiveMs=10000).bytesForProtocol,
+      "2025": (messages.Lora.doMsg --payload="2025".to-byte-array --receiveMs=10000).bytesForProtocol,
+      // "Subscribe": (messages.Lora.subscribeMsg).bytesForProtocol, // Don't have a subscribe button, just ask for subscription on startup
+      // "Unsubscribe": (messages.Lora.unsubscribeMsg).bytesForProtocol,
     },
     // "GSM": {
     //     "SET Normal mode": #[0x03, 0x17, 0x00, 0x31, 0x00, 0x01, 0x00, 0x05, 0x01, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x75, 0x30],
