@@ -89,7 +89,10 @@ html-page device/devices.Device docsUrl/string custom-actions/Map -> string:
             console.error('Error:', error);
         });
     }
+    let fetching = false;
     function poll() {
+        if (fetching) return;
+        fetching = true;
         fetch('/poll')
         .then(response => response.text())
         .then(text => {
@@ -117,6 +120,9 @@ html-page device/devices.Device docsUrl/string custom-actions/Map -> string:
         })
         .catch((error) => {
             console.error('Error:', error);
+        })
+        .finally(() => {
+            fetching = false;
         });
     }
     setInterval(poll, 2000);
