@@ -37,6 +37,10 @@ sample-messages := {
         "200ms 1khz": (messages.BuzzerControl.doMsg --duration=200 --frequency=1.0 ).bytesForProtocol,
         "2s Ambulance": (messages.BuzzerControl.doMsg --duration=2000 --soundType=messages.BuzzerControl.SOUND_AMBULANCE --intensity=1 ).bytesForProtocol,
     },
+    "$(messages.BuzzerSequence.MT) Buzzer Sequence": {
+        "Starwars": (messages.BuzzerSequence.doMsg [0.440, 0.0, 0.440, 0.0, 0.440, 0.0, 0.349, 0.0, 0.523, 0.0, 0.440, 0.0,  0.349, 0.0, 0.523, 0.0, 0.440, 0.0, 0.659, 0.0, 0.659, 0.0, 0.659, 0.0,  0.698, 0.0, 0.523, 0.0, 0.415, 0.0, 0.349, 0.0, 0.523, 0.0, 0.440] [400, 50, 400, 50, 400, 50, 300, 50, 100, 50, 400, 50,  300, 50, 100, 50, 800, 50, 400, 50, 400, 50, 400, 50,  300, 50, 100, 50, 400, 50, 300, 50, 100, 50, 800]).bytesForProtocol,
+        // "Nokia_Tune": (messages.BuzzerSequence.doMsg [ 1.318, 0.0, 1.174, 0.0, 1.480, 0.0, 1.662, 0.0, 1.108, 0.0, 0.988, 0.0, 1.174, 0.0, 1.318, 0.0, 0.988, 0.0, 0.880, 0.0, 1.108, 0.0, 1.318, 0.0, 0.880 ] [75, 50, 75, 50, 150, 50, 150, 50, 75, 50, 75, 50, 150, 50, 150, 50, 75, 50, 75, 50, 150, 50, 150, 50, 500]).bytesForProtocol,
+    },
     "$(messages.AlarmControl.MT) Alarm": {
         "Duration 0": (messages.AlarmControl.doMsg --duration=0).bytesForProtocol,
         "3s pattern 4 intensity 1": (messages.AlarmControl.doMsg --duration=3 --buzzerPattern=4 --buzzerIntensity=1).bytesForProtocol,

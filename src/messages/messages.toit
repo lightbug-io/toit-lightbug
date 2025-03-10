@@ -15,6 +15,7 @@ import .m42-buzzer-control show BuzzerControl
 import .m43-battery-status show BatteryStatus
 import .m44-pressure show Pressure
 import .m45-alarm-control show AlarmControl
+import .m46-buzzer-sequence show BuzzerSequence
 import .m50-link-control show LinkControl
 import .m1004-lora show Lora
 import .m10008-preset-page show PresetPage

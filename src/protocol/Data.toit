@@ -228,6 +228,12 @@ class Data:
       LITTLE-ENDIAN.put-uint32 b (i * 4) data[i]
     addData dataType b
   
+  addDataListFloat32 dataType/int data/List -> none:
+    b := ByteArray data.size * 4
+    for i := 0; i < data.size; i++:
+      LITTLE-ENDIAN.put-float32 b (i * 4) data[i]
+    addData dataType b
+  
   getDataListUint32 dataType/int -> List:
     data := getData dataType
     if data.size % 4 != 0:
