@@ -126,7 +126,6 @@ html-page device/devices.Device docsUrl/string custom-actions/Map -> string:
         });
     }
     setInterval(poll, 2000);
-    let fetching = false;
 </script>
 </body></html>"""
 
