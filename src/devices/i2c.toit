@@ -4,19 +4,19 @@ import io
 import log
 import io.byte-order show LITTLE-ENDIAN
 
-I2C_ADDRESS_LIGHTBUG := 0x1b
+I2C-ADDRESS-LIGHTBUG := 0x1b
 
-I2C_COMMAND_LIGHTBUG_READABLE_BYTES := 0x01 // Get the number of bytes available to read
-I2C_COMMAND_LIGHTBUG_READ := 0x02 // Read data
-I2C_COMMAND_LIGHTBUG_WRITE := 0x03 // Write data
-I2C_COMMAND_LIGHTBUG_WRITEABLE_BYTES := 0x04 // Get the number of bytes available to write
+I2C-COMMAND-LIGHTBUG-READABLE-BYTES := 0x01 // Get the number of bytes available to read
+I2C-COMMAND-LIGHTBUG-READ := 0x02 // Read data
+I2C-COMMAND-LIGHTBUG-WRITE := 0x03 // Write data
+I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES := 0x04 // Get the number of bytes available to write
 
 LBI2CDevice --sda/int --scl/int -> i2c.Device:
   bus := i2c.Bus
     --sda=gpio.Pin sda
     --scl=gpio.Pin scl
     --frequency=400_000
-  return bus.device I2C_ADDRESS_LIGHTBUG
+  return bus.device I2C-ADDRESS-LIGHTBUG
 
 class Reader extends io.Reader with io.InMixin:
   device /i2c.Device
@@ -43,7 +43,7 @@ class Reader extends io.Reader with io.InMixin:
     while loops <= 5:
       loops++
       // log.debug "Getting number of bytes available to read, loop $loops"
-      lenBytes := device.read-address #[I2C_COMMAND_LIGHTBUG_READABLE_BYTES] 2
+      lenBytes := device.read-address #[I2C-COMMAND-LIGHTBUG-READABLE-BYTES] 2
       lenInt := LITTLE-ENDIAN.uint16 lenBytes 0
       allExpected = allExpected + lenInt
       
@@ -61,7 +61,7 @@ class Reader extends io.Reader with io.InMixin:
       while lenInt > 0:
         chunkSize := min lenInt 254
         log.debug "Reading chunk of $chunkSize bytes stage 1"
-        device.write #[I2C_COMMAND_LIGHTBUG_READ, chunkSize]
+        device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
         log.debug "Reading chunk of $chunkSize bytes stage 2"
         b := device.read chunkSize
         if b.size != chunkSize:
@@ -106,7 +106,7 @@ class Writer extends io.Writer with io.OutMixin:
     // TODO could refactor this to send in smaller chunks if needed?!
     while canWriteBytes == 0:
       log.debug "Updating or waiting for writeable bytes"
-      lenBytes := device.read-address #[I2C_COMMAND_LIGHTBUG_WRITEABLE_BYTES] 2
+      lenBytes := device.read-address #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
       canWriteBytes = LITTLE-ENDIAN.uint16 lenBytes 0
       log.debug "Can write $canWriteBytes bytes"
       if canWriteBytes == 0:
@@ -127,7 +127,7 @@ class Writer extends io.Writer with io.OutMixin:
       log.debug "Bytes: $bytes[currentIndex..readToIndex]"
       sendLen := #[0]
       LITTLE-ENDIAN.put-uint8 sendLen 0 writing
-      device.write-address #[I2C_COMMAND_LIGHTBUG_WRITE] sendLen + bytes[currentIndex..readToIndex]
+      device.write-address #[I2C-COMMAND-LIGHTBUG-WRITE] sendLen + bytes[currentIndex..readToIndex]
       written += writing
       canWriteBytes -= writing
       currentIndex = readToIndex
