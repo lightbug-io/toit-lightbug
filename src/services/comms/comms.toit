@@ -98,10 +98,6 @@ class Comms:
     // Keep going until we find a message
     while true:
       yield
-
-      while not device_.in.try-ensure-buffered 1:
-        log.debug "Inbound reader waiting for 1 byte"
-        yield
       
       // Look for the next byte that is 3, which could indicate our protocol version
       if device_.in.peek-byte != 3:
