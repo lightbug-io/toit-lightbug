@@ -6,7 +6,7 @@ import lightbug.services as services
 // Any received messages are also printed to the console.
 main:
   // This example is setup to work with the RH2 device
-  device := devices.RH2
+  device := devices.RtkHandheld2
 
   // Setup the comms service, which allows communication with the Lightbug device
   comms := services.Comms --device=device
