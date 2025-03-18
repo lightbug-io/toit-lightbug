@@ -32,7 +32,12 @@ class HttpMsg:
     device_ = device
     device-comms_ = device-comms
     custom-actions_ = custom-actions
-    response-message-formatter_ = response-message-formatter
+    if response-message-formatter != null:
+      response-message-formatter_ = response-message-formatter
+    else:
+      response-message-formatter_ = (:: | writer msg prefix |
+        writer.out.write "$(prefix) $(stringifyAllBytes msg.bytesForProtocol --short=true --commas=false --hex=false)\n"
+      )
 
     // This service always wants us to be subscribing to LORA data (if possible)
     device-comms.send messages.Lora.subscribeMsg
