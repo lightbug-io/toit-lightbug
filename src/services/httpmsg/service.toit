@@ -105,7 +105,7 @@ class HttpMsg:
       tasksWaiting++
       task::
         response := msgLatch.get
-        if response == false:
+        if not response:
           writer.out.write "$(msg.msgId) No response...\n"
         else:
           write-msg-out writer response

@@ -217,7 +217,7 @@ class Comms:
       yield
 
       // If there are no waiting lambdas for the msg id, then latchForMessage can be released
-      if (lambdasForBadAck.contains respondingTo) == false and (lambdasForGoodAck.contains respondingTo) == false and (lambdasForBadResponse.contains respondingTo) == false and (lambdasForGoodResponse.contains respondingTo) == false:
+      if not lambdasForBadAck.contains respondingTo and not lambdasForGoodAck.contains respondingTo and not lambdasForBadResponse.contains respondingTo and not lambdasForGoodResponse.contains respondingTo:
         // Remove remaining timeouts, and release the latch
         if waitTimeouts.contains respondingTo:
           waitTimeouts.remove respondingTo
