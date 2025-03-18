@@ -13,50 +13,50 @@ class TextPage extends protocol.Data:
 
   static toMsg --pageId/int --pageTitle/string?=null --statusBar/bool?=false --line1/string?=null --line2/string?=null --line3/string?=null --line4/string?=null --line5/string?=null -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUint PAGE-ID pageId
+    msg.data.add-data-uint PAGE-ID pageId
     if pageTitle:
-        msg.data.addDataAscii PAGE-TITLE pageTitle
+        msg.data.add-data-ascii PAGE-TITLE pageTitle
     if statusBar:
-        msg.data.addDataUint8 STATUS-BAR 1
+        msg.data.add-data-uint8 STATUS-BAR 1
     if line1:
-        msg.data.addDataAscii LINE-1 line1
+        msg.data.add-data-ascii LINE-1 line1
     if line2:
-        msg.data.addDataAscii LINE-2 line2
+        msg.data.add-data-ascii LINE-2 line2
     if line3:
-        msg.data.addDataAscii LINE-3 line3
+        msg.data.add-data-ascii LINE-3 line3
     if line4:
-        msg.data.addDataAscii LINE-4 line4
+        msg.data.add-data-ascii LINE-4 line4
     if line5:
-        msg.data.addDataAscii LINE-5 line5
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
+        msg.data.add-data-ascii LINE-5 line5
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   pageId -> int:
-    return getDataUint PAGE-ID
+    return get-data-uint PAGE-ID
 
   pageTitle -> string:
-    return getDataAscii PAGE-TITLE
+    return get-data-ascii PAGE-TITLE
 
   statusBar -> int:
-    return getDataUint8 STATUS-BAR
+    return get-data-uint8 STATUS-BAR
 
   line1 -> string:
-    return getDataAscii LINE-1
+    return get-data-ascii LINE-1
 
   line2 -> string:
-    return getDataAscii LINE-2
+    return get-data-ascii LINE-2
 
   line3 -> string:
-    return getDataAscii LINE-3
+    return get-data-ascii LINE-3
 
   line4 -> string:
-    return getDataAscii LINE-4
+    return get-data-ascii LINE-4
 
   line5 -> string:
-    return getDataAscii LINE-5
+    return get-data-ascii LINE-5
 
   stringify -> string:
     return {

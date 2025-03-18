@@ -7,14 +7,14 @@ class LinkControl extends protocol.Data:
   static ENABLE := 3
 
   constructor --ip/string --port/int --enable/bool:
-    this.addDataAscii ADDRESS ip
-    this.addDataUint16 PORT port
-    this.addDataUint8 ENABLE (if enable: 1 else: 0)
+    this.add-data-ascii ADDRESS ip
+    this.add-data-uint16 PORT port
+    this.add-data-uint8 ENABLE (if enable: 1 else: 0)
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   msg -> protocol.Message:
-    msg := protocol.Message.withData MT this
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
+    msg := protocol.Message.with-data MT this
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg

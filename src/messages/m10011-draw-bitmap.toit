@@ -14,45 +14,45 @@ class DrawBitmap extends protocol.Data:
   static toMsg --pageId/int?=null --bitmapX/int=0 --bitmapY/int=0 --bitmapWidth/int --bitmapHeight/int --bitmapData/ByteArray --bitmapOverlay/bool=false --dontDraw/bool=false -> protocol.Message:
     msg := protocol.Message MT
     if pageId:
-      msg.data.addDataUint PAGE-ID pageId
-    msg.data.addDataUint BITMAP-X bitmapX
-    msg.data.addDataUint BITMAP-Y bitmapY
-    msg.data.addDataUint BITMAP-WIDTH bitmapWidth
-    msg.data.addDataUint BITMAP-HEIGHT bitmapHeight
-    msg.data.addData BITMAP-DATA bitmapData
+      msg.data.add-data-uint PAGE-ID pageId
+    msg.data.add-data-uint BITMAP-X bitmapX
+    msg.data.add-data-uint BITMAP-Y bitmapY
+    msg.data.add-data-uint BITMAP-WIDTH bitmapWidth
+    msg.data.add-data-uint BITMAP-HEIGHT bitmapHeight
+    msg.data.add-data BITMAP-DATA bitmapData
     if bitmapOverlay:
-      msg.data.addDataUint8 BITMAP-OVERLAY 1
+      msg.data.add-data-uint8 BITMAP-OVERLAY 1
     if dontDraw:
-      msg.data.addDataUint8 DONT-DRAW 1
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
+      msg.data.add-data-uint8 DONT-DRAW 1
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   pageId -> int:
-    return getDataUint PAGE-ID
+    return get-data-uint PAGE-ID
 
   bitmapX -> int:
-    return getDataUint BITMAP-X
+    return get-data-uint BITMAP-X
 
   bitmapY -> int:
-    return getDataUint BITMAP-Y
+    return get-data-uint BITMAP-Y
 
   bitmapWidth -> int:
-    return getDataUint BITMAP-WIDTH
+    return get-data-uint BITMAP-WIDTH
 
   bitmapHeight -> int:
-    return getDataUint BITMAP-HEIGHT
+    return get-data-uint BITMAP-HEIGHT
 
   bitmapData -> ByteArray:
-    return getData BITMAP-DATA
+    return get-data BITMAP-DATA
 
   bitmapOverlay -> int:
-    return getDataUint8 BITMAP-OVERLAY
+    return get-data-uint8 BITMAP-OVERLAY
 
   dontDraw -> int:
-    return getDataUint8 DONT-DRAW
+    return get-data-uint8 DONT-DRAW
 
   stringify -> string:
     return {

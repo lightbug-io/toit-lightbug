@@ -19,75 +19,75 @@ class AlarmControl extends protocol.Data:
     static doMsg --legacyAlarmAction/int?=null --duration/int?=null --buzzerPattern/int?=null --buzzerIntensity/int?=null --hapticsPattern/int?=null --hapticsIntensity/int?=null --strobePattern/int?=null --strobeIntensity/int?=null --promptMessage/string?=null --promptTimeout/int?=null --promptButton1Text/string?=null --promptButton2Text/string?=null --promptButton3Text/string?=null -> protocol.Message:
         msg := protocol.Message MT
         if legacyAlarmAction:
-            msg.data.addDataUint32 LEGACY-ALARM-ACTION legacyAlarmAction
+            msg.data.add-data-uint32 LEGACY-ALARM-ACTION legacyAlarmAction
         if duration:
-            msg.data.addDataUint8 DURATION duration
+            msg.data.add-data-uint8 DURATION duration
         if buzzerPattern:
-            msg.data.addDataUint8 BUZZER-PATTERN buzzerPattern
+            msg.data.add-data-uint8 BUZZER-PATTERN buzzerPattern
         if buzzerIntensity:
-            msg.data.addDataUint8 BUZZER-INTENSITY buzzerIntensity
+            msg.data.add-data-uint8 BUZZER-INTENSITY buzzerIntensity
         if hapticsPattern:
-            msg.data.addDataUint8 HAPTICS-PATTERN hapticsPattern
+            msg.data.add-data-uint8 HAPTICS-PATTERN hapticsPattern
         if hapticsIntensity:
-            msg.data.addDataUint8 HAPTICS-INTENSITY hapticsIntensity
+            msg.data.add-data-uint8 HAPTICS-INTENSITY hapticsIntensity
         if strobePattern:
-            msg.data.addDataUint8 STROBE-PATTERN strobePattern
+            msg.data.add-data-uint8 STROBE-PATTERN strobePattern
         if strobeIntensity:
-            msg.data.addDataUint8 STROBE-INTENSITY strobeIntensity
+            msg.data.add-data-uint8 STROBE-INTENSITY strobeIntensity
         if promptMessage:
-            msg.data.addDataAscii PROMPT-MESSAGE promptMessage
+            msg.data.add-data-ascii PROMPT-MESSAGE promptMessage
         if promptTimeout:
-            msg.data.addDataUint8 PROMPT-TIMEOUT promptTimeout
+            msg.data.add-data-uint8 PROMPT-TIMEOUT promptTimeout
         if promptButton1Text:
-            msg.data.addDataAscii PROMPT-BUTTON-1-TEXT promptButton1Text
+            msg.data.add-data-ascii PROMPT-BUTTON-1-TEXT promptButton1Text
         if promptButton2Text:
-            msg.data.addDataAscii PROMPT-BUTTON-2-TEXT promptButton2Text
+            msg.data.add-data-ascii PROMPT-BUTTON-2-TEXT promptButton2Text
         if promptButton3Text:
-            msg.data.addDataAscii PROMPT-BUTTON-3-TEXT promptButton3Text
-        msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
+            msg.data.add-data-ascii PROMPT-BUTTON-3-TEXT promptButton3Text
+        msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
         return msg
 
-    constructor.fromData data/protocol.Data:
-        super.fromData data
+    constructor.from-data data/protocol.Data:
+        super.from-data data
 
     legacyAlarmAction -> int:
-        return getDataUint32 LEGACY-ALARM-ACTION
+        return get-data-uint32 LEGACY-ALARM-ACTION
 
     duration -> int:
-        return getDataUint8 DURATION
+        return get-data-uint8 DURATION
 
     buzzerPattern -> int:
-        return getDataUint8 BUZZER-PATTERN
+        return get-data-uint8 BUZZER-PATTERN
 
     buzzerIntensity -> int:
-        return getDataUint8 BUZZER-INTENSITY
+        return get-data-uint8 BUZZER-INTENSITY
 
     hapticsPattern -> int:
-        return getDataUint8 HAPTICS-PATTERN
+        return get-data-uint8 HAPTICS-PATTERN
 
     hapticsIntensity -> int:
-        return getDataUint8 HAPTICS-INTENSITY
+        return get-data-uint8 HAPTICS-INTENSITY
 
     strobePattern -> int:
-        return getDataUint8 STROBE-PATTERN
+        return get-data-uint8 STROBE-PATTERN
 
     strobeIntensity -> int:
-        return getDataUint8 STROBE-INTENSITY
+        return get-data-uint8 STROBE-INTENSITY
 
     promptMessage -> string:
-        return getDataAscii PROMPT-MESSAGE
+        return get-data-ascii PROMPT-MESSAGE
 
     promptTimeout -> int:
-        return getDataUint8 PROMPT-TIMEOUT
+        return get-data-uint8 PROMPT-TIMEOUT
 
     promptButton1Text -> string:
-        return getDataAscii PROMPT-BUTTON-1-TEXT
+        return get-data-ascii PROMPT-BUTTON-1-TEXT
 
     promptButton2Text -> string:
-        return getDataAscii PROMPT-BUTTON-2-TEXT
+        return get-data-ascii PROMPT-BUTTON-2-TEXT
 
     promptButton3Text -> string:
-        return getDataAscii PROMPT-BUTTON-3-TEXT
+        return get-data-ascii PROMPT-BUTTON-3-TEXT
 
     stringify -> string:
         return {

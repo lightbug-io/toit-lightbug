@@ -4,7 +4,7 @@ import ...services as services
 import ...messages as messages
 import ...util.resilience show catchAndRestart
 import ...util.docs show docsUrl
-import ...util.bytes show stringifyAllBytes
+import ...util.bytes show stringify-all-bytes
 import .html
 import http
 import net
@@ -36,7 +36,7 @@ class HttpMsg:
       response-message-formatter_ = response-message-formatter
     else:
       response-message-formatter_ = (:: | writer msg prefix |
-        writer.out.write "$(prefix) $(stringifyAllBytes msg.bytesForProtocol --short=true --commas=false --hex=false)\n"
+        writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
       )
 
     // This service always wants us to be subscribing to LORA data (if possible)
@@ -93,14 +93,14 @@ class HttpMsg:
       line = line.replace "  " " "
       byteList := []
       ((line.split " ").do: |s| byteList.add (int.parse s))
-      msg := protocol.Message.fromList byteList
+      msg := protocol.Message.from-list byteList
       // TODO detect invalid msg and let the user know..
       msgLatch := device-comms_.send msg
         --now=true
         --withLatch=true
         --timeout=(Duration --ms=5000) // 5s timeout so that /post requests don't need to remain open for ages
-        --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringifyAllBytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
-        --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringifyAllBytes msg.bytesForProtocol --short=true --commas=false --hex=false)\n")
+        --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
+        --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
       // Wait for the response (async), so that we can still send the next message
       tasksWaiting++
       task::
@@ -118,7 +118,7 @@ class HttpMsg:
     if response-message-formatter_ != null:
       response-message-formatter_.call writer msg "$(msg.msgId) Response $(msg.msgId):"
     else:
-      writer.out.write "$(msg.msgId) Response $(msg.msgId): $(stringifyAllBytes msg.bytesForProtocol --short=true --commas=false --hex=false)\n"
+      writer.out.write "$(msg.msgId) Response $(msg.msgId): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
 
   // It might be more efficient to store messages that have been received, to send
   // TODO having a "force-send" on monitor would be nice..

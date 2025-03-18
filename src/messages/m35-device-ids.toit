@@ -8,20 +8,20 @@ class DeviceIds extends protocol.Data:
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   id -> int:
-    return getDataUint ID
+    return get-data-uint ID
 
   imei -> string:
-    return getDataAscii IMEI
+    return get-data-ascii IMEI
 
   iccid -> string:
-    return getDataAscii ICCID
+    return get-data-ascii ICCID
 
   stringify -> string:
     return {

@@ -7,5 +7,5 @@ class PresetPage extends protocol.Data:
     msg := protocol.Message MT
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data

@@ -4,7 +4,7 @@ import ...messages as messages
 import ...util.docs show messageBytesToDocsURL
 import ...util.resilience show catchAndRestart
 import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
-import ...util.bytes show stringifyAllBytes byteArrayToList
+import ...util.bytes show stringify-all-bytes byteArrayToList
 import io.reader show Reader
 import io.writer show Writer
 import encoding.url
@@ -142,10 +142,10 @@ class Comms:
         expectedChecksumBytes := [messageBytes[messageLength - 2], messageBytes[messageLength - 1]]
 
         // And parse it as a protocol.Message
-        v3 := protocol.Message.fromList ( byteArrayToList messageBytes )
+        v3 := protocol.Message.from-list ( byteArrayToList messageBytes )
 
         // Calculate the checksum of the message data
-        calculatedChecksum := v3.checksumCalc
+        calculatedChecksum := v3.checksum-calc
         // calculatedChecksumBytes is LE uint16 of calculatedChecksum
         calculatedChecksumBytes := [calculatedChecksum & 0xFF, calculatedChecksum >> 8]
 
@@ -162,7 +162,7 @@ class Comms:
       if e:
         // output a row of red cross emojis
         log.error " ❌ " * 20
-        log.error "Error parsing message (probably garbeled): " + e.stringify + " " + ( stringifyAllBytes messageBytes)
+        log.error "Error parsing message (probably garbeled): " + e.stringify + " " + ( stringify-all-bytes messageBytes)
         log.error " ❌ " * 20
         // Read a byte, and continue looking for a message
         device_.in.read-byte
@@ -182,10 +182,10 @@ class Comms:
     // Process awaiting lambdas
     // TODO possibly have a timeout for the age of waiting for a response?
     // That could be its own lambda to act on, but also remove the lambdas from the list
-    if msg.header.data.hasData protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
-      respondingTo := msg.header.data.getDataUint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
-      isAck := msg.header.messageType == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
-      isBad := msg.header.data.hasData protocol.Header.TYPE-MESSAGE-STATUS and msg.msgStatus > 0
+    if msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
+      respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
+      isAck := msg.header.message-type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
+      isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
       if isAck:
         if isBad:
           if lambdasForBadAck.contains respondingTo:
@@ -244,8 +244,8 @@ class Comms:
     log.debug "Sending (and) message: " + msg.stringify + " " + ( messageBytesToDocsURL msg.bytes )
   
     // Ensure the message has a known message id
-    if not (msg.header.data.hasData protocol.Header.TYPE-MESSAGE-ID):
-      msg.header.data.addDataUint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+    if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
     latch := monitor.Latch
     
@@ -286,15 +286,15 @@ class Comms:
     // TODO don't call this on both the outbox and regular paths, as it is messy
     if now:
       // Ensure the message has a known message id
-      if not (msg.header.data.hasData protocol.Header.TYPE-MESSAGE-ID):
-        msg.header.data.addDataUint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+      if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
+        msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
       // TODO only send sync bytes on UART?
       m := LBSyncBytes_ + msg.bytes
 
       // Send the message
       device_.out.write m --flush=true
-      log.debug "SNT msg: " + (stringifyAllBytes m) + " " + ( messageBytesToDocsURL m )
+      log.debug "SNT msg: " + (stringify-all-bytes m) + " " + ( messageBytesToDocsURL m )
     else:
       sendViaOutbox msg
       log.debug "SNT (outbox) msg of type: " + msg.type.stringify + " " + ( messageBytesToDocsURL msg.bytes )
@@ -314,7 +314,7 @@ class Comms:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
     if bytes.size < 500:
-      log.debug "SNT raw: " + (stringifyAllBytes bytes) + " " + ( messageBytesToDocsURL bytes )
+      log.debug "SNT raw: " + (stringify-all-bytes bytes) + " " + ( messageBytesToDocsURL bytes )
     else:
       log.debug "SNT raw: " + bytes.size.stringify + " bytes"
 

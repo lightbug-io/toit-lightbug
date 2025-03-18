@@ -30,38 +30,38 @@ class MenuPage extends protocol.Data:
 
   static toMsg --pageId/int --pageTitle/string?=null --initialItemSelection/int?=null --items/List -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUint8 ITEM-COUNT items.size
-    msg.data.addDataUint PAGE-ID pageId
+    msg.data.add-data-uint8 ITEM-COUNT items.size
+    msg.data.add-data-uint PAGE-ID pageId
     if pageTitle:
-      msg.data.addDataAscii PAGE-TITLE pageTitle
+      msg.data.add-data-ascii PAGE-TITLE pageTitle
     if initialItemSelection:
-      msg.data.addDataUint8 INITIAL-ITEM-SELECTION initialItemSelection
+      msg.data.add-data-uint8 INITIAL-ITEM-SELECTION initialItemSelection
     i := 0
     items.do: 
-     msg.data.addDataAscii (ITEM-1 + i) it
+     msg.data.add-data-ascii (ITEM-1 + i) it
      i += 1     
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   itemCount -> int:
-    return getDataUint8 ITEM-COUNT
+    return get-data-uint8 ITEM-COUNT
 
   pageId -> int:
-    return getDataUint PAGE-ID
+    return get-data-uint PAGE-ID
 
   pageTitle -> string:
-    return getDataAscii PAGE-TITLE
+    return get-data-ascii PAGE-TITLE
 
   initialItemSelection -> int:
-    return getDataUint8 INITIAL-ITEM-SELECTION
+    return get-data-uint8 INITIAL-ITEM-SELECTION
 
   items -> List:
     items := []
     i := 0
     20.repeat:
-      item := getDataAscii (ITEM-1 + it)
+      item := get-data-ascii (ITEM-1 + it)
       if item != "":
         items.add item
     return items

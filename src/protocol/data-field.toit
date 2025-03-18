@@ -9,7 +9,7 @@ class DataField:
   stringify -> string:
     return dataBytes_.stringify
 
-  bytesForProtocol -> ByteArray:
+  bytes-for-protocol -> ByteArray:
       b := ByteArray dataBytes_.size + 1
       b[0] = dataBytes_.size
       b.replace 1 dataBytes_ 0 dataBytes_.size

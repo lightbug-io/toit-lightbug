@@ -1,4 +1,4 @@
-import ...util.bytes show stringifyAllBytes
+import ...util.bytes show stringify-all-bytes
 import ...devices as devices
 import .msgs
 
@@ -146,7 +146,7 @@ generate-msg-buttons device/devices.Device custom-actions/Map -> string:
               unsupported = true
         if not unsupported:
           hasEntries = true
-          sectionHtml = sectionHtml + """<input type="button" value="$action" onclick="submit('$(stringifyAllBytes sample-messages[key][action] --short=true --commas=false --hex=false)')">\n"""
+          sectionHtml = sectionHtml + """<input type="button" value="$action" onclick="submit('$(stringify-all-bytes sample-messages[key][action] --short=true --commas=false --hex=false)')">\n"""
       sectionHtml = sectionHtml + """<br>\n"""
       if hasEntries:
         dynamicHtml = dynamicHtml + sectionHtml

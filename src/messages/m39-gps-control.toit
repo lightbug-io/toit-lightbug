@@ -13,33 +13,33 @@ class GPSControl extends protocol.Data:
 
   static setMsg --gpsEnable/int --rtkEnableCorrection/int --startMode/int?=null -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUint8 GPS-ENABLE gpsEnable
-    msg.data.addDataUint8 RTK-ENABLE-CORRECTION rtkEnableCorrection
+    msg.data.add-data-uint8 GPS-ENABLE gpsEnable
+    msg.data.add-data-uint8 RTK-ENABLE-CORRECTION rtkEnableCorrection
     if startMode != null:
-      msg.data.addDataUint8 START-MODE startMode
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
+      msg.data.add-data-uint8 START-MODE startMode
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   constructor --gps/bool --rtk/bool:
-    this.addDataUint8 GPS-ENABLE (if gps: 1 else: 0)
-    this.addDataUint8 RTK-ENABLE-CORRECTION (if rtk: 1 else: 0)
+    this.add-data-uint8 GPS-ENABLE (if gps: 1 else: 0)
+    this.add-data-uint8 RTK-ENABLE-CORRECTION (if rtk: 1 else: 0)
 
   gpsEnable -> int:
-    return getDataUint8 GPS-ENABLE
+    return get-data-uint8 GPS-ENABLE
 
   rtkEnableCorrection -> int:
-    return getDataUint8 RTK-ENABLE-CORRECTION
+    return get-data-uint8 RTK-ENABLE-CORRECTION
 
   startMode -> int:
-    return getDataUint8 START-MODE
+    return get-data-uint8 START-MODE
 
   stringify -> string:
     return {

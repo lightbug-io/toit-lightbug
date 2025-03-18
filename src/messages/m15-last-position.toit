@@ -20,24 +20,24 @@ class LastPosition extends protocol.Data:
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
   
   msg -> protocol.Message:
-    return protocol.Message.withData MT this
+    return protocol.Message.with-data MT this
   
   static subscribeMsg --intervalms/int -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    msg.header.data.addDataUint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL intervalms // must be uint32
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
+    msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL intervalms // must be uint32
     return msg
 
   timestamp -> int:
     // TODO return a typed value
-    return getDataUint TIMESTAMP
+    return get-data-uint TIMESTAMP
   coordinate -> Coordinate:
     return Coordinate latitude longitude
   latitude -> float:
@@ -49,29 +49,29 @@ class LastPosition extends protocol.Data:
   longitudeFixed -> FixedPoint:
     return ( FixedPoint --decimals=7 longitude-float )
   latitude-float -> float:
-    return ( getDataIntn LATITUDE) / LAT-LON-RAW-ADJUSTMENT
+    return ( get-data-intn LATITUDE) / LAT-LON-RAW-ADJUSTMENT
   longitude-float -> float:
-    return ( getDataIntn LONGITUDE) / LAT-LON-RAW-ADJUSTMENT
+    return ( get-data-intn LONGITUDE) / LAT-LON-RAW-ADJUSTMENT
   latitude-raw -> int:
-    return getDataIntn LATITUDE
+    return get-data-intn LATITUDE
   longitude-raw -> int:
-    return getDataIntn LONGITUDE
+    return get-data-intn LONGITUDE
   altitude -> int:
-    return getDataUint ALTITUDE
+    return get-data-uint ALTITUDE
   accuracy -> int:
-    return getDataUint ACCURACY
+    return get-data-uint ACCURACY
   course-over-ground -> int:
-    return getDataUint COURSE-OVER-GROUND
+    return get-data-uint COURSE-OVER-GROUND
   speed -> int:
-    return getDataUint SPEED
+    return get-data-uint SPEED
   number-of-satellites -> int:
-    return getDataUint NUMBER-OF-SATELLITES
+    return get-data-uint NUMBER-OF-SATELLITES
   average-cn0 -> int:
-    return getDataUint AVERAGE-CN0
+    return get-data-uint AVERAGE-CN0
   position-type -> int:
-    return getDataUint POSITION-TYPE
+    return get-data-uint POSITION-TYPE
   position-source -> int:
-    return getDataUint POSITION-SOURCE
+    return get-data-uint POSITION-SOURCE
 
   stringify -> string:
     return {

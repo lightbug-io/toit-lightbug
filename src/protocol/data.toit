@@ -11,11 +11,11 @@ class Data:
     dataTypes_ = []
     data_ = []
   
-  constructor.fromData data/Data:
+  constructor.from-data data/Data:
     dataTypes_ = data.dataTypes_
     data_ = data.data_
 
-  constructor.fromList bytes/List:
+  constructor.from-list bytes/List:
     if bytes.size < 2:
       throw "V3 OUT_OF_BOUNDS: Not enough bytes to read fields, expected 2 bytes but only have " + bytes.size.stringify
     fields := (bytes[1] << 8) + bytes[0]
@@ -39,11 +39,11 @@ class Data:
         throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data, expected " + (index + length).stringify + " bytes but only have " + bytes.size.stringify
       index += length
       // log.debug "Data data bytes: " + bytes[index - length..index].stringify
-      dataField := DataField (listToByteArray bytes[index - length..index])
+      dataField := DataField (list-to-byte-array bytes[index - length..index])
       data_.add dataField
       // log.debug "Data data: " + dataField.stringify
   
-  constructor.fromBytes bytes/ByteArray:
+  constructor.from-bytes bytes/ByteArray:
     if bytes.size < 2:
       throw "V3 OUT_OF_BOUNDS: Not enough bytes to read fields, expected 2 bytes but only have " + bytes.size.stringify
     fields := LITTLE-ENDIAN.uint16 bytes 0
@@ -77,58 +77,58 @@ class Data:
       s += dataTypes_[i].stringify + ": " + data_[i].stringify + ", "
     return s
 
-  addDataAscii dataType/int data/string -> none:
-    addData dataType data.to-byte-array
+  add-data-ascii dataType/int data/string -> none:
+    add-data dataType data.to-byte-array
 
-  addDataUint8 dataType/int data/int -> none:
-    addData dataType #[data]
+  add-data-uint8 dataType/int data/int -> none:
+    add-data dataType #[data]
 
-  addDataUint16 dataType/int data/int -> none:
-    addData dataType #[data & 0xFF, data >> 8]
+  add-data-uint16 dataType/int data/int -> none:
+    add-data dataType #[data & 0xFF, data >> 8]
 
-  addDataUint32 dataType/int data/int -> none:
+  add-data-uint32 dataType/int data/int -> none:
     b := #[0,0,0,0]
     LITTLE-ENDIAN.put-uint32 b 0 data
-    addData dataType b
+    add-data dataType b
 
-  addDataInt32 dataType/int data/int -> none:
+  add-data-int32 dataType/int data/int -> none:
     b := #[0,0,0,0]
     LITTLE-ENDIAN.put-int32 b 0 data
-    addData dataType b
+    add-data dataType b
 
-  addDataUint64 dataType/int data/int -> none:
+  add-data-uint64 dataType/int data/int -> none:
     b := #[0,0,0,0,0,0,0,0]
     LITTLE-ENDIAN.put-uint b 8 0 data
-    addData dataType b
+    add-data dataType b
   
-  addDataUint dataType/int data/int -> none:
+  add-data-uint dataType/int data/int -> none:
     if data < 256:
-      addDataUint8 dataType data
+      add-data-uint8 dataType data
     else if data < 65536:
-      addDataUint16 dataType data
+      add-data-uint16 dataType data
     else if data < 16777216:
-      addDataUint32 dataType data
+      add-data-uint32 dataType data
     else if data < 4294967296:
-      addDataUint32 dataType data
+      add-data-uint32 dataType data
     else if data < 1099511627776:
-      addDataUint64 dataType data
+      add-data-uint64 dataType data
     else:
       log.error "Data too large for uintn: " + data.stringify
 
-  addDataFloat32 dataType/int data/float -> none:
+  add-data-float32 dataType/int data/float -> none:
     b := #[0,0,0,0]
     LITTLE-ENDIAN.put-float32 b 0 data
-    addData dataType b
+    add-data dataType b
 
-  addData dataType/int data/ByteArray -> none:
+  add-data dataType/int data/ByteArray -> none:
     data_.add (DataField data)
     dataTypes_.add dataType
 
   // TODO kill this method
-  addDataList dataType/int data/List -> none:
-    addData dataType (listToByteArray data)
+  add-data-list dataType/int data/List -> none:
+    add-data dataType (list-to-byte-array data)
 
-  hasData dataType/int -> bool:
+  has-data dataType/int -> bool:
     e := catch:
       for i := 0; i < dataTypes_.size; i++:
         if dataTypes_[i] == dataType:
@@ -138,7 +138,7 @@ class Data:
       log.warn "Failed to check for data: " + e.stringify
     return false
 
-  removeData dataType/int -> none:
+  remove-data dataType/int -> none:
     e := catch:
       for i := 0; i < dataTypes_.size; i++:
         if dataTypes_[i] == dataType:
@@ -150,7 +150,7 @@ class Data:
 
   // returns the data for the type, or an empty list if not found
   // will never throw an error
-  getData dataType/int -> ByteArray:
+  get-data dataType/int -> ByteArray:
     e := catch:
       for i := 0; i < dataTypes_.size; i++:
         if dataTypes_[i] == dataType:
@@ -160,60 +160,42 @@ class Data:
       log.warn "Failed to get data: " + e.stringify
     return #[]
 
-  getDataAscii dataType/int -> string:
-    data := getData dataType
+  get-data-ascii dataType/int -> string:
+    data := get-data dataType
     return data.to-string
 
-  getAsciiData dataType/int -> string:
-    data := getData dataType
-    e := catch:
-      return (_trimBadAsciiRightAndLog data).to-string
-    if e:
-      log.error "Failed to convert data to ascii: " + e.stringify + ": " + data.stringify
-    return ""
-
-  _trimBadAsciiRightAndLog data/ByteArray -> ByteArray:
-    lastGoodIndex := 0
-    i := 0
-    data.do: | element |
-      i++
-      if element < 32 or element > 126:
-        log.warn "Invalid ascii data, skipping index " + i.stringify + ": " + element.stringify
-      lastGoodIndex = i - 1
-    return data[0..lastGoodIndex]
-
-  getDataUint8 dataType/int -> int:
+  get-data-uint8 dataType/int -> int:
     // TODO use LITTLE-ENDIAN? (When we have a byte array not a list?)
-    data := getData dataType
+    data := get-data dataType
     if data.size == 0:
       log.warn "No data for datatype " + dataType.stringify
       return 0
     return data[0]
 
-  getDataUint16 dataType/int -> int:
-    return LITTLE-ENDIAN.uint16 (getData dataType) 0
+  get-data-uint16 dataType/int -> int:
+    return LITTLE-ENDIAN.uint16 (get-data dataType) 0
 
-  getDataUint32 dataType/int -> int:
-    return LITTLE-ENDIAN.uint32 (getData dataType) 0
+  get-data-uint32 dataType/int -> int:
+    return LITTLE-ENDIAN.uint32 (get-data dataType) 0
 
-  getDataInt32 dataType/int -> int:
-    return LITTLE-ENDIAN.int32 (getData dataType) 0
+  get-data-int32 dataType/int -> int:
+    return LITTLE-ENDIAN.int32 (get-data dataType) 0
 
-  getDataUint64 dataType/int -> int:
-    data := getData dataType
+  get-data-uint64 dataType/int -> int:
+    data := get-data dataType
     if data.size < 8:
       log.warn "No data for datatype " + dataType.stringify
       return 0
     return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
 
-  addDataListUint16 dataType/int data/List -> none:
+  add-data-list-uint16 dataType/int data/List -> none:
     b := ByteArray data.size * 2
     for i := 0; i < data.size; i++:
       LITTLE-ENDIAN.put-uint16 b (i * 2) data[i]
-    addData dataType b
+    add-data dataType b
 
-  getDataListUint16 dataType/int -> List:
-    data := getData dataType
+  get-data-list-uint16 dataType/int -> List:
+    data := get-data dataType
     if data.size % 2 != 0:
       log.error "Data size not a multiple of 2 for datatype " + dataType.stringify
       return []
@@ -222,20 +204,20 @@ class Data:
       l.add (LITTLE-ENDIAN.uint16 data i)
     return l
   
-  addDataListUint32 dataType/int data/List -> none:
+  add-data-list-uint32 dataType/int data/List -> none:
     b := ByteArray data.size * 4
     for i := 0; i < data.size; i++:
       LITTLE-ENDIAN.put-uint32 b (i * 4) data[i]
-    addData dataType b
+    add-data dataType b
   
-  addDataListFloat32 dataType/int data/List -> none:
+  add-data-list-float32 dataType/int data/List -> none:
     b := ByteArray data.size * 4
     for i := 0; i < data.size; i++:
       LITTLE-ENDIAN.put-float32 b (i * 4) data[i]
-    addData dataType b
+    add-data dataType b
   
-  getDataListUint32 dataType/int -> List:
-    data := getData dataType
+  get-data-list-uint32 dataType/int -> List:
+    data := get-data dataType
     if data.size % 4 != 0:
       log.error "Data size not a multiple of 4 for datatype " + dataType.stringify
       return []
@@ -244,15 +226,15 @@ class Data:
       l.add (LITTLE-ENDIAN.uint32 data i)
     return l
   
-  addDataListInt32Pairs dataType/int data/List -> none:
+  add-data-list-int32-pairs dataType/int data/List -> none:
     b := ByteArray data.size * 8
     for i := 0; i < data.size; i++:
       LITTLE-ENDIAN.put-int32 b (i * 8) data[i][0]
       LITTLE-ENDIAN.put-int32 b ((i * 8) + 4) data[i][1]
-    addData dataType b
+    add-data dataType b
   
-  getDataListInt32Pairs dataType/int -> List:
-    data := getData dataType
+  get-data-list-int32-pairs dataType/int -> List:
+    data := get-data dataType
     if data.size % 8 != 0:
       log.error "Data size not a multiple of 8 for datatype " + dataType.stringify
       return []
@@ -261,8 +243,8 @@ class Data:
       l.add [LITTLE-ENDIAN.int32 data i, LITTLE-ENDIAN.int32 data (i + 4)]
     return l
 
-  getDataListCoordinates dataType/int -> List:
-    data := getData dataType
+  get-data-list-coordinates dataType/int -> List:
+    data := get-data dataType
     if data.size % 8 != 0:
       log.error "Data size not a multiple of 8 for datatype " + dataType.stringify
       return []
@@ -271,18 +253,18 @@ class Data:
       l.add (Coordinate ((LITTLE-ENDIAN.int32 data i) / 1e7) ((LITTLE-ENDIAN.int32 data (i + 4)) / 1e7))
     return l
 
-  getDataFloat32 dataType/int -> float:
-    d := getData dataType
+  get-data-float32 dataType/int -> float:
+    d := get-data dataType
     return LITTLE-ENDIAN.float32 d 0
 
-  getDataUint dataType/int -> int:
+  get-data-uint dataType/int -> int:
     // TODO use LITTLE-ENDIAN more consistently
     // read the data for the type, and decide which size it fits in
     // ie 1 bytes is unint8
     // 2 bytes is uint16
     // 3 bytes should be 32, as should 4 bytes
     // etc
-    data := getData dataType
+    data := get-data dataType
     if data.size == 0:
       log.warn "No data for datatype " + dataType.stringify
       return 0
@@ -306,13 +288,13 @@ class Data:
     log.error "Data size too large for uintn: " + data.size.stringify
     return 0
 
-  getDataIntn dataType/int -> int:
+  get-data-intn dataType/int -> int:
     // read the data for the type, and decide which size it fits in
     // ie 1 byte is int8
     // 2 bytes is int16
     // 3 bytes should be 32, as should 4 bytes
     // etc
-    data := getData dataType
+    data := get-data dataType
     if data.size == 0:
         log.warn "No data for datatype " + dataType.stringify
         return 0
@@ -337,35 +319,35 @@ class Data:
     return 0
 
   size -> int:
-    return bytesForProtocol.size
+    return bytes-for-protocol.size
   
-  dataFieldCount -> int:
+  data-field-count -> int:
     return dataTypes_.size
   
-  bytesForProtocol -> ByteArray:
+  bytes-for-protocol -> ByteArray:
     dataLength := 0
-    for i := 0; i < dataFieldCount; i++:
+    for i := 0; i < data-field-count; i++:
       dataLength += 1 + data_[i].dataBytes_.size
-    bLen := 2 + dataFieldCount + dataLength
+    bLen := 2 + data-field-count + dataLength
 
     b := ByteArray bLen
 
     // first, datafield count uint16 LE
-    dfc := dataFieldCount
+    dfc := data-field-count
     b[0] = dfc & 0xFF
     b[1] = dfc >> 8
     // then data types
     bi := 2
-    for i := 0; i < dataFieldCount; i++:
+    for i := 0; i < data-field-count; i++:
       b[bi] = dataTypes_[i]
       bi += 1
     // then data
-    for i := 0; i < dataFieldCount; i++:
-      b.replace bi data_[i].bytesForProtocol 0 (1 + data_[i].dataBytes_.size)
+    for i := 0; i < data-field-count; i++:
+      b.replace bi data_[i].bytes-for-protocol 0 (1 + data_[i].dataBytes_.size)
       bi += (1 + data_[i].dataBytes_.size)
     return b
 
-listToByteArray l/List -> ByteArray:
+list-to-byte-array l/List -> ByteArray:
   b := ByteArray l.size
   for i := 0; i < l.size; i++:
     b[i] = l[i]

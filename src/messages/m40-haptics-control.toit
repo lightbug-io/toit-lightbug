@@ -15,19 +15,19 @@ class HapticsControl extends protocol.Data:
 
   static doMsg pattern/int intensity/int -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUint8 PATTERN pattern
-    msg.data.addDataUint8 INTENSITY intensity
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
+    msg.data.add-data-uint8 PATTERN pattern
+    msg.data.add-data-uint8 INTENSITY intensity
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   pattern -> int:
-    return getDataUint8 PATTERN
+    return get-data-uint8 PATTERN
 
   intensity -> int:
-    return getDataUint8 INTENSITY
+    return get-data-uint8 INTENSITY
 
   stringify -> string:
     return {

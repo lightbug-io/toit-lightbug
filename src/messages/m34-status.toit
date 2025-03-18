@@ -12,32 +12,32 @@ class Status extends protocol.Data:
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   battery -> int:
-    return getDataUint8 BATTERY
+    return get-data-uint8 BATTERY
 
   signalStrength -> int:
-    return getDataUint8 SIGNAL-STRENGTH
+    return get-data-uint8 SIGNAL-STRENGTH
 
   deviceMode -> int:
-    return getDataUint8 DEVICE-MODE
+    return get-data-uint8 DEVICE-MODE
 
   networkType -> int:
-    return getDataUint8 NETWORK-TYPE
+    return get-data-uint8 NETWORK-TYPE
 
   networkMnc -> int:
-    return getDataUint16 NETWORK-MNC
+    return get-data-uint16 NETWORK-MNC
 
   networkMcc -> int:
-    return getDataUint16 NETWORK-MCC
+    return get-data-uint16 NETWORK-MCC
 
   firmwareVersion -> int:
-    return getDataUint32 FIRMWARE-VERSION
+    return get-data-uint32 FIRMWARE-VERSION
 
   stringify -> string:
     return {

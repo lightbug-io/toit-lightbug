@@ -13,35 +13,35 @@ class DeviceTime extends protocol.Data:
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   unixTime -> int:
-    return getDataUint32 UNIX-TIME
+    return get-data-uint32 UNIX-TIME
 
   year -> int:
-    return getDataUint16 YEAR
+    return get-data-uint16 YEAR
 
   month -> int:
-    return getDataUint8 MONTH
+    return get-data-uint8 MONTH
 
   date -> int:
-    return getDataUint8 DATE
+    return get-data-uint8 DATE
 
   weekday -> int:
-    return getDataUint8 WEEKDAY
+    return get-data-uint8 WEEKDAY
 
   hour -> int:
-    return getDataUint8 HOUR
+    return get-data-uint8 HOUR
 
   minute -> int:
-    return getDataUint8 MINUTE
+    return get-data-uint8 MINUTE
 
   second -> int:
-    return getDataUint8 SECOND
+    return get-data-uint8 SECOND
 
   stringify -> string:
     return {

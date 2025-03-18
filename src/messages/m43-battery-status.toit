@@ -7,17 +7,17 @@ class BatteryStatus extends protocol.Data:
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   voltage -> float:
-    return getDataFloat32 VOLTAGE
+    return get-data-float32 VOLTAGE
 
   percent -> int:
-    return getDataUint8 PERCENT
+    return get-data-uint8 PERCENT
 
   stringify -> string:
     return {

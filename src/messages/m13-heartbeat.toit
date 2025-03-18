@@ -11,11 +11,11 @@ class Heartbeat extends protocol.Data:
     super
 
   msg -> protocol.Message:
-    return protocol.Message.withData MT this
+    return protocol.Message.with-data MT this
 
   // // First byte is CSQ [0-31]. Recommended to x4 to get a percentage. Byte 2 and 3 are uint16 LE network info.
   // gsmSignal -> ByteArray:
-  //   return getData GSM-SIGNAL
+  //   return get-data GSM-SIGNAL
   // csq -> int:
   //   return gsmSignal[0]
   // csqAsPercent -> int:
@@ -24,7 +24,7 @@ class Heartbeat extends protocol.Data:
   //   return LITTLE-ENDIAN.uint16 gsmSignal 1
   
   // firmwareVersion -> int:
-  //   return getDataUint16 FIRMWARE-VERSION
+  //   return get-data-uint16 FIRMWARE-VERSION
 
   // batteryPercent -> int:
-  //   return getDataUint8 BATTERY-PERCENT
+  //   return get-data-uint8 BATTERY-PERCENT

@@ -64,18 +64,18 @@ class Header:
     messageType_ = header.messageType_
     data_ = header.data_
 
-  constructor.fromList bytes/List:
+  constructor.from-list bytes/List:
     // First is uint16 LE message length
     messageLength_ = bytes[0] + (bytes[1] << 8)
     // Second is uint16 LE message type
     messageType_ = bytes[2] + (bytes[3] << 8)
     // Third is data
-    data_ = Data.fromList bytes[4..]
+    data_ = Data.from-list bytes[4..]
 
   stringify -> string:
     return "messageLength: " + messageLength_.stringify + ", messageType: " + messageType_.stringify + ", header data: " + data_.stringify
 
-  messageType -> int:
+  message-type -> int:
     return messageType_
 
   size -> int:
@@ -85,8 +85,8 @@ class Header:
   data -> Data:
     return data_
   
-  bytesForProtocol -> ByteArray:
-    bData := data_.bytesForProtocol
+  bytes-for-protocol -> ByteArray:
+    bData := data_.bytes-for-protocol
 
     b := ByteArray 4 + bData.size
     // length is uint16 LE

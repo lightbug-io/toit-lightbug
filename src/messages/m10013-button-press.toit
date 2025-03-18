@@ -6,17 +6,17 @@ class ButtonPress extends protocol.Data:
   static BUTTON-ID := 4
   static SELECTION-ID := 5
 
-  constructor.fromData data/protocol.Data:
-    super.fromData data
+  constructor.from-data data/protocol.Data:
+    super.from-data data
 
   pageId -> int:
-    return getDataUint PAGE-ID
+    return get-data-uint PAGE-ID
 
   buttonId -> int:
-    return getDataUint BUTTON-ID
+    return get-data-uint BUTTON-ID
 
   selectionId -> int:
-    return getDataUint SELECTION-ID
+    return get-data-uint SELECTION-ID
 
   stringify -> string:
     return {

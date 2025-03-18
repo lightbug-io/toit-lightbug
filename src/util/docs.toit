@@ -24,7 +24,7 @@ messageToDocsUrl msg/Message -> string:
 messageBytesToDocsURL msgBytes/ByteArray -> string:
   // XXX: This could also be added as part of a log viewer, rather than the app, which saves build bytes, comms bytes, etc
   baseUrl := docsUrl
-  return baseUrl + "/devices/api/parse?bytes=" + ((url.encode ((stringifyAllBytes msgBytes).replace " " "" --all=true)).replace "0x" "" --all=true)
+  return baseUrl + "/devices/api/parse?bytes=" + ((url.encode ((stringify-all-bytes msgBytes).replace " " "" --all=true)).replace "0x" "" --all=true)
 
 shouldDocsBeLocal/bool? := null
 shouldDocsBeLocal_ -> bool:

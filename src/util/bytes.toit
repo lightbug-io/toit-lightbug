@@ -1,6 +1,6 @@
 import io
 
-stringifyAllBytes bytes/ByteArray --short=false --commas=true --hex=true -> string:
+stringify-all-bytes bytes/ByteArray --short=false --commas=true --hex=true -> string:
   buffer := io.Buffer
   is-first := true
   bytePrefix := ""

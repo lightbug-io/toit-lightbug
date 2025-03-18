@@ -7,4 +7,4 @@ class Close extends protocol.Data:
     super
 
   msg -> protocol.Message:
-    return protocol.Message.withData MT this
+    return protocol.Message.with-data MT this

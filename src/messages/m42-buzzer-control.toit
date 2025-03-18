@@ -20,35 +20,35 @@ class BuzzerControl extends protocol.Data:
     static doMsg --duration/int?=null --soundType/int?=null --intensity/int?=null --runCount/int?=null --frequency/float?=null -> protocol.Message:
         msg := protocol.Message MT
         if duration:
-            msg.data.addDataUint16 DURATION duration
+            msg.data.add-data-uint16 DURATION duration
         if soundType:
-            msg.data.addDataUint8 SOUND-TYPE soundType
+            msg.data.add-data-uint8 SOUND-TYPE soundType
         if intensity:
-            msg.data.addDataUint8 INTENSITY intensity
+            msg.data.add-data-uint8 INTENSITY intensity
         if runCount:
-            msg.data.addDataUint8 RUN-COUNT runCount
+            msg.data.add-data-uint8 RUN-COUNT runCount
         if frequency:
-            msg.data.addDataFloat32 FREQUENCY frequency
-        msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
+            msg.data.add-data-float32 FREQUENCY frequency
+        msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
         return msg
 
-    constructor.fromData data/protocol.Data:
-        super.fromData data
+    constructor.from-data data/protocol.Data:
+        super.from-data data
 
     duration -> int:
-        return getDataUint16 DURATION
+        return get-data-uint16 DURATION
 
     soundType -> int:
-        return getDataUint8 SOUND-TYPE
+        return get-data-uint8 SOUND-TYPE
 
     intensity -> int:
-        return getDataUint8 INTENSITY
+        return get-data-uint8 INTENSITY
 
     runCount -> int:
-        return getDataUint8 RUN-COUNT
+        return get-data-uint8 RUN-COUNT
 
     frequency -> float:
-        return getDataFloat32 FREQUENCY
+        return get-data-float32 FREQUENCY
 
     stringify -> string:
         return {
