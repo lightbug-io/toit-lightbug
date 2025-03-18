@@ -2,57 +2,57 @@ import ..protocol as protocol
 
 class DrawBitmap extends protocol.Data:
   static MT := 10011
-  static PAGE_ID := 3
-  static BITMAP_X := 21
-  static BITMAP_Y := 22
-  static BITMAP_WIDTH := 23
-  static BITMAP_HEIGHT := 24
-  static BITMAP_DATA := 25
-  static BITMAP_OVERLAY := 26
-  static DONT_DRAW := 27
+  static PAGE-ID := 3
+  static BITMAP-X := 21
+  static BITMAP-Y := 22
+  static BITMAP-WIDTH := 23
+  static BITMAP-HEIGHT := 24
+  static BITMAP-DATA := 25
+  static BITMAP-OVERLAY := 26
+  static DONT-DRAW := 27
 
   static toMsg --pageId/int?=null --bitmapX/int=0 --bitmapY/int=0 --bitmapWidth/int --bitmapHeight/int --bitmapData/ByteArray --bitmapOverlay/bool=false --dontDraw/bool=false -> protocol.Message:
     msg := protocol.Message MT
     if pageId:
-      msg.data.addDataUint PAGE_ID pageId
-    msg.data.addDataUint BITMAP_X bitmapX
-    msg.data.addDataUint BITMAP_Y bitmapY
-    msg.data.addDataUint BITMAP_WIDTH bitmapWidth
-    msg.data.addDataUint BITMAP_HEIGHT bitmapHeight
-    msg.data.addData BITMAP_DATA bitmapData
+      msg.data.addDataUint PAGE-ID pageId
+    msg.data.addDataUint BITMAP-X bitmapX
+    msg.data.addDataUint BITMAP-Y bitmapY
+    msg.data.addDataUint BITMAP-WIDTH bitmapWidth
+    msg.data.addDataUint BITMAP-HEIGHT bitmapHeight
+    msg.data.addData BITMAP-DATA bitmapData
     if bitmapOverlay:
-      msg.data.addDataUint8 BITMAP_OVERLAY 1
+      msg.data.addDataUint8 BITMAP-OVERLAY 1
     if dontDraw:
-      msg.data.addDataUint8 DONT_DRAW 1
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
+      msg.data.addDataUint8 DONT-DRAW 1
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
   constructor.fromData data/protocol.Data:
     super.fromData data
 
   pageId -> int:
-    return getDataUint PAGE_ID
+    return getDataUint PAGE-ID
 
   bitmapX -> int:
-    return getDataUint BITMAP_X
+    return getDataUint BITMAP-X
 
   bitmapY -> int:
-    return getDataUint BITMAP_Y
+    return getDataUint BITMAP-Y
 
   bitmapWidth -> int:
-    return getDataUint BITMAP_WIDTH
+    return getDataUint BITMAP-WIDTH
 
   bitmapHeight -> int:
-    return getDataUint BITMAP_HEIGHT
+    return getDataUint BITMAP-HEIGHT
 
   bitmapData -> ByteArray:
-    return getData BITMAP_DATA
+    return getData BITMAP-DATA
 
   bitmapOverlay -> int:
-    return getDataUint8 BITMAP_OVERLAY
+    return getDataUint8 BITMAP-OVERLAY
 
   dontDraw -> int:
-    return getDataUint8 DONT_DRAW
+    return getDataUint8 DONT-DRAW
 
   stringify -> string:
     return {

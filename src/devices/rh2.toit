@@ -18,9 +18,9 @@ class RtkHandheld2 extends LightbugDevice:
 // A previous version of the RtkHandheld2 device, that had a different I2C setup
 // Retired Feb 2025
 class RtkHandheld2Rev2 extends LightbugDevice:
-  static I2C_SDA := 0
-  static I2C_SCL := 1
+  static I2C-SDA := 0
+  static I2C-SCL := 1
   constructor:
-    super "RtkHandheld2 rev2" I2C_SDA I2C_SCL
+    super "RtkHandheld2 rev2" I2C-SDA I2C-SCL
   messages-supported -> List:
     return RtkHandheld2-MESSAGES

@@ -1,4 +1,4 @@
-import ..protocol.Message
+import ..protocol.message
 import .bytes
 import system.assets
 import encoding.tison

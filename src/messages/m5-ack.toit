@@ -2,7 +2,7 @@ import ..protocol as protocol
 
 class Ack extends protocol.Data:
   static MT := 5
-  static ACKED_TYPE := 1
+  static ACKED-TYPE := 1
 
   constructor:
     super
@@ -11,7 +11,7 @@ class Ack extends protocol.Data:
     return protocol.Message.withData MT this
 
   ackedType -> int:
-    return getDataUint16 ACKED_TYPE
+    return getDataUint16 ACKED-TYPE
 
   stringify -> string:
     return {

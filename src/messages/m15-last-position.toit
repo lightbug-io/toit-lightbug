@@ -9,18 +9,18 @@ class LastPosition extends protocol.Data:
   static LONGITUDE := 3
   static ALTITUDE := 4
   static ACCURACY := 5
-  static COURSE_OVER_GROUND := 6
+  static COURSE-OVER-GROUND := 6
   static SPEED := 7
-  static NUMBER_OF_SATELLITES := 8
-  static AVERAGE_CN0 := 9
-  static POSITION_TYPE := 10
-  static POSITION_SOURCE := 11
+  static NUMBER-OF-SATELLITES := 8
+  static AVERAGE-CN0 := 9
+  static POSITION-TYPE := 10
+  static POSITION-SOURCE := 11
 
-  static LAT_LON_RAW_ADJUSTMENT := 1e7
+  static LAT-LON-RAW-ADJUSTMENT := 1e7
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-GET
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   constructor.fromData data/protocol.Data:
@@ -31,8 +31,8 @@ class LastPosition extends protocol.Data:
   
   static subscribeMsg --intervalms/int -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-SUBSCRIBE
-    msg.header.data.addDataUint32 protocol.Header.TYPE_SUBSCRIPTION_INTERVAL intervalms // must be uint32
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
+    msg.header.data.addDataUint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL intervalms // must be uint32
     return msg
 
   timestamp -> int:
@@ -49,9 +49,9 @@ class LastPosition extends protocol.Data:
   longitudeFixed -> FixedPoint:
     return ( FixedPoint --decimals=7 longitude-float )
   latitude-float -> float:
-    return ( getDataIntn LATITUDE) / LAT_LON_RAW_ADJUSTMENT
+    return ( getDataIntn LATITUDE) / LAT-LON-RAW-ADJUSTMENT
   longitude-float -> float:
-    return ( getDataIntn LONGITUDE) / LAT_LON_RAW_ADJUSTMENT
+    return ( getDataIntn LONGITUDE) / LAT-LON-RAW-ADJUSTMENT
   latitude-raw -> int:
     return getDataIntn LATITUDE
   longitude-raw -> int:
@@ -61,17 +61,17 @@ class LastPosition extends protocol.Data:
   accuracy -> int:
     return getDataUint ACCURACY
   course-over-ground -> int:
-    return getDataUint COURSE_OVER_GROUND
+    return getDataUint COURSE-OVER-GROUND
   speed -> int:
     return getDataUint SPEED
   number-of-satellites -> int:
-    return getDataUint NUMBER_OF_SATELLITES
+    return getDataUint NUMBER-OF-SATELLITES
   average-cn0 -> int:
-    return getDataUint AVERAGE_CN0
+    return getDataUint AVERAGE-CN0
   position-type -> int:
-    return getDataUint POSITION_TYPE
+    return getDataUint POSITION-TYPE
   position-source -> int:
-    return getDataUint POSITION_SOURCE
+    return getDataUint POSITION-SOURCE
 
   stringify -> string:
     return {

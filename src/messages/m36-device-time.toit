@@ -2,7 +2,7 @@ import ..protocol as protocol
 
 class DeviceTime extends protocol.Data:
   static MT := 36
-  static UNIX_TIME := 1
+  static UNIX-TIME := 1
   static YEAR := 2
   static MONTH := 3
   static DATE := 4
@@ -13,14 +13,14 @@ class DeviceTime extends protocol.Data:
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_GET
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   constructor.fromData data/protocol.Data:
     super.fromData data
 
   unixTime -> int:
-    return getDataUint32 UNIX_TIME
+    return getDataUint32 UNIX-TIME
 
   year -> int:
     return getDataUint16 YEAR

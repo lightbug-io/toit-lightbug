@@ -1,7 +1,7 @@
 import crypto.crc
 import io
-import .Header show *
-import .Data show *
+import .header show *
+import .data show *
 
 class Message:
  protocolVersion_ /int := 3

@@ -3,16 +3,16 @@ import ..protocol as protocol
 class Status extends protocol.Data:
   static MT := 34
   static BATTERY := 1
-  static SIGNAL_STRENGTH := 2
-  static DEVICE_MODE := 3
-  static NETWORK_TYPE := 4
-  static NETWORK_MNC := 5
-  static NETWORK_MCC := 6
-  static FIRMWARE_VERSION := 7
+  static SIGNAL-STRENGTH := 2
+  static DEVICE-MODE := 3
+  static NETWORK-TYPE := 4
+  static NETWORK-MNC := 5
+  static NETWORK-MCC := 6
+  static FIRMWARE-VERSION := 7
 
   static getMsg -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-GET
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   constructor.fromData data/protocol.Data:
@@ -22,22 +22,22 @@ class Status extends protocol.Data:
     return getDataUint8 BATTERY
 
   signalStrength -> int:
-    return getDataUint8 SIGNAL_STRENGTH
+    return getDataUint8 SIGNAL-STRENGTH
 
   deviceMode -> int:
-    return getDataUint8 DEVICE_MODE
+    return getDataUint8 DEVICE-MODE
 
   networkType -> int:
-    return getDataUint8 NETWORK_TYPE
+    return getDataUint8 NETWORK-TYPE
 
   networkMnc -> int:
-    return getDataUint16 NETWORK_MNC
+    return getDataUint16 NETWORK-MNC
 
   networkMcc -> int:
-    return getDataUint16 NETWORK_MCC
+    return getDataUint16 NETWORK-MCC
 
   firmwareVersion -> int:
-    return getDataUint32 FIRMWARE_VERSION
+    return getDataUint32 FIRMWARE-VERSION
 
   stringify -> string:
     return {

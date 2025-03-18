@@ -16,5 +16,5 @@ class LinkControl extends protocol.Data:
 
   msg -> protocol.Message:
     msg := protocol.Message.withData MT this
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD-SET
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg

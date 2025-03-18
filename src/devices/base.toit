@@ -29,8 +29,8 @@ A base class for Lightbug devices
 Containing the common I2C implementation
 */
 abstract class LightbugDevice implements Device:
-  static I2C_SDA := 6
-  static I2C_SCL := 7
+  static I2C-SDA := 6
+  static I2C-SCL := 7
 
   i2c-device_ /i2c.Device
   i2c-reader_ /Reader
@@ -38,7 +38,7 @@ abstract class LightbugDevice implements Device:
 
   name_ /string
 
-  constructor name/string i2c-sda/int=I2C_SDA i2c-scl/int=I2C_SCL:
+  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL:
     name_ = name
     i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl
     i2c-reader_ = Reader i2c-device_

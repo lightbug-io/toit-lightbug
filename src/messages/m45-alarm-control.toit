@@ -2,92 +2,92 @@ import ..protocol as protocol
 
 class AlarmControl extends protocol.Data:
     static MT := 45
-    static LEGACY_ALARM_ACTION := 1 // 4 bytes of encoded data relating to legacy alarm formats
+    static LEGACY-ALARM-ACTION := 1 // 4 bytes of encoded data relating to legacy alarm formats
     static DURATION := 2 // Duration of alarm in seconds
-    static BUZZER_PATTERN := 3
-    static BUZZER_INTENSITY := 4
-    static HAPTICS_PATTERN := 5
-    static HAPTICS_INTENSITY := 6
-    static STROBE_PATTERN := 7
-    static STROBE_INTENSITY := 8
-    static PROMPT_MESSAGE := 9
-    static PROMPT_TIMEOUT := 10 // Timeout for the prompt in seconds
-    static PROMPT_BUTTON_1_TEXT := 11
-    static PROMPT_BUTTON_2_TEXT := 12
-    static PROMPT_BUTTON_3_TEXT := 13
+    static BUZZER-PATTERN := 3
+    static BUZZER-INTENSITY := 4
+    static HAPTICS-PATTERN := 5
+    static HAPTICS-INTENSITY := 6
+    static STROBE-PATTERN := 7
+    static STROBE-INTENSITY := 8
+    static PROMPT-MESSAGE := 9
+    static PROMPT-TIMEOUT := 10 // Timeout for the prompt in seconds
+    static PROMPT-BUTTON-1-TEXT := 11
+    static PROMPT-BUTTON-2-TEXT := 12
+    static PROMPT-BUTTON-3-TEXT := 13
 
     static doMsg --legacyAlarmAction/int?=null --duration/int?=null --buzzerPattern/int?=null --buzzerIntensity/int?=null --hapticsPattern/int?=null --hapticsIntensity/int?=null --strobePattern/int?=null --strobeIntensity/int?=null --promptMessage/string?=null --promptTimeout/int?=null --promptButton1Text/string?=null --promptButton2Text/string?=null --promptButton3Text/string?=null -> protocol.Message:
         msg := protocol.Message MT
         if legacyAlarmAction:
-            msg.data.addDataUint32 LEGACY_ALARM_ACTION legacyAlarmAction
+            msg.data.addDataUint32 LEGACY-ALARM-ACTION legacyAlarmAction
         if duration:
             msg.data.addDataUint8 DURATION duration
         if buzzerPattern:
-            msg.data.addDataUint8 BUZZER_PATTERN buzzerPattern
+            msg.data.addDataUint8 BUZZER-PATTERN buzzerPattern
         if buzzerIntensity:
-            msg.data.addDataUint8 BUZZER_INTENSITY buzzerIntensity
+            msg.data.addDataUint8 BUZZER-INTENSITY buzzerIntensity
         if hapticsPattern:
-            msg.data.addDataUint8 HAPTICS_PATTERN hapticsPattern
+            msg.data.addDataUint8 HAPTICS-PATTERN hapticsPattern
         if hapticsIntensity:
-            msg.data.addDataUint8 HAPTICS_INTENSITY hapticsIntensity
+            msg.data.addDataUint8 HAPTICS-INTENSITY hapticsIntensity
         if strobePattern:
-            msg.data.addDataUint8 STROBE_PATTERN strobePattern
+            msg.data.addDataUint8 STROBE-PATTERN strobePattern
         if strobeIntensity:
-            msg.data.addDataUint8 STROBE_INTENSITY strobeIntensity
+            msg.data.addDataUint8 STROBE-INTENSITY strobeIntensity
         if promptMessage:
-            msg.data.addDataAscii PROMPT_MESSAGE promptMessage
+            msg.data.addDataAscii PROMPT-MESSAGE promptMessage
         if promptTimeout:
-            msg.data.addDataUint8 PROMPT_TIMEOUT promptTimeout
+            msg.data.addDataUint8 PROMPT-TIMEOUT promptTimeout
         if promptButton1Text:
-            msg.data.addDataAscii PROMPT_BUTTON_1_TEXT promptButton1Text
+            msg.data.addDataAscii PROMPT-BUTTON-1-TEXT promptButton1Text
         if promptButton2Text:
-            msg.data.addDataAscii PROMPT_BUTTON_2_TEXT promptButton2Text
+            msg.data.addDataAscii PROMPT-BUTTON-2-TEXT promptButton2Text
         if promptButton3Text:
-            msg.data.addDataAscii PROMPT_BUTTON_3_TEXT promptButton3Text
-        msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_DO
+            msg.data.addDataAscii PROMPT-BUTTON-3-TEXT promptButton3Text
+        msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
         return msg
 
     constructor.fromData data/protocol.Data:
         super.fromData data
 
     legacyAlarmAction -> int:
-        return getDataUint32 LEGACY_ALARM_ACTION
+        return getDataUint32 LEGACY-ALARM-ACTION
 
     duration -> int:
         return getDataUint8 DURATION
 
     buzzerPattern -> int:
-        return getDataUint8 BUZZER_PATTERN
+        return getDataUint8 BUZZER-PATTERN
 
     buzzerIntensity -> int:
-        return getDataUint8 BUZZER_INTENSITY
+        return getDataUint8 BUZZER-INTENSITY
 
     hapticsPattern -> int:
-        return getDataUint8 HAPTICS_PATTERN
+        return getDataUint8 HAPTICS-PATTERN
 
     hapticsIntensity -> int:
-        return getDataUint8 HAPTICS_INTENSITY
+        return getDataUint8 HAPTICS-INTENSITY
 
     strobePattern -> int:
-        return getDataUint8 STROBE_PATTERN
+        return getDataUint8 STROBE-PATTERN
 
     strobeIntensity -> int:
-        return getDataUint8 STROBE_INTENSITY
+        return getDataUint8 STROBE-INTENSITY
 
     promptMessage -> string:
-        return getDataAscii PROMPT_MESSAGE
+        return getDataAscii PROMPT-MESSAGE
 
     promptTimeout -> int:
-        return getDataUint8 PROMPT_TIMEOUT
+        return getDataUint8 PROMPT-TIMEOUT
 
     promptButton1Text -> string:
-        return getDataAscii PROMPT_BUTTON_1_TEXT
+        return getDataAscii PROMPT-BUTTON-1-TEXT
 
     promptButton2Text -> string:
-        return getDataAscii PROMPT_BUTTON_2_TEXT
+        return getDataAscii PROMPT-BUTTON-2-TEXT
 
     promptButton3Text -> string:
-        return getDataAscii PROMPT_BUTTON_3_TEXT
+        return getDataAscii PROMPT-BUTTON-3-TEXT
 
     stringify -> string:
         return {

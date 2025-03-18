@@ -2,43 +2,43 @@ import ..protocol as protocol
 
 class MenuPage extends protocol.Data:
   static MT := 10010
-  static ITEM_COUNT := 2
-  static PAGE_ID := 3
-  static PAGE_TITLE := 4
-  static INITIAL_ITEM_SELECTION := 5
+  static ITEM-COUNT := 2
+  static PAGE-ID := 3
+  static PAGE-TITLE := 4
+  static INITIAL-ITEM-SELECTION := 5
   // TODO maybe just include a different way to make this data!
-  static ITEM_1 := 100
-  static ITEM_2 := 101
-  static ITEM_3 := 102
-  static ITEM_4 := 103
-  static ITEM_5 := 104
-  static ITEM_6 := 105
-  static ITEM_7 := 106
-  static ITEM_8 := 107
-  static ITEM_9 := 108
-  static ITEM_10 := 109
-  static ITEM_11 := 110
-  static ITEM_12 := 111
-  static ITEM_13 := 112
-  static ITEM_14 := 113
-  static ITEM_15 := 114
-  static ITEM_16 := 115
-  static ITEM_17 := 116
-  static ITEM_18 := 117
-  static ITEM_19 := 118
-  static ITEM_20 := 119
+  static ITEM-1 := 100
+  static ITEM-2 := 101
+  static ITEM-3 := 102
+  static ITEM-4 := 103
+  static ITEM-5 := 104
+  static ITEM-6 := 105
+  static ITEM-7 := 106
+  static ITEM-8 := 107
+  static ITEM-9 := 108
+  static ITEM-10 := 109
+  static ITEM-11 := 110
+  static ITEM-12 := 111
+  static ITEM-13 := 112
+  static ITEM-14 := 113
+  static ITEM-15 := 114
+  static ITEM-16 := 115
+  static ITEM-17 := 116
+  static ITEM-18 := 117
+  static ITEM-19 := 118
+  static ITEM-20 := 119
 
   static toMsg --pageId/int --pageTitle/string?=null --initialItemSelection/int?=null --items/List -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.addDataUint8 ITEM_COUNT items.size
-    msg.data.addDataUint PAGE_ID pageId
+    msg.data.addDataUint8 ITEM-COUNT items.size
+    msg.data.addDataUint PAGE-ID pageId
     if pageTitle:
-      msg.data.addDataAscii PAGE_TITLE pageTitle
+      msg.data.addDataAscii PAGE-TITLE pageTitle
     if initialItemSelection:
-      msg.data.addDataUint8 INITIAL_ITEM_SELECTION initialItemSelection
+      msg.data.addDataUint8 INITIAL-ITEM-SELECTION initialItemSelection
     i := 0
     items.do: 
-     msg.data.addDataAscii (ITEM_1 + i) it
+     msg.data.addDataAscii (ITEM-1 + i) it
      i += 1     
     return msg
 
@@ -46,22 +46,22 @@ class MenuPage extends protocol.Data:
     super.fromData data
 
   itemCount -> int:
-    return getDataUint8 ITEM_COUNT
+    return getDataUint8 ITEM-COUNT
 
   pageId -> int:
-    return getDataUint PAGE_ID
+    return getDataUint PAGE-ID
 
   pageTitle -> string:
-    return getDataAscii PAGE_TITLE
+    return getDataAscii PAGE-TITLE
 
   initialItemSelection -> int:
-    return getDataUint8 INITIAL_ITEM_SELECTION
+    return getDataUint8 INITIAL-ITEM-SELECTION
 
   items -> List:
     items := []
     i := 0
     20.repeat:
-      item := getDataAscii (ITEM_1 + it)
+      item := getDataAscii (ITEM-1 + it)
       if item != "":
         items.add item
     return items

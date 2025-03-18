@@ -1,7 +1,7 @@
 import io.byte-order show LITTLE-ENDIAN
 import log
 import coordinate show Coordinate
-import .DataField show *
+import .data-field show *
 
 class Data:
   dataTypes_ /List := []

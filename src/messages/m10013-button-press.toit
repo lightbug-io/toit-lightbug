@@ -2,21 +2,21 @@ import ..protocol as protocol
 
 class ButtonPress extends protocol.Data:
   static MT := 10013
-  static PAGE_ID := 3
-  static BUTTON_ID := 4
-  static SELECTION_ID := 5
+  static PAGE-ID := 3
+  static BUTTON-ID := 4
+  static SELECTION-ID := 5
 
   constructor.fromData data/protocol.Data:
     super.fromData data
 
   pageId -> int:
-    return getDataUint PAGE_ID
+    return getDataUint PAGE-ID
 
   buttonId -> int:
-    return getDataUint BUTTON_ID
+    return getDataUint BUTTON-ID
 
   selectionId -> int:
-    return getDataUint SELECTION_ID
+    return getDataUint SELECTION-ID
 
   stringify -> string:
     return {

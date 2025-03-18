@@ -7,7 +7,7 @@ class BuzzerSequence extends protocol.Data:
 
   static doMsg frequencies/List timings/List -> protocol.Message:
     msg := protocol.Message MT
-    msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_DO
+    msg.header.data.addDataUint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     msg.data.addDataListFloat32 FREQUENCIES frequencies
     msg.data.addDataListUint16 TIMINGS timings
     return msg
