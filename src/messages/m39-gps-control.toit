@@ -11,11 +11,12 @@ class GPSControl extends protocol.Data:
   static START_MODE_WARM := 3
   static START_MODE_HOT := 4
 
-  static setMsg --gpsEnable/int --rtkEnableCorrection/int --startMode/int -> protocol.Message:
+  static setMsg --gpsEnable/int --rtkEnableCorrection/int --startMode/int?=null -> protocol.Message:
     msg := protocol.Message MT
     msg.data.addDataUint8 GPS_ENABLE gpsEnable
     msg.data.addDataUint8 RTK_ENABLE_CORRECTION rtkEnableCorrection
-    msg.data.addDataUint8 START_MODE startMode
+    if startMode != null:
+      msg.data.addDataUint8 START_MODE startMode
     msg.header.data.addDataUint8 protocol.Header.TYPE_MESSAGE_METHOD protocol.Header.METHOD_SET
     return msg
 
