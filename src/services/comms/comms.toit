@@ -323,7 +323,7 @@ class Comms:
       yield
       sleep TimeoutCheckEvery_
       waitTimeouts.do --keys=true: | key |
-        durationSinceTimeout := (waitTimeouts[key].to Time.now)
+        durationSinceTimeout := Duration.since waitTimeouts[key].to
         if (durationSinceTimeout > (Duration --s=0)):
           log.debug "Timeout for message: " + key.stringify + " expired " + durationSinceTimeout.stringify + " ago"
           // Remove the timeout key, complete the latch, and remove all callbacks?!
