@@ -5,7 +5,7 @@ class BatteryStatus extends protocol.Data:
   static VOLTAGE := 1
   static PERCENT := 2
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg

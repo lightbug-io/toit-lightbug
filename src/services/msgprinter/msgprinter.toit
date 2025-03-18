@@ -1,6 +1,6 @@
 import ...services as services
-import ...util.docs show messageToDocsUrl
-import ...util.resilience show catchAndRestart
+import ...util.docs show message-to-docs-url
+import ...util.resilience show catch-and-restart
 import log
 import monitor
 
@@ -11,14 +11,14 @@ class MsgPrinter:
 
   constructor comms/services.Comms --inboxSize/int=20:
     inbox = comms.inbox "lb/MsgPrinter" --size=inboxSize
-    task:: catchAndRestart "lightbug-MsgPrinter::run" (:: run)
+    task:: catch-and-restart "lightbug-MsgPrinter::run" (:: run)
 
   run:
     while true:
       msg := inbox.receive
       // Try to process the message, catching any errors that occur, printing if successful
       e := catch --trace:
-        log.info "Message: " + msg.msgType.stringify + " " + (messageToDocsUrl msg)
+        log.info "Message: " + msg.msgType.stringify + " " + (message-to-docs-url msg)
       if e != null:
         log.error "Error processing message: $e"
         continue

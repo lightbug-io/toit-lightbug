@@ -28,14 +28,14 @@ class MenuPage extends protocol.Data:
   static ITEM-19 := 118
   static ITEM-20 := 119
 
-  static toMsg --pageId/int --pageTitle/string?=null --initialItemSelection/int?=null --items/List -> protocol.Message:
+  static to-msg --page-id/int --page-title/string?=null --item-initial-selection/int?=null --items/List -> protocol.Message:
     msg := protocol.Message MT
     msg.data.add-data-uint8 ITEM-COUNT items.size
-    msg.data.add-data-uint PAGE-ID pageId
-    if pageTitle:
-      msg.data.add-data-ascii PAGE-TITLE pageTitle
-    if initialItemSelection:
-      msg.data.add-data-uint8 INITIAL-ITEM-SELECTION initialItemSelection
+    msg.data.add-data-uint PAGE-ID page-id
+    if page-title:
+      msg.data.add-data-ascii PAGE-TITLE page-title
+    if item-initial-selection:
+      msg.data.add-data-uint8 INITIAL-ITEM-SELECTION item-initial-selection
     i := 0
     items.do: 
      msg.data.add-data-ascii (ITEM-1 + i) it
@@ -45,16 +45,16 @@ class MenuPage extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  itemCount -> int:
+  item-count -> int:
     return get-data-uint8 ITEM-COUNT
 
-  pageId -> int:
+  page-id -> int:
     return get-data-uint PAGE-ID
 
-  pageTitle -> string:
+  page-title -> string:
     return get-data-ascii PAGE-TITLE
 
-  initialItemSelection -> int:
+  item-initial-selection -> int:
     return get-data-uint8 INITIAL-ITEM-SELECTION
 
   items -> List:
@@ -68,9 +68,9 @@ class MenuPage extends protocol.Data:
 
   stringify -> string:
     return {
-      "Item Count": itemCount,
-      "Page ID": pageId,
-      "Page Title": pageTitle,
-      "Initial Item Selection": initialItemSelection,
+      "Item Count": item-count,
+      "Page ID": page-id,
+      "Page Title": page-title,
+      "Initial Item Selection": item-initial-selection,
       "Items": items,
     }.stringify

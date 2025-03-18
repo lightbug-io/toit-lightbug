@@ -4,7 +4,7 @@ class Temperature extends protocol.Data:
   static MT := 41
   static TEMPERATURE := 1
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg

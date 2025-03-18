@@ -11,12 +11,12 @@ class TextPage extends protocol.Data:
   static LINE-4 := 103
   static LINE-5 := 104
 
-  static toMsg --pageId/int --pageTitle/string?=null --statusBar/bool?=false --line1/string?=null --line2/string?=null --line3/string?=null --line4/string?=null --line5/string?=null -> protocol.Message:
+  static to-msg --page-id/int --page-title/string?=null --status-bar/bool?=false --line1/string?=null --line2/string?=null --line3/string?=null --line4/string?=null --line5/string?=null -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.add-data-uint PAGE-ID pageId
-    if pageTitle:
-        msg.data.add-data-ascii PAGE-TITLE pageTitle
-    if statusBar:
+    msg.data.add-data-uint PAGE-ID page-id
+    if page-title:
+        msg.data.add-data-ascii PAGE-TITLE page-title
+    if status-bar:
         msg.data.add-data-uint8 STATUS-BAR 1
     if line1:
         msg.data.add-data-ascii LINE-1 line1
@@ -34,13 +34,13 @@ class TextPage extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  pageId -> int:
+  page-id -> int:
     return get-data-uint PAGE-ID
 
-  pageTitle -> string:
+  page-title -> string:
     return get-data-ascii PAGE-TITLE
 
-  statusBar -> int:
+  status-bar -> int:
     return get-data-uint8 STATUS-BAR
 
   line1 -> string:
@@ -60,9 +60,9 @@ class TextPage extends protocol.Data:
 
   stringify -> string:
     return {
-      "Page ID": pageId,
-      "Page Title": pageTitle,
-      "Status Bar": statusBar,
+      "Page ID": page-id,
+      "Page Title": page-title,
+      "Status Bar": status-bar,
       "Line 1": line1,
       "Line 2": line2,
       "Line 3": line3,

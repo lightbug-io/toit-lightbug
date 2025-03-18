@@ -1,10 +1,10 @@
 import ...protocol as protocol
 import ...devices as devices
 import ...messages as messages
-import ...util.docs show messageBytesToDocsURL
-import ...util.resilience show catchAndRestart
+import ...util.docs show message-bytes-to-docs-url
+import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
-import ...util.bytes show stringify-all-bytes byteArrayToList
+import ...util.bytes show stringify-all-bytes byte-array-to-list
 import io.reader show Reader
 import io.writer show Writer
 import encoding.url
@@ -57,16 +57,16 @@ class Comms:
   start_ sendOpen/bool sendHearbeat/bool:
     log.info "Comms starting"
 
-    task:: catchAndRestart "processInbound_" (:: processInbound_)
-    task:: catchAndRestart "processOutbox_" (:: processOutbox_)
-    task:: catchAndRestart "processAwaitTimeouts_" (:: processAwaitTimeouts)
+    task:: catch-and-restart "processInbound_" (:: processInbound_)
+    task:: catch-and-restart "processOutbox_" (:: processOutbox_)
+    task:: catch-and-restart "processAwaitTimeouts__" (:: processAwaitTimeouts_)
 
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
     if sendOpen:
       sendOpen_
     if sendHearbeat:
-      task:: catchAndRestart "sendHeartbeats_" (:: sendHeartbeats_)
+      task:: catch-and-restart "sendHeartbeats_" (:: sendHeartbeats_)
     
     log.info "Comms started"
 
@@ -138,7 +138,7 @@ class Comms:
         expectedChecksumBytes := [messageBytes[messageLength - 2], messageBytes[messageLength - 1]]
 
         // And parse it as a protocol.Message
-        v3 := protocol.Message.from-list ( byteArrayToList messageBytes )
+        v3 := protocol.Message.from-list ( byte-array-to-list messageBytes )
 
         // Calculate the checksum of the message data
         calculatedChecksum := v3.checksum-calc
@@ -164,7 +164,7 @@ class Comms:
         device_.in.read-byte
 
   processReceivedMessage_ msg/protocol.Message:
-    log.debug "RCV msg type " + msg.type.stringify + " : " + msg.stringify + " " + ( messageBytesToDocsURL msg.bytes )
+    log.debug "RCV msg type " + msg.type.stringify + " : " + msg.stringify + " " + ( message-bytes-to-docs-url msg.bytes )
 
     // Add to any registered inboxes
     inboxesByName.do --values=true: | inbox |
@@ -237,7 +237,7 @@ class Comms:
       --onError/Lambda? = null
       --withLatch/bool = false
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
-    log.debug "Sending (and) message: " + msg.stringify + " " + ( messageBytesToDocsURL msg.bytes )
+    log.debug "Sending (and) message: " + msg.stringify + " " + ( message-bytes-to-docs-url msg.bytes )
   
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
@@ -290,13 +290,13 @@ class Comms:
 
       // Send the message
       device_.out.write m --flush=true
-      log.debug "SNT msg: " + (stringify-all-bytes m) + " " + ( messageBytesToDocsURL m )
+      log.debug "SNT msg: " + (stringify-all-bytes m) + " " + ( message-bytes-to-docs-url m )
     else:
-      sendViaOutbox msg
-      log.debug "SNT (outbox) msg of type: " + msg.type.stringify + " " + ( messageBytesToDocsURL msg.bytes )
+      send-via-outbox msg
+      log.debug "SNT (outbox) msg of type: " + msg.type.stringify + " " + ( message-bytes-to-docs-url msg.bytes )
 
   // Send a message via the outbox
-  sendViaOutbox msg/protocol.Message:
+  send-via-outbox msg/protocol.Message:
     // If the outbox is full, remove the oldest message, and add the new one
     if outbox_.size == outbox_.capacity:
       // TODO should cleanup the lambdas for the removed message, or wait for them to timeout?
@@ -306,15 +306,15 @@ class Comms:
     outbox_.send msg
 
   // Send raw bytes, without any protocol wrapping
-  sendRawBytes bytes/ByteArray --flush=true:
+  send-raw-bytes bytes/ByteArray --flush=true:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
     if bytes.size < 500:
-      log.debug "SNT raw: " + (stringify-all-bytes bytes) + " " + ( messageBytesToDocsURL bytes )
+      log.debug "SNT raw: " + (stringify-all-bytes bytes) + " " + ( message-bytes-to-docs-url bytes )
     else:
       log.debug "SNT raw: " + bytes.size.stringify + " bytes"
 
-  processAwaitTimeouts:
+  processAwaitTimeouts_:
     while true:
       yield
       sleep TimeoutCheckEvery_

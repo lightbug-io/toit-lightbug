@@ -7,10 +7,10 @@ class TxNow extends protocol.Data:
   static RETRIES := 3
   static PRIORITY := 4
 
-  static doMsg --searchGps/int?=null --data/ByteArray?=null --retries/int?=null --priority/int?=null -> protocol.Message:
+  static do-msg --search-gps/int?=null --data/ByteArray?=null --retries/int?=null --priority/int?=null -> protocol.Message:
     msg := protocol.Message MT
-    if searchGps:
-      msg.data.add-data-uint8 SEARCH-GPS searchGps
+    if search-gps:
+      msg.data.add-data-uint8 SEARCH-GPS search-gps
     if data:
       msg.data.add-data DATA data
     if retries:
@@ -23,7 +23,7 @@ class TxNow extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  searchGps -> int:
+  search-gps -> int:
     return get-data-uint8 SEARCH-GPS
 
   data -> ByteArray:
@@ -37,7 +37,7 @@ class TxNow extends protocol.Data:
 
   stringify -> string:
     return {
-      "Search GPS": searchGps,
+      "Search GPS": search-gps,
       "Data": data,
       "Retries": retries,
       "Priority": priority,

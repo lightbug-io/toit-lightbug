@@ -17,11 +17,11 @@ docsUrl -> string:
   return baseUrl
 
 // Returns a link to parse a message on the Lightbug docs site.
-messageToDocsUrl msg/Message -> string:
-  return messageBytesToDocsURL msg.bytes
+message-to-docs-url msg/Message -> string:
+  return message-bytes-to-docs-url msg.bytes
 
 // Returns a link to parse bytes of a message on the Lightbug docs site.
-messageBytesToDocsURL msgBytes/ByteArray -> string:
+message-bytes-to-docs-url msgBytes/ByteArray -> string:
   // XXX: This could also be added as part of a log viewer, rather than the app, which saves build bytes, comms bytes, etc
   baseUrl := docsUrl
   return baseUrl + "/devices/api/parse?bytes=" + ((url.encode ((stringify-all-bytes msgBytes).replace " " "" --all=true)).replace "0x" "" --all=true)

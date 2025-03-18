@@ -10,7 +10,7 @@ class Status extends protocol.Data:
   static NETWORK-MCC := 6
   static FIRMWARE-VERSION := 7
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
@@ -21,31 +21,31 @@ class Status extends protocol.Data:
   battery -> int:
     return get-data-uint8 BATTERY
 
-  signalStrength -> int:
+  signal-strength -> int:
     return get-data-uint8 SIGNAL-STRENGTH
 
-  deviceMode -> int:
+  device-mode -> int:
     return get-data-uint8 DEVICE-MODE
 
-  networkType -> int:
+  network-type -> int:
     return get-data-uint8 NETWORK-TYPE
 
-  networkMnc -> int:
+  network-mnc -> int:
     return get-data-uint16 NETWORK-MNC
 
-  networkMcc -> int:
+  network-mcc -> int:
     return get-data-uint16 NETWORK-MCC
 
-  firmwareVersion -> int:
+  firmware-version -> int:
     return get-data-uint32 FIRMWARE-VERSION
 
   stringify -> string:
     return {
       "Battery": battery,
-      "Signal Strength": signalStrength,
-      "Device Mode": deviceMode,
-      "Network Type": networkType,
-      "Network MNC": networkMnc,
-      "Network MCC": networkMcc,
-      "Firmware Version": firmwareVersion,
+      "Signal Strength": signal-strength,
+      "Device Mode": device-mode,
+      "Network Type": network-type,
+      "Network MNC": network-mnc,
+      "Network MCC": network-mcc,
+      "Firmware Version": firmware-version,
     }.stringify

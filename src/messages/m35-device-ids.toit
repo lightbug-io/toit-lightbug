@@ -6,7 +6,7 @@ class DeviceIds extends protocol.Data:
   static IMEI := 2
   static ICCID := 3
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg

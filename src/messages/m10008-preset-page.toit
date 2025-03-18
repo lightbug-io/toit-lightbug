@@ -3,7 +3,7 @@ import ..protocol as protocol
 class PresetPage extends protocol.Data:
   static MT := 10008
 
-  static toMsg -> protocol.Message:
+  static to-msg -> protocol.Message:
     msg := protocol.Message MT
     return msg
 

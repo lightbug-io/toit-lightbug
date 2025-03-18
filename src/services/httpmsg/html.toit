@@ -314,7 +314,7 @@ generate-screen-html -> string:
 
         // const splitForExport = true; // Always split for export
         let splitForExport = true;
-        let pageId = Math.floor(Math.random() * 245) + 10;
+        let page-id = Math.floor(Math.random() * 245) + 10;
 
         if (splitForExport) {
             while (startRow < gridHeight) {
@@ -330,7 +330,7 @@ generate-screen-html -> string:
                     cArrayOutput: cArray.join(','),
                 }
                 const isLastRow = endRow === gridHeight - 1;
-                box.msgBytes = box2msgb(box, pageId, isLastRow);
+                box.msgBytes = box2msgb(box, page-id, isLastRow);
                 exportBoxes.push(box);
                 startRow = endRow + 1;
             }
@@ -346,7 +346,7 @@ generate-screen-html -> string:
                 cArrayOutput: cArray.join(',')
             };
             if (box.bytes <= 255) {
-                box.msgBytes = box2msgb(box,pageId);
+                box.msgBytes = box2msgb(box,page-id);
             } else {
                 box.msgBytes = "Too many bytes to fit in a message";
             }
@@ -359,7 +359,7 @@ generate-screen-html -> string:
         submitMulti(toSend);
     }
 
-    function box2msgb(box, pageId, draw = true) {
+    function box2msgb(box, page-id, draw = true) {
         const ui16le = (num) => {
             return [num & 0xff, (num >> 8) & 0xff];
         };
@@ -371,7 +371,7 @@ generate-screen-html -> string:
         b.push(0);
         b.push(0);
         let d = new Map();
-        d.set(3, [pageId]);
+        d.set(3, [page-id]);
         d.set(21, [box.exportPositionX]);
         d.set(22, [box.exportPositionY]);
         d.set(23, [box.exportSizeX]);

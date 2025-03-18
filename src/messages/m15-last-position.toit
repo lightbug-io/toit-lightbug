@@ -18,7 +18,7 @@ class LastPosition extends protocol.Data:
 
   static LAT-LON-RAW-ADJUSTMENT := 1e7
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
@@ -29,7 +29,7 @@ class LastPosition extends protocol.Data:
   msg -> protocol.Message:
     return protocol.Message.with-data MT this
   
-  static subscribeMsg --intervalms/int -> protocol.Message:
+  static subscribe-msg --intervalms/int -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
     msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL intervalms // must be uint32
@@ -44,9 +44,9 @@ class LastPosition extends protocol.Data:
     return latitude-float
   longitude -> float:
     return longitude-float
-  latitudeFixed -> FixedPoint:
+  latitude-fixed -> FixedPoint:
     return ( FixedPoint --decimals=7 latitude-float )
-  longitudeFixed -> FixedPoint:
+  longitude-fixed -> FixedPoint:
     return ( FixedPoint --decimals=7 longitude-float )
   latitude-float -> float:
     return ( get-data-intn LATITUDE) / LAT-LON-RAW-ADJUSTMENT

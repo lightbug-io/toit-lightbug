@@ -1,11 +1,11 @@
 import log
 
-catchAndRestart name/string l/Lambda:
+catch-and-restart name/string l/Lambda:
   while true:
     e := catch --trace=true:
-      log.debug "catchAndRestart: Running " + name
+      log.debug "catch-and-restart: Running " + name
       l.call
     if e:
-      log.error "catchAndRestart: Caught exception: " + e.stringify
-      log.info "catchAndRestart: Restarting " + name
+      log.error "catch-and-restart: Caught exception: " + e.stringify
+      log.info "catch-and-restart: Restarting " + name
       yield

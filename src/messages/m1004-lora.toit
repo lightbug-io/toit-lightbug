@@ -13,37 +13,37 @@ class Lora extends protocol.Data:
   static SLEEP := 11
   static STATE := 12
 
-  static setMsg --spreadFactor/int --codingRate/int --bandwidth/int --centerFrequency/int --txPower/int --preambleLength/int --sleep/int?=null -> protocol.Message:
+  static set-msg --spread-factor/int --coding-rate/int --bandwidth/int --center-frequency/int --tx-power/int --preamble-length/int --sleep/int?=null -> protocol.Message:
     msg := protocol.Message MT
-    msg.data.add-data-uint8 SPREAD-FACTOR spreadFactor
-    msg.data.add-data-uint8 CODING-RATE codingRate
+    msg.data.add-data-uint8 SPREAD-FACTOR spread-factor
+    msg.data.add-data-uint8 CODING-RATE coding-rate
     msg.data.add-data-uint8 BANDWIDTH bandwidth
-    msg.data.add-data-uint32 CENTER-FREQUENCY centerFrequency
-    msg.data.add-data-uint8 TX-POWER txPower
-    msg.data.add-data-uint8 PREAMBLE-LENGTH preambleLength
+    msg.data.add-data-uint32 CENTER-FREQUENCY center-frequency
+    msg.data.add-data-uint8 TX-POWER tx-power
+    msg.data.add-data-uint8 PREAMBLE-LENGTH preamble-length
     if sleep:
       msg.data.add-data-uint8 SLEEP sleep
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
   
-  static doMsg --payload/ByteArray --receiveMs/int -> protocol.Message:
+  static do-msg --payload/ByteArray --receive-ms/int -> protocol.Message:
     msg := protocol.Message MT
     msg.data.add-data PAYLOAD payload
-    msg.data.add-data-uint32 RECEIVE-MS receiveMs
+    msg.data.add-data-uint32 RECEIVE-MS receive-ms
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
   
-  static subscribeMsg -> protocol.Message:
+  static subscribe-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
     return msg
   
-  static unsubscribeMsg -> protocol.Message:
+  static unsubscribe-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
@@ -54,25 +54,25 @@ class Lora extends protocol.Data:
   payload -> ByteArray:
     return get-data PAYLOAD
 
-  spreadFactor -> int:
+  spread-factor -> int:
     return get-data-uint8 SPREAD-FACTOR
 
-  codingRate -> int:
+  coding-rate -> int:
     return get-data-uint8 CODING-RATE
 
   bandwidth -> int:
     return get-data-uint8 BANDWIDTH
 
-  centerFrequency -> int:
+  center-frequency -> int:
     return get-data-uint32 CENTER-FREQUENCY
 
-  txPower -> int:
+  tx-power -> int:
     return get-data-uint8 TX-POWER
 
-  preambleLength -> int:
+  preamble-length -> int:
     return get-data-uint8 PREAMBLE-LENGTH
 
-  receiveMs -> int:
+  receive-ms -> int:
     return get-data-uint32 RECEIVE-MS
 
   sleep -> int:
@@ -84,13 +84,13 @@ class Lora extends protocol.Data:
   stringify -> string:
     return {
       "Payload": payload,
-      "Spread Factor": spreadFactor,
-      "Coding Rate": codingRate,
+      "Spread Factor": spread-factor,
+      "Coding Rate": coding-rate,
       "Bandwidth": bandwidth,
-      "Center Frequency": centerFrequency,
-      "TX Power": txPower,
-      "Preamble Length": preambleLength,
-      "Receive Ms": receiveMs,
+      "Center Frequency": center-frequency,
+      "TX Power": tx-power,
+      "Preamble Length": preamble-length,
+      "Receive Ms": receive-ms,
       "Sleep": sleep,
       "State": state,
     }.stringify

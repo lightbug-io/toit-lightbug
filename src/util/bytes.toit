@@ -14,7 +14,7 @@ stringify-all-bytes bytes/ByteArray --short=false --commas=true --hex=true -> st
     else: buffer.write "$(bytePrefix)$(%02d it)"
   return buffer.to-string
 
-byteArrayToList ba/ByteArray -> List:
+byte-array-to-list ba/ByteArray -> List:
   l := []
   ba.do: | byte |
     l.add byte

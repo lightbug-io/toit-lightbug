@@ -9,18 +9,18 @@ class ButtonPress extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  pageId -> int:
+  page-id -> int:
     return get-data-uint PAGE-ID
 
-  buttonId -> int:
+  button-id -> int:
     return get-data-uint BUTTON-ID
 
-  selectionId -> int:
+  selection-id -> int:
     return get-data-uint SELECTION-ID
 
   stringify -> string:
     return {
-      "Page ID": pageId,
-      "Button ID": buttonId,
-      "Selection ID": selectionId,
+      "Page ID": page-id,
+      "Button ID": button-id,
+      "Selection ID": selection-id,
     }.stringify

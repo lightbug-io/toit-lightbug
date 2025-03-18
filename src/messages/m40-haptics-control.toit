@@ -13,7 +13,7 @@ class HapticsControl extends protocol.Data:
   static INTENSITY-MEDIUM := 1
   static INTENSITY-HIGH := 2
 
-  static doMsg pattern/int intensity/int -> protocol.Message:
+  static do-msg pattern/int intensity/int -> protocol.Message:
     msg := protocol.Message MT
     msg.data.add-data-uint8 PATTERN pattern
     msg.data.add-data-uint8 INTENSITY intensity

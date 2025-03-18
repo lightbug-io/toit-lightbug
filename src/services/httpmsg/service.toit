@@ -2,7 +2,7 @@ import ...protocol as protocol
 import ...devices as devices
 import ...services as services
 import ...messages as messages
-import ...util.resilience show catchAndRestart
+import ...util.resilience show catch-and-restart
 import ...util.docs show docsUrl
 import ...util.bytes show stringify-all-bytes
 import .html
@@ -40,13 +40,13 @@ class HttpMsg:
       )
 
     // This service always wants us to be subscribing to LORA data (if possible)
-    device-comms.send messages.Lora.subscribeMsg
+    device-comms.send messages.Lora.subscribe-msg
 
     if serve:
-      service-http-catchAndRestart
+      service-http-catch-and-restart
 
-  service-http-catchAndRestart:
-    catchAndRestart "lightbug-HttpMsg::serve-http" (:: serve-http)
+  service-http-catch-and-restart:
+    catch-and-restart "lightbug-HttpMsg::serve-http" (:: serve-http)
 
   serve-http:
     log.debug "Starting lightbug-HtmlMsgServer on port $serve-port"

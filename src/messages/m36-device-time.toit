@@ -11,7 +11,7 @@ class DeviceTime extends protocol.Data:
   static MINUTE := 7
   static SECOND := 8
 
-  static getMsg -> protocol.Message:
+  static get-msg -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg

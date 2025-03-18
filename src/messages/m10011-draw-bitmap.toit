@@ -11,18 +11,18 @@ class DrawBitmap extends protocol.Data:
   static BITMAP-OVERLAY := 26
   static DONT-DRAW := 27
 
-  static toMsg --pageId/int?=null --bitmapX/int=0 --bitmapY/int=0 --bitmapWidth/int --bitmapHeight/int --bitmapData/ByteArray --bitmapOverlay/bool=false --dontDraw/bool=false -> protocol.Message:
+  static to-msg --page-id/int?=null --bitmap-x/int=0 --bitmap-y/int=0 --bitmap-width/int --bitmap-height/int --bitmap-data/ByteArray --bitmap-overlay/bool=false --dont-draw/bool=false -> protocol.Message:
     msg := protocol.Message MT
-    if pageId:
-      msg.data.add-data-uint PAGE-ID pageId
-    msg.data.add-data-uint BITMAP-X bitmapX
-    msg.data.add-data-uint BITMAP-Y bitmapY
-    msg.data.add-data-uint BITMAP-WIDTH bitmapWidth
-    msg.data.add-data-uint BITMAP-HEIGHT bitmapHeight
-    msg.data.add-data BITMAP-DATA bitmapData
-    if bitmapOverlay:
+    if page-id:
+      msg.data.add-data-uint PAGE-ID page-id
+    msg.data.add-data-uint BITMAP-X bitmap-x
+    msg.data.add-data-uint BITMAP-Y bitmap-y
+    msg.data.add-data-uint BITMAP-WIDTH bitmap-width
+    msg.data.add-data-uint BITMAP-HEIGHT bitmap-height
+    msg.data.add-data BITMAP-DATA bitmap-data
+    if bitmap-overlay:
       msg.data.add-data-uint8 BITMAP-OVERLAY 1
-    if dontDraw:
+    if dont-draw:
       msg.data.add-data-uint8 DONT-DRAW 1
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
@@ -30,38 +30,38 @@ class DrawBitmap extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  pageId -> int:
+  page-id -> int:
     return get-data-uint PAGE-ID
 
-  bitmapX -> int:
+  bitmap-x -> int:
     return get-data-uint BITMAP-X
 
-  bitmapY -> int:
+  bitmap-y -> int:
     return get-data-uint BITMAP-Y
 
-  bitmapWidth -> int:
+  bitmap-width -> int:
     return get-data-uint BITMAP-WIDTH
 
-  bitmapHeight -> int:
+  bitmap-height -> int:
     return get-data-uint BITMAP-HEIGHT
 
-  bitmapData -> ByteArray:
+  bitmap-data -> ByteArray:
     return get-data BITMAP-DATA
 
-  bitmapOverlay -> int:
+  bitmap-overlay -> int:
     return get-data-uint8 BITMAP-OVERLAY
 
-  dontDraw -> int:
+  dont-draw -> int:
     return get-data-uint8 DONT-DRAW
 
   stringify -> string:
     return {
-      "Page ID": pageId,
-      "Bitmap X": bitmapX,
-      "Bitmap Y": bitmapY,
-      "Bitmap Width": bitmapWidth,
-      "Bitmap Height": bitmapHeight,
-      "Bitmap Data": bitmapData,
-      "Bitmap Overlay": bitmapOverlay,
-      "Don't Draw": dontDraw,
+      "Page ID": page-id,
+      "Bitmap X": bitmap-x,
+      "Bitmap Y": bitmap-y,
+      "Bitmap Width": bitmap-width,
+      "Bitmap Height": bitmap-height,
+      "Bitmap Data": bitmap-data,
+      "Bitmap Overlay": bitmap-overlay,
+      "Don't Draw": dont-draw,
     }.stringify

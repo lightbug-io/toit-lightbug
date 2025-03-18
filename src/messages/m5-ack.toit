@@ -10,10 +10,10 @@ class Ack extends protocol.Data:
   msg -> protocol.Message:
     return protocol.Message.with-data MT this
 
-  ackedType -> int:
+  acked-type -> int:
     return get-data-uint16 ACKED-TYPE
 
   stringify -> string:
     return {
-      "ACKed Type": ackedType,
+      "ACKed Type": acked-type,
     }.stringify
