@@ -1,3 +1,4 @@
+sdk: ^2.0.0-alpha.150
 prefixes:
   coordinate: toit-coordinate
   lightbug: ..
@@ -6,6 +7,12 @@ packages:
     path: ..
     prefixes:
       coordinate: toit-coordinate
+      http: pkg-http
+  pkg-http:
+    url: github.com/toitlang/pkg-http
+    name: http
+    version: 2.9.0
+    hash: ed6e198259c578154de830dc492821fdb5a40c7a
   toit-coordinate:
     url: github.com/lightbug-io/toit-coordinate
     name: coordinate
