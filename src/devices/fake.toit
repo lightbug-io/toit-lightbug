@@ -20,7 +20,6 @@ class FakeReader extends io.Reader with io.InMixin:
   constructor:
 
   read_ -> ByteArray?:
-      // log.debug "FakeReader: Simulating read operation"
       return #[]
 
 class FakeWriter extends io.Writer with io.OutMixin:

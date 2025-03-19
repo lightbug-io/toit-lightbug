@@ -20,6 +20,7 @@ class HttpMsg:
   response-message-formatter_ /Lambda
   device-comms_ /services.Comms
   device_/devices.Device
+  logger_ /log.Logger
 
   constructor
       device/devices.Device
@@ -27,7 +28,9 @@ class HttpMsg:
       --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
       --response-message-formatter/Lambda?=null // A function that takes a writer and message and returns a string to be displayed in the response. Otherwise bytes will be shown...
       --port/int=DEFAULT_PORT
-      --serve/bool=true:
+      --serve/bool=true
+      --logger/log.Logger=(log.default.with-name "lb-httpmsg"):
+    logger_ = logger
     serve-port = port
     device_ = device
     device-comms_ = device-comms
@@ -49,11 +52,11 @@ class HttpMsg:
     catch-and-restart "lightbug-HttpMsg::serve-http" (:: serve-http)
 
   serve-http:
-    log.debug "Starting lightbug-HtmlMsgServer on port $serve-port"
+    logger_.debug "Starting lightbug-HtmlMsgServer on port $serve-port"
     network := net.open
     tcp_socket := network.tcp_listen serve-port
     // Only log INFO level server messages (especially as these come back through this log server..)
-    server := http.Server --logger=(log.Logger log.INFO-LEVEL log.DefaultTarget) --max-tasks=25
+    server := http.Server --logger=logger_ --max-tasks=25
     server.listen tcp_socket:: | request/http.RequestIncoming writer/http.ResponseWriter |
       handle-http-request request writer
   
@@ -125,7 +128,7 @@ class HttpMsg:
   polling-queue /Channel := Channel 10
   queue-output-for-polling line/string:
     if polling-queue.size > 10:
-      log.warn "Dropping line from queue as it is full"
+      logger_.warn "Dropping line from queue as it is full"
       polling-queue.receive
       polling-queue.send line
     else:
@@ -133,7 +136,7 @@ class HttpMsg:
   polling-messages /Channel := Channel 10
   queue-messages-for-polling msg/protocol.Message:
     if polling-messages.size > 10:
-      log.warn "Dropping message from queue as it is full"
+      logger_.warn "Dropping message from queue as it is full"
       polling-messages.receive
       polling-messages.send msg
     else:

@@ -19,57 +19,47 @@ class Data:
     if bytes.size < 2:
       throw "V3 OUT_OF_BOUNDS: Not enough bytes to read fields, expected 2 bytes but only have " + bytes.size.stringify
     fields := (bytes[1] << 8) + bytes[0]
-    // log.debug "Data fields: " + fields.stringify
     if bytes.size < 2 + fields:
       throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data types, expected " + (2 + fields).stringify + " bytes but only have " + bytes.size.stringify
     // read data types
     for i := 0; i < fields; i++:
       dataType := bytes[2 + i]
       dataTypes_.add dataType
-      // log.debug "Data data type: " + dataType.stringify
     // read data (each is a uint8 length, then that number of bytes)
     index := 2 + fields
     for i := 0; i < fields; i++:
       if index >= bytes.size:
         throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data length, expected " + index.stringify + " bytes but only have " + bytes.size.stringify
       length := bytes[index]
-      // log.debug "Data data length: " + length.stringify
       index += 1
       if index + length > bytes.size:
         throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data, expected " + (index + length).stringify + " bytes but only have " + bytes.size.stringify
       index += length
-      // log.debug "Data data bytes: " + bytes[index - length..index].stringify
       dataField := DataField (list-to-byte-array bytes[index - length..index])
       data_.add dataField
-      // log.debug "Data data: " + dataField.stringify
   
   constructor.from-bytes bytes/ByteArray:
     if bytes.size < 2:
       throw "V3 OUT_OF_BOUNDS: Not enough bytes to read fields, expected 2 bytes but only have " + bytes.size.stringify
     fields := LITTLE-ENDIAN.uint16 bytes 0
-    // log.debug "Data fields: " + fields.stringify
     if bytes.size < 2 + fields:
       throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data types, expected " + (2 + fields).stringify + " bytes but only have " + bytes.size.stringify
     // read data types
     for i := 0; i < fields; i++:
       dataType := bytes[2 + i]
       dataTypes_.add dataType
-      // log.debug "Data data type: " + dataType.stringify
     // read data (each is a uint8 length, then that number of bytes)
     index := 2 + fields
     for i := 0; i < fields; i++:
       if index >= bytes.size:
         throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data length, expected " + index.stringify + " bytes but only have " + bytes.size.stringify
       length := bytes[index]
-      // log.debug "Data data length: " + length.stringify
       index += 1
       if index + length > bytes.size:
         throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data, expected " + (index + length).stringify + " bytes but only have " + bytes.size.stringify
       index += length
-      // log.debug "Data data bytes: " + bytes[index - length..index].stringify
       dataField := DataField (bytes[index - length..index])
       data_.add dataField
-      // log.debug "Data data: " + dataField.stringify
 
   stringify -> string:
     s := ""
@@ -113,7 +103,7 @@ class Data:
     else if data < 1099511627776:
       add-data-uint64 dataType data
     else:
-      log.error "Data too large for uintn: " + data.stringify
+      log.error "Data too large for uintn: $(data)"
 
   add-data-float32 dataType/int data/float -> none:
     b := #[0,0,0,0]
@@ -135,7 +125,7 @@ class Data:
           return true
       return false
     if e:
-      log.warn "Failed to check for data: " + e.stringify
+      log.warn "Failed to check for data: $(e)"
     return false
 
   remove-data dataType/int -> none:
@@ -146,7 +136,7 @@ class Data:
           data_.remove --at=i
           return
     if e:
-      log.warn "Failed to remove data: " + e.stringify
+      log.warn "Failed to remove data: $(e)"
 
   // returns the data for the type, or an empty list if not found
   // will never throw an error
@@ -157,7 +147,7 @@ class Data:
           return data_[i].dataBytes_
       return #[]
     if e:
-      log.warn "Failed to get data: " + e.stringify
+      log.warn "Failed to get data: $(e)"
     return #[]
 
   get-data-ascii dataType/int -> string:
@@ -168,7 +158,7 @@ class Data:
     // TODO use LITTLE-ENDIAN? (When we have a byte array not a list?)
     data := get-data dataType
     if data.size == 0:
-      log.warn "No data for datatype " + dataType.stringify
+      log.warn "No data for datatype $(dataType)"
       return 0
     return data[0]
 
@@ -184,7 +174,7 @@ class Data:
   get-data-uint64 dataType/int -> int:
     data := get-data dataType
     if data.size < 8:
-      log.warn "No data for datatype " + dataType.stringify
+      log.warn "No data for datatype $(dataType)"
       return 0
     return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
 
@@ -197,7 +187,7 @@ class Data:
   get-data-list-uint16 dataType/int -> List:
     data := get-data dataType
     if data.size % 2 != 0:
-      log.error "Data size not a multiple of 2 for datatype " + dataType.stringify
+      log.error "Data size not a multiple of 2 for datatype $(dataType)"
       return []
     l := []
     for i := 0; i < data.size; i += 2:
@@ -219,7 +209,7 @@ class Data:
   get-data-list-uint32 dataType/int -> List:
     data := get-data dataType
     if data.size % 4 != 0:
-      log.error "Data size not a multiple of 4 for datatype " + dataType.stringify
+      log.error "Data size not a multiple of 4 for datatype $(dataType)"
       return []
     l := []
     for i := 0; i < data.size; i += 4:
@@ -236,7 +226,7 @@ class Data:
   get-data-list-int32-pairs dataType/int -> List:
     data := get-data dataType
     if data.size % 8 != 0:
-      log.error "Data size not a multiple of 8 for datatype " + dataType.stringify
+      log.error "Data size not a multiple of 8 for datatype $(dataType)"
       return []
     l := []
     for i := 0; i < data.size; i += 8:
@@ -246,7 +236,7 @@ class Data:
   get-data-list-coordinates dataType/int -> List:
     data := get-data dataType
     if data.size % 8 != 0:
-      log.error "Data size not a multiple of 8 for datatype " + dataType.stringify
+      log.error "Data size not a multiple of 8 for datatype $(dataType)"
       return []
     l := []
     for i := 0; i < data.size; i += 8:
@@ -266,7 +256,7 @@ class Data:
     // etc
     data := get-data dataType
     if data.size == 0:
-      log.warn "No data for datatype " + dataType.stringify
+      log.warn "No data for datatype $(dataType)"
       return 0
     if data.size == 1:
       return LITTLE-ENDIAN.uint8 data 0
@@ -285,7 +275,7 @@ class Data:
     if data.size == 8:
         // toit doesnt actually support uint64, so this will always be represented as int64
         return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    log.error "Data size too large for uintn: " + data.size.stringify
+    log.error "Data size too large for uintn: $(data.size)"
     return 0
 
   get-data-intn dataType/int -> int:
@@ -296,7 +286,7 @@ class Data:
     // etc
     data := get-data dataType
     if data.size == 0:
-        log.warn "No data for datatype " + dataType.stringify
+        log.warn "No data for datatype $(dataType)"
         return 0
     if data.size == 1:
         return LITTLE-ENDIAN.int8 data 0
@@ -315,7 +305,7 @@ class Data:
     if data.size == 8:
             // toit doesnt actually support int64, so this will always be represented as int64
             return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    log.error "Data size too large for intn: " + data.size.stringify
+    log.error "Data size too large for intn: $(data.size)"
     return 0
 
   size -> int:

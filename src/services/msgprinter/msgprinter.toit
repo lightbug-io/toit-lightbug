@@ -18,7 +18,7 @@ class MsgPrinter:
       msg := inbox.receive
       // Try to process the message, catching any errors that occur, printing if successful
       e := catch --trace:
-        log.info "Message: " + msg.msgType.stringify + " " + (message-to-docs-url msg)
+        log.info "Message: $(msg.msgType) $(message-to-docs-url msg)"
       if e != null:
         log.error "Error processing message: $e"
         continue

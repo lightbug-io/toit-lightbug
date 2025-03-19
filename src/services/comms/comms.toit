@@ -14,6 +14,7 @@ import monitor
 import monitor show Channel
 
 class Comms:
+  logger_/log.Logger
   device_ /devices.Device
   msgIdGenerator /IdGenerator
 
@@ -36,8 +37,10 @@ class Comms:
       --device/devices.Device? = null
       --sendOpen/bool = true // An Open is required to start comms and get responses ot messages. Only set to false if you will control the Open in your own code.
       --sendHearbeat/bool = true // Send a heartbeat message every now and again to keep the connection open. Only set to false if you will control the heartbeat in your own code.
-      --idGenerator/IdGenerator? = null:
+      --idGenerator/IdGenerator? = null
+      --logger=(log.default.with-name "lb-comms"):
 
+    logger_ = logger
     device_ = device
     if idGenerator == null:
       msgIdGenerator = RandomIdGenerator --lowerBound=1 --upperBound=4_294_967_295 // uint32 max
@@ -55,7 +58,7 @@ class Comms:
     start_ sendOpen sendHearbeat
 
   start_ sendOpen/bool sendHearbeat/bool:
-    log.info "Comms starting"
+    logger_.info "Comms starting"
 
     task:: catch-and-restart "processInbound_" (:: processInbound_)
     task:: catch-and-restart "processOutbox_" (:: processOutbox_)
@@ -68,30 +71,30 @@ class Comms:
     if sendHearbeat:
       task:: catch-and-restart "sendHeartbeats_" (:: sendHeartbeats_)
     
-    log.info "Comms started"
+      logger_.info "Comms started"
 
   sendOpen_:
     if not (send (messages.Open).msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
       throw "Failed to open device link"
-    log.debug "Opened device link"
+      logger_.debug "Opened device link"
 
   sendHeartbeats_:
     while true:
       // Send a heartbeat message every 10 seconds (via outbox)
       if not (send (messages.Heartbeat).msg --withLatch=true).get:
-        log.error "Failed to send heartbeat"
+        logger_.error "Failed to send heartbeat"
       else:
-        log.debug "Sent heartbeat"
+        logger_.debug "Sent heartbeat"
       sleep (Duration --s=15)
 
   // Creates or gets an inbox by name
   // A single inbox will only deliver messages once
   inbox name/string --size/int? = 15 -> Channel:
     if not inboxesByName.contains name:
-      log.info "Created new inbox " + name
+      logger_.info "Created new inbox $(name)"
       inboxesByName[name] = Channel size
     else if inboxesByName[name].capacity != size:
-      log.warn "Tried to get already created inbox, now with different size"
+      logger_.warn "Tried to get already created inbox, now with different size"
     return inboxesByName[name]
 
   processInbound_:
@@ -107,7 +110,7 @@ class Comms:
 
       // Wait for a total of 3 bytes, which would also give us the length
       while not device_.in.try-ensure-buffered 3:
-        log.debug "Inbound reader waiting for 3 bytes"
+        logger_.debug "Inbound reader waiting for 3 bytes"
         yield
       // Peek all 3 bytes, which is protocol + message length
       b3 := device_.in.peek-bytes 3
@@ -116,19 +119,19 @@ class Comms:
       messageLength := (b3[2] << 8) + b3[1]
       // If the msgLength looks too long (over 1000, just advance, as its probably garbage)
       if messageLength > 1000:
-          log.error "Message length probably too long, skipping: " + messageLength.stringify
+          logger_.error "Message length probably too long, skipping: $(messageLength)"
           device_.in.read-byte
           continue
 
       // Try and make sure that we have enough bytes buffered to read the full potential message
       while not device_.in.try-ensure-buffered messageLength:
-        log.debug "Inbound reader waiting for message length: " + messageLength.stringify
+        logger_.debug "Inbound reader waiting for message length: $(messageLength)"
         yield
 
       messageBytes := device_.in.peek-bytes messageLength
       // TODO remove once we are sure its good?
       if messageBytes.size != messageLength: // Fail safe, but shouldn't happen due to the try-enure-buffered above
-        log.error "Message length mismatch, no more bytes availible? skipping message"
+        logger_.error "Message length mismatch, no more bytes availible? skipping message"
         device_.in.read-byte
         throw "Message length mismatch, no more bytes availible? skipping message"
         continue
@@ -151,27 +154,27 @@ class Comms:
             device_.in.read-bytes messageLength
             processReceivedMessage_ v3
         else:
-          log.error "Checksum mismatch, skipping message"
+          logger_.error "Checksum mismatch, skipping message"
 
           // Read a byte, and continue looking for a message
           device_.in.read-byte
       if e:
         // output a row of red cross emojis
-        log.error " ❌ " * 20
-        log.error "Error parsing message (probably garbeled): " + e.stringify + " " + ( stringify-all-bytes messageBytes)
-        log.error " ❌ " * 20
+        logger_.error " ❌ " * 20
+        logger_.error "Error parsing message (probably garbeled): $(e) $(stringify-all-bytes messageBytes)"
+        logger_.error " ❌ " * 20
         // Read a byte, and continue looking for a message
         device_.in.read-byte
 
   processReceivedMessage_ msg/protocol.Message:
-    log.debug "RCV msg type " + msg.type.stringify + " : " + msg.stringify + " " + ( message-bytes-to-docs-url msg.bytes )
+    logger_.debug "RCV msg type $(msg.type) : $(msg) $(message-bytes-to-docs-url msg.bytes)"
 
     // Add to any registered inboxes
     inboxesByName.do --values=true: | inbox |
       if inbox.size >= inbox.capacity:
         dropped := inbox.receive
-        log.warn "Inbox full, Dropped message of type: " + dropped.type.stringify + " in favour of new message of type: " + msg.type.stringify
-      log.debug "Adding message to inbox: " + msg.type.stringify
+        logger_.warn "Inbox full, Dropped message of type: $(dropped.type) in favour of new message of type: $(msg.type)"
+      logger_.debug "Adding message to inbox: $(msg.type)"
       inbox.send msg
       yield // on each inbox population, as the inbox might cause other code to run
 
@@ -186,12 +189,12 @@ class Comms:
         if isBad:
           if lambdasForBadAck.contains respondingTo:
             lambda := lambdasForBadAck[respondingTo]
-            log.debug "Calling lambda for bad ack: " + respondingTo.stringify
+            logger_.debug "Calling lambda for bad ack: $(respondingTo)"
             task:: lambda.call msg
         else:
           if lambdasForGoodAck.contains respondingTo:
             lambda := lambdasForGoodAck[respondingTo]
-            log.debug "Calling lambda for good ack: " + respondingTo.stringify
+            logger_.debug "Calling lambda for good ack: $(respondingTo)"
             task:: lambda.call msg
         lambdasForBadAck.remove respondingTo
         lambdasForGoodAck.remove respondingTo
@@ -199,12 +202,12 @@ class Comms:
         if isBad:
           if lambdasForBadResponse.contains respondingTo:
             lambda := lambdasForBadResponse[respondingTo]
-            log.debug "Calling lambda for bad response: " + respondingTo.stringify
+            logger_.debug "Calling lambda for bad response: $(respondingTo)"
             task:: lambda.call msg
         else:
           if lambdasForGoodResponse.contains respondingTo:
             lambda := lambdasForGoodResponse[respondingTo]
-            log.debug "Calling lambda for good response: " + respondingTo.stringify
+            logger_.debug "Calling lambda for good response: $(respondingTo)"
             task:: lambda.call msg
         lambdasForBadResponse.remove respondingTo
         lambdasForGoodResponse.remove respondingTo
@@ -237,7 +240,7 @@ class Comms:
       --onError/Lambda? = null
       --withLatch/bool = false
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
-    log.debug "Sending (and) message: " + msg.stringify + " " + ( message-bytes-to-docs-url msg.bytes )
+    logger_.debug "Sending (and) message: $(msg) $(message-bytes-to-docs-url msg.bytes)"
   
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
@@ -290,10 +293,10 @@ class Comms:
 
       // Send the message
       device_.out.write m --flush=true
-      log.debug "SNT msg: " + (stringify-all-bytes m) + " " + ( message-bytes-to-docs-url m )
+      logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
       send-via-outbox msg
-      log.debug "SNT (outbox) msg of type: " + msg.type.stringify + " " + ( message-bytes-to-docs-url msg.bytes )
+      logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:
@@ -301,7 +304,7 @@ class Comms:
     if outbox_.size == outbox_.capacity:
       // TODO should cleanup the lambdas for the removed message, or wait for them to timeout?
       droppedMsg := outbox_.receive
-      log.warn "Outbox full, Dropped message of type: " + droppedMsg.type.stringify + " in favour of new message of type: " + msg.type.stringify
+      logger_.warn "Outbox full, Dropped message of type: $(droppedMsg.type) in favour of new message of type: $(msg.type)"
     // We don't log the send here, as it will be sent later when the outbox is processed
     outbox_.send msg
 
@@ -310,9 +313,9 @@ class Comms:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
     if bytes.size < 500:
-      log.debug "SNT raw: " + (stringify-all-bytes bytes) + " " + ( message-bytes-to-docs-url bytes )
+      logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
     else:
-      log.debug "SNT raw: " + bytes.size.stringify + " bytes"
+      logger_.debug "SNT raw: $(bytes.size) bytes"
 
   processAwaitTimeouts_:
     while true:
@@ -321,7 +324,7 @@ class Comms:
       waitTimeouts.do --keys=true: | key |
         durationSinceTimeout := Duration.since waitTimeouts[key]
         if (durationSinceTimeout > (Duration --s=0)):
-          log.debug "Timeout for message: " + key.stringify + " expired " + durationSinceTimeout.stringify + " ago"
+          logger_.debug "Timeout for message: $(key) expired $(durationSinceTimeout) ago"
           // Remove the timeout key, complete the latch, and remove all callbacks?!
           waitTimeouts.remove key
           latchForMessage[key].set false // false currently means timeout?
@@ -332,4 +335,4 @@ class Comms:
           lambdasForGoodResponse.remove key
         else:
           // not yet timed out
-          // log.debug "Not yet timed out: " + key.stringify + " " + durationSinceTimeout.stringify + " left"
+          // logger_.debug "Not yet timed out: $(key) $(durationSinceTimeout) left"

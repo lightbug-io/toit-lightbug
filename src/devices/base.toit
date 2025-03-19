@@ -2,6 +2,7 @@ import i2c
 import gpio
 import uart
 import io
+import log
 import .i2c
 
 /*
@@ -37,12 +38,14 @@ abstract class LightbugDevice implements Device:
   i2c-writer_ /Writer
 
   name_ /string
+  logger_ /log.Logger
 
-  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL:
+  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --logger/log.Logger=(log.default.with-name "lb-device"):
     name_ = name
+    logger_ = logger
     i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl
-    i2c-reader_ = Reader i2c-device_
-    i2c-writer_ = Writer i2c-device_
+    i2c-reader_ = Reader i2c-device_ --logger=logger_
+    i2c-writer_ = Writer i2c-device_ --logger=logger_
 
   name -> string:
     return name_
