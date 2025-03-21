@@ -19,6 +19,8 @@ class HttpMsg:
   custom-actions_ /Map
   response-message-formatter_ /Lambda
   device-comms_ /services.Comms
+  listen-and-log-all_/bool
+  inbox /Channel
   device_/devices.Device
   logger_ /log.Logger
 
@@ -29,7 +31,9 @@ class HttpMsg:
       --response-message-formatter/Lambda?=null // A function that takes a writer and message and returns a string to be displayed in the response. Otherwise bytes will be shown...
       --port/int=DEFAULT_PORT
       --serve/bool=true
-      --logger/log.Logger=(log.default.with-name "lb-httpmsg"):
+      --logger/log.Logger=(log.default.with-name "lb-httpmsg")
+      --subscribe-lora/bool=false
+      --listen-and-log-all/bool=false:
     logger_ = logger
     serve-port = port
     device_ = device
@@ -42,8 +46,15 @@ class HttpMsg:
         writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
       )
 
-    // This service always wants us to be subscribing to LORA data (if possible)
-    device-comms.send messages.Lora.subscribe-msg
+    // Create an inbox to receive all messages on, that can be shown to the user via /poll logging
+    listen-and-log-all_ = listen-and-log-all
+    if listen-and-log-all:
+      inbox = device-comms_.inbox "httpmsg" --size=20
+    else:
+      inbox = Channel 1
+
+    if subscribe-lora:
+      device-comms.send messages.Lora.subscribe-msg
 
     if serve:
       service-http-catch-and-restart
@@ -98,10 +109,11 @@ class HttpMsg:
       ((line.split " ").do: |s| byteList.add (int.parse s))
       msg := protocol.Message.from-list byteList
       // TODO detect invalid msg and let the user know..
+      wait-for-response := 5000
       msgLatch := device-comms_.send msg
         --now=true
         --withLatch=true
-        --timeout=(Duration --ms=5000) // 5s timeout so that /post requests don't need to remain open for ages
+        --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
         --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
         --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
       // Wait for the response (async), so that we can still send the next message
@@ -109,19 +121,25 @@ class HttpMsg:
       task::
         response := msgLatch.get
         if not response:
-          writer.out.write "$(msg.msgId) No response...\n"
+          writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
         else:
-          write-msg-out writer response
+          // Only write out the response if we are not listening to all messages, as then it will be logged anyway
+          if not listen-and-log-all_:
+            write-msg-out writer response "Received"
         tasksDone++
     while tasksDone < tasksWaiting:
       sleep (Duration --ms=100)
     writer.close
 
-  write-msg-out writer/http.ResponseWriter msg/protocol.Message:
+  write-msg-out writer/http.ResponseWriter msg/protocol.Message prefix/string="":
+    prefix = "$(prefix) $(msg.msgId)"
+    if msg.response-to:
+        prefix = "$(prefix) Response $(msg.response-to):"
+
     if response-message-formatter_ != null:
-      response-message-formatter_.call writer msg "$(msg.msgId) Response $(msg.msgId):"
+      response-message-formatter_.call writer msg prefix
     else:
-      writer.out.write "$(msg.msgId) Response $(msg.msgId): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+      writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
 
   // It might be more efficient to store messages that have been received, to send
   // TODO having a "force-send" on monitor would be nice..
@@ -149,7 +167,10 @@ class HttpMsg:
     while polling-queue.size > 0:
       writer.out.write polling-queue.receive
     while polling-messages.size > 0:
-      write-msg-out writer polling-messages.receive
+      write-msg-out writer polling-messages.receive "Received"
+    while inbox.size > 0:
+      msg := inbox.receive
+      write-msg-out writer msg "Received"
     writer.close
 
 
