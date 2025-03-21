@@ -311,45 +311,23 @@ generate-screen-html -> string:
         const maxRowsPerBox = Math.floor(maxBytes / bytesPerRow);
         let startRow = 0;
         exportBoxes = [];
-
-        // const splitForExport = true; // Always split for export
-        let splitForExport = true;
         let pageId = Math.floor(Math.random() * 245) + 10;
 
-        if (splitForExport) {
-            while (startRow < gridHeight) {
-                const endRow = Math.min(startRow + maxRowsPerBox - 1, gridHeight - 1);
-                const cArray = packBinaryGrid(startRow, endRow);
-                let box = {
-                    exportPositionX: gridX,
-                    exportPositionY: gridY + startRow,
-                    exportSizeX: gridWidth,
-                    exportSizeY: endRow - startRow + 1,
-                    bytes: cArray.length,
-                    pixels: (endRow - startRow + 1) * gridWidth,
-                    cArrayOutput: cArray.join(','),
-                }
-                box.msgBytes = box2msgb(box, pageId, false, (startRow === 0), (endRow === gridHeight - 1));
-                exportBoxes.push(box);
-                startRow = endRow + 1;
-            }
-        } else {
-            const cArray = packBinaryGrid(0, gridHeight - 1);
+        while (startRow < gridHeight) {
+            const endRow = Math.min(startRow + maxRowsPerBox - 1, gridHeight - 1);
+            const cArray = packBinaryGrid(startRow, endRow);
             let box = {
                 exportPositionX: gridX,
-                exportPositionY: gridY,
+                exportPositionY: gridY + startRow,
                 exportSizeX: gridWidth,
-                exportSizeY: gridHeight,
+                exportSizeY: endRow - startRow + 1,
                 bytes: cArray.length,
-                pixels: gridWidth * gridHeight,
-                cArrayOutput: cArray.join(',')
-            };
-            if (box.bytes <= 255) {
-                box.msgBytes = box2msgb(box,pageId,true);
-            } else {
-                box.msgBytes = "Too many bytes to fit in a message";
+                pixels: (endRow - startRow + 1) * gridWidth,
+                cArrayOutput: cArray.join(','),
             }
+            box.msgBytes = box2msgb(box, pageId, (endRow === gridHeight - 1), (startRow === 0), (endRow === gridHeight - 1));
             exportBoxes.push(box);
+            startRow = endRow + 1;
         }
         let toSend = [];
         exportBoxes.forEach(box => {
