@@ -112,7 +112,6 @@ class HttpMsg:
         // TODO detect invalid msg and let the user know..
         wait-for-response := 5000
         msgLatch := device-comms_.send msg
-          --now=true
           --withLatch=true
           --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
           --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
