@@ -359,7 +359,7 @@ generate-screen-html -> string:
         submitMulti(toSend);
     }
 
-    function box2msgb(box, pageId, draw = true) {
+    function box2msgb(box, pageId, isLastMsg= true) {
         const ui16le = (num) => {
             return [num & 0xff, (num >> 8) & 0xff];
         };
@@ -372,13 +372,15 @@ generate-screen-html -> string:
         b.push(0);
         let d = new Map();
         d.set(3, [pageId]);
-        d.set(21, [box.exportPositionX]);
-        d.set(22, [box.exportPositionY]);
-        d.set(23, [box.exportSizeX]);
-        d.set(24, [box.exportSizeY]);
+        d.set(7, [box.exportPositionX]);
+        d.set(8, [box.exportPositionY]);
+        d.set(9, [box.exportSizeX]);
+        d.set(10, [box.exportSizeY]);
         d.set(25, box.cArrayOutput.split(',').map(byte => parseInt(byte, 16)));
-        if(!draw) {
-            d.set(27, [1]);
+        if(isLastMsg) {
+          d.set(6, [4]); // FullRedrawWithoutClear
+        } else {
+          d.set(6, [3]); // BufferOnly
         }
         b.push(...ui16le(d.size));
         for (let [key, value] of d) {
