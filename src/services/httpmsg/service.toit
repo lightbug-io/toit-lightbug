@@ -43,7 +43,8 @@ class HttpMsg:
       response-message-formatter_ = response-message-formatter
     else:
       response-message-formatter_ = (:: | writer msg prefix |
-        writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+        try:
+          writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
       )
 
     // Create an inbox to receive all messages on, that can be shown to the user via /poll logging
