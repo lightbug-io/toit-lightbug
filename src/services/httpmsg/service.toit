@@ -96,40 +96,42 @@ class HttpMsg:
   handle-post request/http.RequestIncoming writer/http.ResponseWriter:
     body := request.body.read-all
     bodyS := body.to-string
-    writer.headers.set "Content-Type" "text/plain"
-    writer.headers.set "Access-Control-Allow-Origin" "*"
-    writer.write_headers 200
-    tasksDone := 0
-    tasksWaiting := 0
-    // Assume each line is a message
-    (bodyS.split "\n").do: |line|
-      line = line.replace "," " "
-      line = line.replace "  " " "
-      byteList := []
-      ((line.split " ").do: |s| byteList.add (int.parse s))
-      msg := protocol.Message.from-list byteList
-      // TODO detect invalid msg and let the user know..
-      wait-for-response := 5000
-      msgLatch := device-comms_.send msg
-        --now=true
-        --withLatch=true
-        --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
-        --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
-        --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
-      // Wait for the response (async), so that we can still send the next message
-      tasksWaiting++
-      task::
-        response := msgLatch.get
-        if not response:
-          writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
-        else:
-          // Only write out the response if we are not listening to all messages, as then it will be logged anyway
-          if not listen-and-log-all_:
-            write-msg-out writer response "Received"
-        tasksDone++
-    while tasksDone < tasksWaiting:
-      sleep (Duration --ms=100)
-    writer.close
+    try:
+      writer.headers.set "Content-Type" "text/plain"
+      writer.headers.set "Access-Control-Allow-Origin" "*"
+      writer.write_headers 200
+      tasksDone := 0
+      tasksWaiting := 0
+      // Assume each line is a message
+      (bodyS.split "\n").do: |line|
+        line = line.replace "," " "
+        line = line.replace "  " " "
+        byteList := []
+        ((line.split " ").do: |s| byteList.add (int.parse s))
+        msg := protocol.Message.from-list byteList
+        // TODO detect invalid msg and let the user know..
+        wait-for-response := 5000
+        msgLatch := device-comms_.send msg
+          --now=true
+          --withLatch=true
+          --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
+          --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
+          --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
+        // Wait for the response (async), so that we can still send the next message
+        tasksWaiting++
+        task::
+          response := msgLatch.get
+          if not response:
+            writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
+          else:
+            // Only write out the response if we are not listening to all messages, as then it will be logged anyway
+            if not listen-and-log-all_:
+              write-msg-out writer response "Received"
+          tasksDone++
+      while tasksDone < tasksWaiting:
+        sleep (Duration --ms=100)
+    finally:
+      writer.close
 
   write-msg-out writer/http.ResponseWriter msg/protocol.Message prefix/string="":
     prefix = "$(prefix) $(msg.msgId)"
