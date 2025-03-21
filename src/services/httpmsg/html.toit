@@ -394,33 +394,10 @@ generate-screen-html -> string:
         const length = b.length + 2;
         b[1] = length & 0xff;
         b[2] = (length >> 8) & 0xff;
-        const calculateChecksum = (message) => {
-            let crc = crc16(new Int8Array(message));
-            return crc.toString(16);
-        };
-        let csumHex = calculateChecksum(b);
-        let csumNum = parseInt(csumHex, 16);
-        b.push(...ui16le(csumNum));
+        // Just add 255 255 to the end, and the /post receiver will do the csum
+        b.push(255);
+        b.push(255);
         return b.toString();
-    }
-
-    // (Poly: 0x1021, Initial value: 0xFFFF)
-    function crc16(data) {
-        let crc = 0xFFFF;
-        for (let i = 0; i < data.length; i++) {
-            let byte = data[i] & 0xFF;
-            for (let j = 0; j < 8; j++) {
-                let bit = ((byte >> (7 - j) & 1) == 1);
-                let c15 = ((crc >> 15 & 1) == 1);
-                crc <<= 1;
-                crc &= 0xFFFF;
-                if (c15 ^ bit) {
-                    crc ^= 0x1021;
-                    crc &= 0xFFFF;
-                }
-            }
-        }
-        return crc;
     }
 </script>
 """

@@ -10,6 +10,8 @@ import http
 import net
 import log
 import monitor show Channel
+import crypto.crc
+import io.byte-order show LITTLE-ENDIAN
 
 // Hosts a small HTTP server that serves a page for directly sending bytes or messages to a Lightbug device
 class HttpMsg:
@@ -99,45 +101,78 @@ class HttpMsg:
   handle-post request/http.RequestIncoming writer/http.ResponseWriter:
     body := request.body.read-all
     bodyS := body.to-string
-    e := catch:
+    e := catch --trace=true:
       try:
         writer.headers.set "Content-Type" "text/plain"
         writer.headers.set "Access-Control-Allow-Origin" "*"
         writer.write_headers 200
-        tasksDone := 0
-        tasksWaiting := 0
-        // Assume each line is a message
-        (bodyS.split "\n").do: |line|
-          line = line.replace "," " "
-          line = line.replace "  " " "
-          byteList := []
-          ((line.split " ").do: |s| byteList.add (int.parse s))
-          msg := protocol.Message.from-list byteList
-          // TODO detect invalid msg and let the user know..
-          wait-for-response := 5000
-          msgLatch := device-comms_.send msg
-            --withLatch=true
-            --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
-            --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array byteList) --short=true --commas=false --hex=false)\n")
-            --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
-          // Wait for the response (async), so that we can still send the next message
-          tasksWaiting++
-          task::
-            e := catch:
-              try:
-                response := msgLatch.get
-                if not response:
-                  writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
-                else:
-                  // Only write out the response if we are not listening to all messages, as then it will be logged anyway
-                  if not listen-and-log-all_:
-                    write-msg-out writer response "Received"
-              finally:
-                tasksDone++
-            if e:
-              logger_.error "Error in handle-post task: $e"
-        while tasksDone < tasksWaiting:
-          sleep (Duration --ms=100)
+
+        // Strings to bytes, with checksum injection
+        lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
+        byteCount := 0
+        lines.do: |line|
+          byteCount += (line.split " ").size
+        b := ByteArray byteCount
+        written := 0
+        lines.do: |line|
+          lineParts := line.split " "
+          lineStartPos := written
+          for i := 0; i < lineParts.size; i++:
+            b[written] = int.parse lineParts[i]
+            written++
+          // Checksum injection
+          // lineParts is longer than 2, and the last 2 bytes written are 255 255, calc a checksum and replace them
+          if lineParts.size > 2 and b[written - 2] == 255 and b[written - 1] == 255:
+            checksum := crc.crc16-xmodem (b.byte-slice lineStartPos (written - 2) )
+            LITTLE-ENDIAN.put-uint16 b (written - 2) checksum
+            logger_.debug "Checksum injected: $(checksum) as bytes $(b[written - 2]) $(b[written - 1])"
+
+        // Send it (RAW), if there are multiple messages to send (speed optimization)
+        if lines.size > 1:
+          device-comms_.send-raw-bytes b
+          lines.do: |line|
+            l := []
+            ((line.split " ").do: |s| l.add (int.parse s))
+            msg := protocol.Message.from-list l // TODO account for if the bytes are not a msg....
+            writer.out.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+            if not listen-and-log-all_:
+              // TODO listen to the responses and output them? (wait max 5s?)
+              // if not response:
+              //   writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
+              // else:
+              //   write-msg-out writer response "Received"
+        if lines.size == 1:
+          tasksWaiting := 0
+          tasksDone := 0
+          lines.do: |line|
+            l := []
+            ((line.split " ").do: |s| l.add (int.parse s))
+            msg := protocol.Message.from-list l
+            wait-for-response := 5000
+            msgLatch := device-comms_.send msg
+              --withLatch=true
+              --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
+              --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array l) --short=true --commas=false --hex=false)\n")
+              --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
+            // Wait for the response (async), so that we can still send the next message
+            tasksWaiting++
+            task::
+              e := catch:
+                try:
+                  response := msgLatch.get
+                  if not response:
+                    writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
+                  else:
+                    // Only write out the response if we are not listening to all messages, as then it will be logged anyway
+                    if not listen-and-log-all_:
+                      write-msg-out writer response "Received"
+                finally:
+                  tasksDone++
+              if e:
+                logger_.error "Error in handle-post task: $e"
+          while tasksDone < tasksWaiting:
+            sleep (Duration --ms=100)
+
       finally:
         writer.close
     if e:
