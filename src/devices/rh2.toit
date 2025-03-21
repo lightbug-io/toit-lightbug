@@ -2,6 +2,7 @@ import i2c
 import io
 import .base
 import .i2c
+import .strobe
 
 RtkHandheld2-MESSAGES := [
     // TODO
@@ -11,7 +12,7 @@ RtkHandheld2-MESSAGES := [
 // Introduced Feb 2025
 class RtkHandheld2 extends LightbugDevice:
   constructor:
-    super "RtkHandheld2"
+    super "RtkHandheld2" --strobe=StandardStrobe
   messages-supported -> List:
     return RtkHandheld2-MESSAGES
 
@@ -22,5 +23,7 @@ class RtkHandheld2Rev2 extends LightbugDevice:
   static I2C-SCL := 1
   constructor:
     super "RtkHandheld2 rev2" I2C-SDA I2C-SCL
+  strobe -> Strobe:
+    return NoStrobe // Probably didnt have a strobe, and probably doesnt matter
   messages-supported -> List:
     return RtkHandheld2-MESSAGES

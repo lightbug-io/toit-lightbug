@@ -2,11 +2,14 @@ import i2c
 import io
 import .base
 import .i2c
+import .strobe
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
   name -> string:
     return "Fake"
+  strobe -> Strobe:
+    return NoStrobe
   messages-supported -> List:
     return []
   messages-not-supported -> List:

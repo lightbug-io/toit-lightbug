@@ -19,6 +19,7 @@ class HttpMsg:
   static DEFAULT_PORT /int := 80
   serve-port /int
   custom-actions_ /Map
+  custom-handlers_ /Map
   response-message-formatter_ /Lambda
   device-comms_ /services.Comms
   listen-and-log-all_/bool
@@ -41,6 +42,33 @@ class HttpMsg:
     device_ = device
     device-comms_ = device-comms
     custom-actions_ = custom-actions
+    if device.strobe.available:
+      custom-actions_["Strobe"] = {
+        "Off": "custom:strobe:OFF",
+        "R": "custom:strobe:R",
+        "G": "custom:strobe:G",
+        "B": "custom:strobe:B",
+      }
+      custom-handlers_ = {
+        "strobe:OFF": (:: | writer |
+          writer.out.write "Strobe: Off\n"
+          device.strobe.set false false false
+        ),
+        "strobe:R": (:: | writer |
+          writer.out.write "Strobe: Red\n"
+          device.strobe.set true false false
+        ),
+        "strobe:G": (:: | writer |
+          writer.out.write "Strobe: Green\n"
+          device.strobe.set false true false
+        ),
+        "strobe:B": (:: | writer |
+          writer.out.write "Strobe: Blue\n"
+          device.strobe.set false false true
+        ),
+      }
+    else:
+      custom-handlers_ = {"x":"x"}
     if response-message-formatter != null:
       response-message-formatter_ = response-message-formatter
     else:
@@ -106,9 +134,17 @@ class HttpMsg:
         writer.headers.set "Content-Type" "text/plain"
         writer.headers.set "Access-Control-Allow-Origin" "*"
         writer.write_headers 200
+        // Split into lines
+        lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
+
+        // Check for custom: lines, and proces and remove them...
+        lines.do: |line|
+          if line.starts_with "custom:":
+            if custom-handlers_.get (line.replace "custom:" ""):
+              custom-handlers_[line.replace "custom:" ""].call writer
+            lines.remove line
 
         // Strings to bytes, with checksum injection
-        lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
         byteCount := 0
         lines.do: |line|
           byteCount += (line.split " ").size

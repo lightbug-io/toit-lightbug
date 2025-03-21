@@ -4,6 +4,7 @@ import uart
 import io
 import log
 import .i2c
+import .strobe
 
 /*
 An interface representing a Lightbug device
@@ -11,6 +12,8 @@ An interface representing a Lightbug device
 interface Device extends Comms:
   // A name identifying the type of device
   name -> string
+  // Device strobe. You can use strobe.available to see if the device has a strobe
+  strobe -> Strobe
   // A list of ints, mapping to supported Lightbug message typess
   messages-supported -> List
   // A list of ints, mapping to not supported Lightbug message typess
@@ -38,10 +41,15 @@ abstract class LightbugDevice implements Device:
   i2c-writer_ /Writer
 
   name_ /string
+  strobe_ /Strobe
   logger_ /log.Logger
 
-  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --logger/log.Logger=(log.default.with-name "lb-device"):
+  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL
+      --strobe/Strobe=NoStrobe
+      --logger/log.Logger=(log.default.with-name "lb-device"):
+    // TODO if more than one device is instantiated, things will liekly break due to gpio / i2c conflicts, so WARN / throw in this case
     name_ = name
+    strobe_ = strobe
     logger_ = logger
     i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl
     i2c-reader_ = Reader i2c-device_ --logger=logger_
@@ -49,6 +57,8 @@ abstract class LightbugDevice implements Device:
 
   name -> string:
     return name_
+  strobe -> Strobe:
+    return strobe_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

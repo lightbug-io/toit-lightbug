@@ -35,6 +35,9 @@ html-page device/devices.Device docsUrl/string custom-actions/Map -> string:
     function submitMulti(inputs = [], end = '/post') {
         let post = inputs.map(input => {
             let p = input || document.getElementById('post').value;
+            if (p.startsWith("custom:")) {
+                return p;
+            }
             return p.split(/[, ]+/).map(s => s.trim()).map(s => {
                 if (s.startsWith('0x')) {
                     return parseInt(s, 16);
@@ -153,7 +156,7 @@ generate-msg-buttons device/devices.Device custom-actions/Map -> string:
   custom-actions.keys.map: |key|
     dynamicHtml = dynamicHtml + """$key<br>\n"""
     custom-actions[key].keys.map: |action|
-      dynamicHtml = dynamicHtml + """<input type="button" value="$action" onclick="submit('$(custom-actions[key][action])','/custom')">\n"""
+      dynamicHtml = dynamicHtml + """<input type="button" value="$action" onclick="submit('$(custom-actions[key][action])','/post')">\n"""
     dynamicHtml = dynamicHtml + """<br>\n"""
   return dynamicHtml
 

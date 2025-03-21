@@ -2,6 +2,7 @@ import i2c
 import io
 import .base
 import .i2c
+import .strobe
 import ..messages
 
 ZCARD-MESSAGES := [
@@ -33,7 +34,7 @@ ZCARD-MESSAGES := [
 // Introduced Feb 2025
 class ZCard extends LightbugDevice:
   constructor:
-    super "ZCard"
+    super "ZCard" --strobe=StandardStrobe
   messages-supported -> List:
     return ZCARD-MESSAGES
   messages-not-supported -> List:
