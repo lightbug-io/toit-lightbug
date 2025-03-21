@@ -123,14 +123,19 @@ class HttpMsg:
           // Wait for the response (async), so that we can still send the next message
           tasksWaiting++
           task::
-            response := msgLatch.get
-            if not response:
-              writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
-            else:
-              // Only write out the response if we are not listening to all messages, as then it will be logged anyway
-              if not listen-and-log-all_:
-                write-msg-out writer response "Received"
-            tasksDone++
+            e := catch:
+              try:
+                response := msgLatch.get
+                if not response:
+                  writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
+                else:
+                  // Only write out the response if we are not listening to all messages, as then it will be logged anyway
+                  if not listen-and-log-all_:
+                    write-msg-out writer response "Received"
+              finally:
+                tasksDone++
+            if e:
+              logger_.error "Error in handle-post task: $e"
         while tasksDone < tasksWaiting:
           sleep (Duration --ms=100)
       finally:
