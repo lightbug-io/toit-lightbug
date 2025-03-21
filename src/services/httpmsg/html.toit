@@ -329,7 +329,7 @@ generate-screen-html -> string:
                     pixels: (endRow - startRow + 1) * gridWidth,
                     cArrayOutput: cArray.join(','),
                 }
-                box.msgBytes = box2msgb(box, pageId, (startRow === 0), (endRow === gridHeight - 1));
+                box.msgBytes = box2msgb(box, pageId, false, (startRow === 0), (endRow === gridHeight - 1));
                 exportBoxes.push(box);
                 startRow = endRow + 1;
             }
@@ -345,7 +345,7 @@ generate-screen-html -> string:
                 cArrayOutput: cArray.join(',')
             };
             if (box.bytes <= 255) {
-                box.msgBytes = box2msgb(box,pageId);
+                box.msgBytes = box2msgb(box,pageId,true);
             } else {
                 box.msgBytes = "Too many bytes to fit in a message";
             }
@@ -358,7 +358,7 @@ generate-screen-html -> string:
         submitMulti(toSend);
     }
 
-    function box2msgb(box, pageId, isFirst=true, isLast=true) {
+    function box2msgb(box, pageId, onlyOne=true, isFirst=true, isLast=true) {
         const ui16le = (num) => {
             return [num & 0xff, (num >> 8) & 0xff];
         };
@@ -376,13 +376,16 @@ generate-screen-html -> string:
         d.set(9, [box.exportSizeX]);
         d.set(10, [box.exportSizeY]);
         d.set(25, box.cArrayOutput.split(',').map(byte => parseInt(byte, 16)));
+        if(onlyOne) {
+          d.set(6, [2]); // FullRedraw
+        } else {
         if(isFirst) {
           d.set(6, [5]); // ClearDontDraw
         } else if(isLast) {
           d.set(6, [4]); // FullRedrawWithoutClear
         } else {
           d.set(6, [3]); // BufferOnly
-        }
+        }}
         b.push(...ui16le(d.size));
         for (let [key, value] of d) {
             b.push(key);
