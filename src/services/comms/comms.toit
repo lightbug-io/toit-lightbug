@@ -23,6 +23,7 @@ class Comms:
   LBSyncBytes_ /ByteArray
 
   TimeoutCheckEvery_ /Duration := Duration --s=2
+  OutboxCheckEvery_ /Duration := Duration --ms=50
 
   lastMsgId_ /int := 0
   inboxesByName /Map := Map
@@ -225,8 +226,9 @@ class Comms:
 
   processOutbox_:
     while true:
-      sendSwitching_ outbox_.receive --now=true
-      yield // on each message sent
+      while outbox_.size > 0:
+        sendSwitching_ outbox_.receive --now=true
+      sleep OutboxCheckEvery_ // sleep for a bit, as we don't need to check the outbox every loop
 
   // Send a message, and possibly do advanced things before after and during sending
   send msg/protocol.Message
@@ -318,20 +320,20 @@ class Comms:
 
   processAwaitTimeouts_:
     while true:
-      yield
+      while waitTimeouts.size > 0:
+        waitTimeouts.do --keys=true: | key |
+          durationSinceTimeout := Duration.since waitTimeouts[key]
+          if (durationSinceTimeout > (Duration --s=0)):
+            logger_.debug "Timeout for message: $(key) expired $(durationSinceTimeout) ago"
+            // Remove the timeout key, complete the latch, and remove all callbacks?!
+            waitTimeouts.remove key
+            latchForMessage[key].set false // false currently means timeout?
+            latchForMessage.remove key
+            lambdasForBadAck.remove key
+            lambdasForGoodAck.remove key
+            lambdasForBadResponse.remove key
+            lambdasForGoodResponse.remove key
+          else:
+            // not yet timed out
+            // logger_.debug "Not yet timed out: $(key) $(durationSinceTimeout) left"
       sleep TimeoutCheckEvery_
-      waitTimeouts.do --keys=true: | key |
-        durationSinceTimeout := Duration.since waitTimeouts[key]
-        if (durationSinceTimeout > (Duration --s=0)):
-          logger_.debug "Timeout for message: $(key) expired $(durationSinceTimeout) ago"
-          // Remove the timeout key, complete the latch, and remove all callbacks?!
-          waitTimeouts.remove key
-          latchForMessage[key].set false // false currently means timeout?
-          latchForMessage.remove key
-          lambdasForBadAck.remove key
-          lambdasForGoodAck.remove key
-          lambdasForBadResponse.remove key
-          lambdasForGoodResponse.remove key
-        else:
-          // not yet timed out
-          // logger_.debug "Not yet timed out: $(key) $(durationSinceTimeout) left"
