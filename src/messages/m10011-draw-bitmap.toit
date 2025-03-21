@@ -3,15 +3,15 @@ import ..protocol as protocol
 class DrawBitmap extends protocol.Data:
   static MT := 10011
   static PAGE-ID := 3
-  static BITMAP-X := 21
-  static BITMAP-Y := 22
-  static BITMAP-WIDTH := 23
-  static BITMAP-HEIGHT := 24
+  static REDRAW-TYPE := 6
+  static BITMAP-X := 7
+  static BITMAP-Y := 8
+  static BITMAP-WIDTH := 9
+  static BITMAP-HEIGHT := 10
   static BITMAP-DATA := 25
   static BITMAP-OVERLAY := 26
-  static DONT-DRAW := 27
 
-  static to-msg --page-id/int?=null --bitmap-x/int=0 --bitmap-y/int=0 --bitmap-width/int --bitmap-height/int --bitmap-data/ByteArray --bitmap-overlay/bool=false --dont-draw/bool=false -> protocol.Message:
+  static to-msg --page-id/int?=null --bitmap-x/int=0 --bitmap-y/int=0 --bitmap-width/int --bitmap-height/int --bitmap-data/ByteArray --bitmap-overlay/bool=false --redraw-type/int=0 -> protocol.Message:
     msg := protocol.Message MT
     if page-id:
       msg.data.add-data-uint PAGE-ID page-id
@@ -22,8 +22,7 @@ class DrawBitmap extends protocol.Data:
     msg.data.add-data BITMAP-DATA bitmap-data
     if bitmap-overlay:
       msg.data.add-data-uint8 BITMAP-OVERLAY 1
-    if dont-draw:
-      msg.data.add-data-uint8 DONT-DRAW 1
+    msg.data.add-data-uint REDRAW-TYPE redraw-type
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
@@ -51,8 +50,8 @@ class DrawBitmap extends protocol.Data:
   bitmap-overlay -> int:
     return get-data-uint8 BITMAP-OVERLAY
 
-  dont-draw -> int:
-    return get-data-uint8 DONT-DRAW
+  redraw-type -> int:
+    return get-data-uint REDRAW-TYPE
 
   stringify -> string:
     return {
@@ -63,5 +62,5 @@ class DrawBitmap extends protocol.Data:
       "Bitmap Height": bitmap-height,
       "Bitmap Data": bitmap-data,
       "Bitmap Overlay": bitmap-overlay,
-      "Don't Draw": dont-draw,
+      "Redraw Type": redraw-type,
     }.stringify

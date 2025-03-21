@@ -5,19 +5,30 @@ class TextPage extends protocol.Data:
   static PAGE-ID := 3
   static PAGE-TITLE := 4
   static STATUS-BAR := 5
+  static REDRAW-TYPE := 6
   static LINE-1 := 100
   static LINE-2 := 101
   static LINE-3 := 102
   static LINE-4 := 103
   static LINE-5 := 104
 
-  static to-msg --page-id/int --page-title/string?=null --status-bar/bool?=false --line1/string?=null --line2/string?=null --line3/string?=null --line4/string?=null --line5/string?=null -> protocol.Message:
+  static to-msg
+      --page-id/int
+      --page-title/string?=null
+      --status-bar/bool?=false
+      --line1/string?=null
+      --line2/string?=null
+      --line3/string?=null
+      --line4/string?=null
+      --line5/string?=null
+      --redraw-type/int=0 -> protocol.Message:
     msg := protocol.Message MT
     msg.data.add-data-uint PAGE-ID page-id
     if page-title:
         msg.data.add-data-ascii PAGE-TITLE page-title
     if status-bar:
         msg.data.add-data-uint8 STATUS-BAR 1
+    msg.data.add-data-uint REDRAW-TYPE redraw-type
     if line1:
         msg.data.add-data-ascii LINE-1 line1
     if line2:
@@ -58,6 +69,9 @@ class TextPage extends protocol.Data:
   line5 -> string:
     return get-data-ascii LINE-5
 
+  redraw-type -> int:
+    return get-data-uint REDRAW-TYPE
+
   stringify -> string:
     return {
       "Page ID": page-id,
@@ -68,4 +82,5 @@ class TextPage extends protocol.Data:
       "Line 3": line3,
       "Line 4": line4,
       "Line 5": line5,
+      "Redraw Type": redraw-type,
     }.stringify

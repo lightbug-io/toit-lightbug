@@ -176,7 +176,6 @@ class Comms:
         logger_.warn "Inbox full, Dropped message of type: $(dropped.type) in favour of new message of type: $(msg.type)"
       logger_.debug "Adding message to inbox: $(msg.type)"
       inbox.send msg
-      yield // on each inbox population, as the inbox might cause other code to run
 
     // Process awaiting lambdas
     // TODO possibly have a timeout for the age of waiting for a response?
