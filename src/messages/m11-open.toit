@@ -6,5 +6,6 @@ class Open extends protocol.Data:
   constructor:
     super
 
-  msg -> protocol.Message:
-    return protocol.Message.with-data MT this
+  static msg -> protocol.Message:
+    msg := protocol.Message MT
+    return msg

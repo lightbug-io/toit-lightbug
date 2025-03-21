@@ -7,6 +7,11 @@ SCREEN-HEIGHT := 122
 
 // A set of predefined messages that can be shown as buttons on the web page
 sample-messages := {
+    "Basic": {
+        "$(messages.Open.MT) Open": messages.Open.msg.bytes-for-protocol,
+        "$(messages.Close.MT) Close": messages.Close.msg.bytes-for-protocol,
+        "$(messages.Heartbeat.MT) Heartbeat": messages.Heartbeat.msg.bytes-for-protocol,
+    },
     "Getters": {
         "$(messages.LastPosition.MT) Location": (messages.LastPosition.get-msg).bytes-for-protocol,
         "$(messages.Status.MT) Status": (messages.Status.get-msg).bytes-for-protocol,
