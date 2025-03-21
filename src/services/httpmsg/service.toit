@@ -48,23 +48,44 @@ class HttpMsg:
         "R": "custom:strobe:R",
         "G": "custom:strobe:G",
         "B": "custom:strobe:B",
+        "Party": "custom:strobe:PARTY",
       }
+      strobePartyMode := false
       custom-handlers_ = {
         "strobe:OFF": (:: | writer |
+          strobePartyMode = false
           writer.out.write "Strobe: Off\n"
           device.strobe.set false false false
         ),
         "strobe:R": (:: | writer |
+          strobePartyMode = false
           writer.out.write "Strobe: Red\n"
           device.strobe.set true false false
         ),
         "strobe:G": (:: | writer |
+          strobePartyMode = false
           writer.out.write "Strobe: Green\n"
           device.strobe.set false true false
         ),
         "strobe:B": (:: | writer |
+          strobePartyMode = false
           writer.out.write "Strobe: Blue\n"
           device.strobe.set false false true
+        ),
+        "strobe:PARTY": (:: | writer |
+          strobePartyMode = true
+          writer.out.write "Strobe: Party\n"
+          while strobePartyMode:
+            device.strobe.set true false false
+            sleep (Duration --ms=10)
+            if not strobePartyMode:
+              break
+            device.strobe.set false true false
+            sleep (Duration --ms=10)
+            if not strobePartyMode:
+              break
+            device.strobe.set false false true
+            sleep (Duration --ms=10)
         ),
       }
     else:
