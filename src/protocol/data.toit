@@ -233,6 +233,13 @@ class Data:
       l.add [LITTLE-ENDIAN.int32 data i, LITTLE-ENDIAN.int32 data (i + 4)]
     return l
 
+  get-data-coordinate dataType/int -> Coordinate:
+    data := get-data dataType
+    if data.size != 8:
+      log.error "Data size not 8 for datatype $(dataType)"
+      return Coordinate 0.0 0.0 // TOOD consider all getts returning null on error, not a 0 value...
+    return Coordinate ((LITTLE-ENDIAN.int32 data 0) / 1e7) ((LITTLE-ENDIAN.int32 data 4) / 1e7)
+
   get-data-list-coordinates dataType/int -> List:
     data := get-data dataType
     if data.size % 8 != 0:
