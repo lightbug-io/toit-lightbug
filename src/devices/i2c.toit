@@ -55,6 +55,7 @@ class Reader extends io.Reader:
           logger_.debug "No bytes to read, finishing"
           return null
         // logger_.debug "No bytes to read, yielding"
+        sleep (Duration --ms=100) // Sleep as there is no data to read right now, don't overload the bus
         break // Leave the while loop
 
       logger_.debug "Got $len-int bytes to read"
