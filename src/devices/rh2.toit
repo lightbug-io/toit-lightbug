@@ -22,8 +22,6 @@ class RtkHandheld2Rev2 extends LightbugDevice:
   static I2C-SDA := 0
   static I2C-SCL := 1
   constructor:
-    super "RtkHandheld2 rev2" I2C-SDA I2C-SCL
-  strobe -> Strobe:
-    return NoStrobe // Probably didnt have a strobe, and probably doesnt matter
+    super "RtkHandheld2 rev2" I2C-SDA I2C-SCL --strobe=LegacyStrobe
   messages-supported -> List:
     return RtkHandheld2-MESSAGES

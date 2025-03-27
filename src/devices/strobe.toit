@@ -28,3 +28,23 @@ class StandardStrobe implements Strobe:
     pinR.set (if r: 1 else: 0)
     pinG.set (if g: 1 else: 0)
     pinB.set (if b: 1 else: 0)
+
+// Used on RH2 rev2 (only?)
+class LegacyStrobe implements Strobe:
+
+  pinR/ gpio.Pin
+  pinG/ gpio.Pin
+  pinB/ gpio.Pin
+
+  constructor:
+    pinR = gpio.Pin 18 --output=true
+    pinG = gpio.Pin 19 --output=true
+    pinB = gpio.Pin 20 --output=true
+
+  available -> bool:
+    return true
+
+  set r/bool g/bool b/bool:
+    pinR.set (if r: 1 else: 0)
+    pinG.set (if g: 1 else: 0)
+    pinB.set (if b: 1 else: 0)
