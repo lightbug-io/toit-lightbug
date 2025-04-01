@@ -11,11 +11,21 @@ I2C-COMMAND-LIGHTBUG-READ := 0x02 // Read data
 I2C-COMMAND-LIGHTBUG-WRITE := 0x03 // Write data
 I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES := 0x04 // Get the number of bytes available to write
 
+// The largest Lightbug I2C buffer sizes, allowing us to discard bad responses
+// Updated 31 March 2025
+// uint8_t rxBuffer[2000] = { 0 };
+// uint8_t txBuffer[2000] = { 0 };
+I2C-MAX-READABLE-BYTES := 2000
+I2C-MAX-WRITABLE-BYTES := 2000
+
+I2C-WAIT-SLEEP := (Duration --ms=75)
+
 LBI2CDevice --sda/int --scl/int -> i2c.Device:
   bus := i2c.Bus
     --sda=gpio.Pin sda
     --scl=gpio.Pin scl
     --frequency=400_000
+    --pull-up=true
   return bus.device I2C-ADDRESS-LIGHTBUG
 
 class Reader extends io.Reader:
@@ -44,7 +54,9 @@ class Reader extends io.Reader:
     while loops <= 5:
       loops++
       // logger_.debug "Getting number of bytes available to read, loop $loops"
-      len-bytes := device.read-address #[I2C-COMMAND-LIGHTBUG-READABLE-BYTES] 2
+      // len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-READABLE-BYTES] 2
+      device.write #[I2C-COMMAND-LIGHTBUG-READABLE-BYTES]
+      len-bytes := device.read 2
       len-int := LITTLE-ENDIAN.uint16 len-bytes 0
       all-expected = all-expected + len-int
       
@@ -54,16 +66,24 @@ class Reader extends io.Reader:
         if finishWhenEmpty_:
           logger_.debug "No bytes to read, finishing"
           return null
-        // logger_.debug "No bytes to read, yielding"
-        sleep (Duration --ms=100) // Sleep as there is no data to read right now, don't overload the bus
+        logger_.debug "No bytes to read, sleeping" // verbose log
+        sleep I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
         break // Leave the while loop
+
+      // If we are told there are more bytes availbile than the largest Lightbug buffer, ignore it...
+      if len-int > I2C-MAX-READABLE-BYTES:
+        logger_.info "⚠️ Got some messy readable bytes data, binning ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️"
+        sleep I2C-WAIT-SLEEP
+        break
 
       logger_.debug "Got $len-int bytes to read"
 
       while len-int > 0:
         chunkSize := min len-int 254
         logger_.debug "Reading chunk of $chunkSize bytes stage 1"
+        sleep (Duration --ms=1)
         device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
+        sleep (Duration --ms=1)
         logger_.debug "Reading chunk of $chunkSize bytes stage 2"
         b := device.read chunkSize
         if b.size != chunkSize:
@@ -109,12 +129,19 @@ class Writer extends io.Writer:
     // TODO could refactor this to send in smaller chunks if needed?!
     while can-write-bytes == 0:
       logger_.debug "Updating or waiting for writeable bytes"
-      len-bytes := device.read-address #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
+      // len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
+      device.write #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES]
+      len-bytes := device.read 2
       can-write-bytes = LITTLE-ENDIAN.uint16 len-bytes 0
+      if can-write-bytes > I2C-MAX-WRITABLE-BYTES:
+        // Probably got some messy data, so reset and sleep
+        logger_.info "⚠️ Got some messy writable bytes data, binning"
+        can-write-bytes = 0
+        sleep I2C-WAIT-SLEEP
       logger_.debug "Can write $can-write-bytes bytes"
       if can-write-bytes == 0:
         logger_.debug "Waiting for some bytes to be writeable"
-        sleep (Duration --ms=50)
+        sleep I2C-WAIT-SLEEP
       else:
         logger_.debug "Can write $can-write-bytes bytes, continuing"
     
