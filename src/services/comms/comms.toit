@@ -35,6 +35,8 @@ class Comms:
 
   constructor
       --device/devices.Device? = null
+      --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
+      --startOutbox/bool = true // Start the outbox (waiting for outbox messages to send over I2C)
       --sendOpen/bool = true // An Open is required to start comms and get responses ot messages. Only set to false if you will control the Open in your own code.
       --sendHearbeat/bool = true // Send a heartbeat message every now and again to keep the connection open. Only set to false if you will control the heartbeat in your own code.
       --idGenerator/IdGenerator? = null
@@ -55,14 +57,16 @@ class Comms:
     // TODO allow optional injection of an outbox?!
     outbox_ = Channel 15
     
-    start_ sendOpen sendHearbeat
+    start_ sendOpen sendHearbeat startInbound startOutbox
 
-  start_ sendOpen/bool sendHearbeat/bool:
+  start_ sendOpen/bool sendHearbeat/bool startInbound/bool startOutbox/bool:
     logger_.info "Comms starting"
 
-    task:: catch-and-restart "processInbound_" (:: processInbound_)
-    task:: catch-and-restart "processOutbox_" (:: processOutbox_)
-    task:: catch-and-restart "processAwaitTimeouts__" (:: processAwaitTimeouts_)
+    if startInbound:
+      task:: catch-and-restart "processInbound_" (:: processInbound_)
+    if startOutbox:
+      task:: catch-and-restart "processOutbox_" (:: processOutbox_)
+    task:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_)
 
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
@@ -71,7 +75,7 @@ class Comms:
     if sendHearbeat:
       task:: catch-and-restart "sendHeartbeats_" (:: sendHeartbeats_)
     
-      logger_.info "Comms started"
+    logger_.info "Comms started"
 
   sendOpen_:
     if not (send messages.Open.msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
