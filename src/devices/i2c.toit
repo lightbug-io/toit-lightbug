@@ -24,7 +24,7 @@ LBI2CDevice --sda/int --scl/int -> i2c.Device:
   bus := i2c.Bus
     --sda=gpio.Pin sda
     --scl=gpio.Pin scl
-    --frequency=400_000
+    --frequency=200_000
     --pull-up=true
   return bus.device I2C-ADDRESS-LIGHTBUG
 
