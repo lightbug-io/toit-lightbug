@@ -182,51 +182,45 @@ class Comms:
       logger_.debug "Adding message to inbox: $(msg.type)"
       inbox.send msg
 
-    // Process awaiting lambdas
-    // TODO possibly have a timeout for the age of waiting for a response?
-    // That could be its own lambda to act on, but also remove the lambdas from the list
+    // Find waiting lambdas, based on the response
     if msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
       respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
       isAck := msg.header.message-type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
       isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
+      lambda := null
       if isAck:
         if isBad:
           if lambdasForBadAck.contains respondingTo:
-            lambda := lambdasForBadAck[respondingTo]
-            logger_.debug "Calling lambda for bad ack: $(respondingTo)"
-            task:: lambda.call msg
+            lambda = lambdasForBadAck[respondingTo]
         else:
           if lambdasForGoodAck.contains respondingTo:
-            lambda := lambdasForGoodAck[respondingTo]
-            logger_.debug "Calling lambda for good ack: $(respondingTo)"
-            task:: lambda.call msg
-        lambdasForBadAck.remove respondingTo
-        lambdasForGoodAck.remove respondingTo
+            lambda = lambdasForGoodAck[respondingTo]
       else:
         if isBad:
           if lambdasForBadResponse.contains respondingTo:
-            lambda := lambdasForBadResponse[respondingTo]
-            logger_.debug "Calling lambda for bad response: $(respondingTo)"
-            task:: lambda.call msg
+            lambda = lambdasForBadResponse[respondingTo]
         else:
           if lambdasForGoodResponse.contains respondingTo:
-            lambda := lambdasForGoodResponse[respondingTo]
-            logger_.debug "Calling lambda for good response: $(respondingTo)"
-            task:: lambda.call msg
-        lambdasForBadResponse.remove respondingTo
-        lambdasForGoodResponse.remove respondingTo
+            lambda = lambdasForGoodResponse[respondingTo]
       
-      // yield, allowing the lambdas to do their thing, before releasing the latch
-      yield
+      // And call the lambda if it exists
+      if lambda:
+        task::
+          // Call the waiting lambda, and pass the message
+          logger_.debug "Calling lambda for message: $(msg.type) responding to: $(respondingTo)"
+          lambda.call msg
 
-      // If there are no waiting lambdas for the msg id, then latchForMessage can be released
-      if not lambdasForBadAck.contains respondingTo and not lambdasForGoodAck.contains respondingTo and not lambdasForBadResponse.contains respondingTo and not lambdasForGoodResponse.contains respondingTo:
-        // Remove remaining timeouts, and release the latch
-        if waitTimeouts.contains respondingTo:
-          waitTimeouts.remove respondingTo
-        if latchForMessage.contains respondingTo:
-          latchForMessage[respondingTo].set msg // latch response with the responding msg
-          latchForMessage.remove respondingTo
+      // Removing any other lambdas or tracking for this message id
+      waitTimeouts.remove respondingTo
+      lambdasForBadAck.remove respondingTo
+      lambdasForGoodAck.remove respondingTo
+      lambdasForBadResponse.remove respondingTo
+      lambdasForGoodResponse.remove respondingTo
+
+      // If we have a latch for this message id, set it to the responding message
+      if latchForMessage.contains respondingTo:
+        latchForMessage[respondingTo].set msg
+      latchForMessage.remove respondingTo // And stop tracking it
 
   processOutbox_:
     while true:
