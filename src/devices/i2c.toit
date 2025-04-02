@@ -159,7 +159,8 @@ class Writer extends io.Writer:
       read-to-index = current-index + writing
     
       logger_.debug "Writing bytes $current-index to $read-to-index, $writing bytes"
-      logger_.debug "Bytes: $bytes[current-index..read-to-index]"
+      logger_.with-level log.DEBUG-LEVEL:
+        logger_.debug "Writing bytes $bytes[current-index..read-to-index]"
       send-len := #[0]
       LITTLE-ENDIAN.put-uint8 send-len 0 writing
       device.write-address #[I2C-COMMAND-LIGHTBUG-WRITE] send-len + bytes[current-index..read-to-index]

@@ -171,7 +171,8 @@ class Comms:
         device_.in.read-byte
 
   processReceivedMessage_ msg/protocol.Message:
-    logger_.debug "RCV msg type $(msg.type) : $(msg) $(message-bytes-to-docs-url msg.bytes)"
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "RCV msg type $(msg.type) : $(msg) $(message-bytes-to-docs-url msg.bytes)"
 
     // Add to any registered inboxes
     inboxesByName.do --values=true: | inbox |
@@ -243,7 +244,8 @@ class Comms:
       --onError/Lambda? = null
       --withLatch/bool = false
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
-    logger_.debug "Sending (and) message: $(msg) $(message-bytes-to-docs-url msg.bytes)"
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "Sending message: $(msg) $(message-bytes-to-docs-url msg.bytes)"
   
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
@@ -296,10 +298,12 @@ class Comms:
 
       // Send the message
       device_.out.write m --flush=true
-      logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
+      logger_.with-level log.DEBUG-LEVEL:
+        logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
       send-via-outbox msg
-      logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
+      logger_.with-level log.DEBUG-LEVEL:
+        logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:
@@ -315,10 +319,11 @@ class Comms:
   send-raw-bytes bytes/ByteArray --flush=true:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
-    if bytes.size < 500:
-      logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
-    else:
-      logger_.debug "SNT raw: $(bytes.size) bytes"
+    logger_.with-level log.DEBUG-LEVEL:
+      if bytes.size < 500:
+        logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
+      else:
+        logger_.debug "SNT raw: $(bytes.size) bytes"
 
   processAwaitTimeouts_:
     while true:
