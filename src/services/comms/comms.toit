@@ -63,10 +63,10 @@ class Comms:
     logger_.info "Comms starting"
 
     if startInbound:
-      task:: catch-and-restart "processInbound_" (:: processInbound_)
+      task:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
     if startOutbox:
-      task:: catch-and-restart "processOutbox_" (:: processOutbox_)
-    task:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_)
+      task:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+    task:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
 
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
