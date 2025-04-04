@@ -5,6 +5,7 @@ import .m13-heartbeat show Heartbeat
 import .m14-config show Config
 import .m15-last-position show LastPosition
 import .m30-tx-now show TxNow
+import .m32-gsm-ownership show GsmOwnership
 import .m34-status show Status
 import .m35-device-ids show DeviceIds
 import .m36-device-time show DeviceTime
@@ -19,6 +20,7 @@ import .m46-buzzer-sequence show BuzzerSequence
 import .m47-cpu2-sleep show CPU2Sleep
 import .m48-power-profile show PowerProfile
 import .m50-link-control show LinkControl
+import .m53-ublox-request-pl show UbloxPlData
 import .m1004-lora show Lora
 import .m10008-preset-page show PresetPage
 import .m10009-text-page show TextPage

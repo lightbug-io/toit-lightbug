@@ -1,5 +1,6 @@
 import lightbug.devices as devices
 import lightbug.services as services
+import lightbug.messages as messages
 import log
 
 // A simple application that sets up a Lightbug device and initiate I2C communications with it.
@@ -11,17 +12,11 @@ main:
   device := devices.RtkHandheld2
 
   // Setup the comms service, which allows communication with the Lightbug device, but don't start any part of it
-  comms := services.Comms --device=device --startInbound=false --startOutbox=false --sendOpen=false --sendHearbeat=false
+  comms := services.Comms --device=device 
 
-  // Write some bytes to the device
-  // A currently valid, but unused message https://docs.lightbug.io/devices/api/tools/parse?bytes=3+17+0+561+3+0+0+0+0+100+134
-  print "Writing unused msg to device"
-  device.out.write #[3, 11, 0, 231, 3, 0, 0, 0, 0, 64, 86] --flush=true
-  // And an open
-  print "Writing open msg to device"
-  device.out.write #[3, 11, 0, 11, 0, 0, 0, 0, 0, 73, 56] --flush=true
+  // while true:
+  //   comms.send messages.UbloxPlData.get-msg
+  //   sleep --ms=2000
 
-  // Read all bytes
-  print "Reading all bytes from device"
-  read := device.in.read-all
-  print "Read bytes: $read"
+  comms.send 
+    messages.GsmOwnership.set-msg 1 --minutes=60
