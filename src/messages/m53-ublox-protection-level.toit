@@ -1,6 +1,6 @@
 import ..protocol as protocol
 
-class UbloxPlData extends protocol.Data:
+class UbloxProtectionLevel extends protocol.Data:
   static MT := 53
   static PL_VALID := 1
   static PL_X := 2

@@ -20,7 +20,7 @@ import .m46-buzzer-sequence show BuzzerSequence
 import .m47-cpu2-sleep show CPU2Sleep
 import .m48-power-profile show PowerProfile
 import .m50-link-control show LinkControl
-import .m53-ublox-request-pl show UbloxPlData
+import .m53-ublox-protection-level show UbloxProtectionLevel
 import .m1004-lora show Lora
 import .m10008-preset-page show PresetPage
 import .m10009-text-page show TextPage
