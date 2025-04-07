@@ -24,7 +24,7 @@ LBI2CDevice --sda/int --scl/int -> i2c.Device:
   bus := i2c.Bus
     --sda=gpio.Pin sda
     --scl=gpio.Pin scl
-    --frequency=400_000
+    --frequency=200_000
     --pull-up=true
   return bus.device I2C-ADDRESS-LIGHTBUG
 
@@ -66,7 +66,7 @@ class Reader extends io.Reader:
         if finishWhenEmpty_:
           logger_.debug "No bytes to read, finishing"
           return null
-        logger_.debug "No bytes to read, sleeping" // verbose log
+        // logger_.debug "No bytes to read, sleeping" // verbose log
         sleep I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
         break // Leave the while loop
 
@@ -131,8 +131,10 @@ class Writer extends io.Writer:
       logger_.debug "Updating or waiting for writeable bytes"
       // len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
       device.write #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES]
+      logger_.debug "Sent write command"
       len-bytes := device.read 2
       can-write-bytes = LITTLE-ENDIAN.uint16 len-bytes 0
+      logger_.debug "Write space is $can-write-bytes"
       if can-write-bytes > I2C-MAX-WRITABLE-BYTES:
         // Probably got some messy data, so reset and sleep
         logger_.info "⚠️ Got some messy writable bytes data, binning"
