@@ -63,10 +63,10 @@ class Comms:
     logger_.info "Comms starting"
 
     if startInbound:
-      task:: catch-and-restart "processInbound_" (:: processInbound_)
+      task:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
     if startOutbox:
-      task:: catch-and-restart "processOutbox_" (:: processOutbox_)
-    task:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_)
+      task:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+    task:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
 
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
@@ -171,7 +171,8 @@ class Comms:
         device_.in.read-byte
 
   processReceivedMessage_ msg/protocol.Message:
-    logger_.debug "RCV msg type $(msg.type) : $(msg) $(message-bytes-to-docs-url msg.bytes)"
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "RCV msg type $(msg.type) : $(msg) $(message-bytes-to-docs-url msg.bytes)"
 
     // Add to any registered inboxes
     inboxesByName.do --values=true: | inbox |
@@ -181,51 +182,45 @@ class Comms:
       logger_.debug "Adding message to inbox: $(msg.type)"
       inbox.send msg
 
-    // Process awaiting lambdas
-    // TODO possibly have a timeout for the age of waiting for a response?
-    // That could be its own lambda to act on, but also remove the lambdas from the list
+    // Find waiting lambdas, based on the response
     if msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
       respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
       isAck := msg.header.message-type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
       isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
+      lambda := null
       if isAck:
         if isBad:
           if lambdasForBadAck.contains respondingTo:
-            lambda := lambdasForBadAck[respondingTo]
-            logger_.debug "Calling lambda for bad ack: $(respondingTo)"
-            task:: lambda.call msg
+            lambda = lambdasForBadAck[respondingTo]
         else:
           if lambdasForGoodAck.contains respondingTo:
-            lambda := lambdasForGoodAck[respondingTo]
-            logger_.debug "Calling lambda for good ack: $(respondingTo)"
-            task:: lambda.call msg
-        lambdasForBadAck.remove respondingTo
-        lambdasForGoodAck.remove respondingTo
+            lambda = lambdasForGoodAck[respondingTo]
       else:
         if isBad:
           if lambdasForBadResponse.contains respondingTo:
-            lambda := lambdasForBadResponse[respondingTo]
-            logger_.debug "Calling lambda for bad response: $(respondingTo)"
-            task:: lambda.call msg
+            lambda = lambdasForBadResponse[respondingTo]
         else:
           if lambdasForGoodResponse.contains respondingTo:
-            lambda := lambdasForGoodResponse[respondingTo]
-            logger_.debug "Calling lambda for good response: $(respondingTo)"
-            task:: lambda.call msg
-        lambdasForBadResponse.remove respondingTo
-        lambdasForGoodResponse.remove respondingTo
+            lambda = lambdasForGoodResponse[respondingTo]
       
-      // yield, allowing the lambdas to do their thing, before releasing the latch
-      yield
+      // And call the lambda if it exists
+      if lambda:
+        task::
+          // Call the waiting lambda, and pass the message
+          logger_.debug "Calling lambda for message: $(msg.type) responding to: $(respondingTo)"
+          lambda.call msg
 
-      // If there are no waiting lambdas for the msg id, then latchForMessage can be released
-      if not lambdasForBadAck.contains respondingTo and not lambdasForGoodAck.contains respondingTo and not lambdasForBadResponse.contains respondingTo and not lambdasForGoodResponse.contains respondingTo:
-        // Remove remaining timeouts, and release the latch
-        if waitTimeouts.contains respondingTo:
-          waitTimeouts.remove respondingTo
-        if latchForMessage.contains respondingTo:
-          latchForMessage[respondingTo].set msg // latch response with the responding msg
-          latchForMessage.remove respondingTo
+      // Removing any other lambdas or tracking for this message id
+      waitTimeouts.remove respondingTo
+      lambdasForBadAck.remove respondingTo
+      lambdasForGoodAck.remove respondingTo
+      lambdasForBadResponse.remove respondingTo
+      lambdasForGoodResponse.remove respondingTo
+
+      // If we have a latch for this message id, set it to the responding message
+      if latchForMessage.contains respondingTo:
+        latchForMessage[respondingTo].set msg
+      latchForMessage.remove respondingTo // And stop tracking it
 
   processOutbox_:
     while true:
@@ -243,7 +238,8 @@ class Comms:
       --onError/Lambda? = null
       --withLatch/bool = false
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
-    logger_.debug "Sending (and) message: $(msg) $(message-bytes-to-docs-url msg.bytes)"
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "Sending message: $(msg) $(message-bytes-to-docs-url msg.bytes)"
   
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
@@ -296,10 +292,12 @@ class Comms:
 
       // Send the message
       device_.out.write m --flush=true
-      logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
+      logger_.with-level log.DEBUG-LEVEL:
+        logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
       send-via-outbox msg
-      logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
+      logger_.with-level log.DEBUG-LEVEL:
+        logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:
@@ -315,10 +313,11 @@ class Comms:
   send-raw-bytes bytes/ByteArray --flush=true:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
-    if bytes.size < 500:
-      logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
-    else:
-      logger_.debug "SNT raw: $(bytes.size) bytes"
+    logger_.with-level log.DEBUG-LEVEL:
+      if bytes.size < 500:
+        logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
+      else:
+        logger_.debug "SNT raw: $(bytes.size) bytes"
 
   processAwaitTimeouts_:
     while true:

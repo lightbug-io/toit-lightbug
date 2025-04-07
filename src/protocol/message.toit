@@ -1,7 +1,9 @@
 import crypto.crc
 import io
+import log
 import .header show *
 import .data show *
+import ..util.docs
 
 class Message:
  protocol-version_ /int := 3
@@ -62,8 +64,13 @@ class Message:
   return data_
 
  stringify -> string:
-  // TODO make a much nicer stringify, including docs link, and stringified data?
-  return stringify-all-bytes
+  s := "Message type: $header_.messageType_ length: $header_.messageLength_"
+  if this.response-to:
+    s += " response-to: $this.response-to"
+  log.default.with-level log.DEBUG-LEVEL:
+    s += " bytes: $stringify-all-bytes"
+    s += " link: $(message-to-docs-url this)"
+  return s
 
  stringify-all-bytes -> string:
   buffer := io.Buffer
@@ -71,7 +78,7 @@ class Message:
   bytes.do:
     if is-first: is-first = false
     else: buffer.write ", "
-    buffer.write "0x$(%02x it)"
+    buffer.write "$(%02x it)"
   return buffer.to-string
 
  size -> int:
