@@ -139,6 +139,7 @@ class Writer extends io.Writer:
       logger_.debug "Updating or waiting for writeable bytes"
       len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
       can-write-bytes = LITTLE-ENDIAN.uint16 len-bytes 0
+      logger_.debug "Write space is $can-write-bytes"
       if can-write-bytes > I2C-MAX-WRITABLE-BYTES:
         // Probably got some messy data, so reset and sleep
         logger_.info "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
