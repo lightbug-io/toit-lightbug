@@ -2,13 +2,13 @@ import ..protocol as protocol
 
 class UbloxProtectionLevel extends protocol.Data:
   static MT := 53
-  static PL_VALID := 1
-  static PL_X := 2
-  static PL_Y := 3
-  static PL_Z := 4
-  static PL_HORIZ_ORIENT := 5
-  static PL_TMIR_COEFF := 6
-  static PL_TMIR_EXP := 7
+  static PL-VALID := 1
+  static PL-X := 2
+  static PL-Y := 3
+  static PL-Z := 4
+  static PL-HORIZ-ORIENT := 5
+  static PL-TMIR-COEFF := 6
+  static PL-TMIR-EXP := 7
 
   constructor:
     super
@@ -20,3 +20,29 @@ class UbloxProtectionLevel extends protocol.Data:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
+
+  valid -> int:
+    return get-data-uint PL-VALID
+  x -> int:
+    return get-data-uint PL-X
+  y -> int:
+    return get-data-uint PL-Y
+  z -> int:
+    return get-data-uint PL-Z
+  horizontal-orientation -> int:
+    return get-data-uint PL-HORIZ-ORIENT
+  tm-irradiation-coefficient -> int:
+    return get-data-uint PL-TMIR-COEFF
+  tm-irradiation-exponent -> int:
+    return get-data-uint PL-TMIR-EXP
+
+  stringify -> string:
+    return {
+        "valid": valid,
+        "x": x,
+        "y": y,
+        "z": z,
+        "horizontal-orientation": horizontal-orientation,
+        "tm-irradiation-coefficient": tm-irradiation-coefficient,
+        "tm-irradiation-exponent": tm-irradiation-exponent
+    }.stringify
