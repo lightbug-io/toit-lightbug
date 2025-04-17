@@ -172,7 +172,7 @@ class Comms:
 
   processReceivedMessage_ msg/protocol.Message:
     logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "RCV msg type $(msg.type) : $(msg)"
+      logger_.debug "RCV: $(msg)"
 
     // Add to any registered inboxes
     inboxesByName.do --values=true: | inbox |
