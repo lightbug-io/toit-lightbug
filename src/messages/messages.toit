@@ -9,6 +9,7 @@ import .m32-gsm-ownership show GsmOwnership
 import .m34-status show Status
 import .m35-device-ids show DeviceIds
 import .m36-device-time show DeviceTime
+import .m38-button-press show ButtonPress
 import .m39-gps-control show GPSControl
 import .m40-haptics-control show HapticsControl
 import .m41-temperature show Temperature
@@ -26,7 +27,6 @@ import .m10008-preset-page show PresetPage
 import .m10009-text-page show TextPage
 import .m10010-menu-page show MenuPage
 import .m10011-draw-bitmap show DrawBitmap
-import .m10013-button-press show ButtonPress
 
 import .types show *
 
