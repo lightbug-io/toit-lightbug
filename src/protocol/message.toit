@@ -65,6 +65,8 @@ class Message:
 
  stringify -> string:
   s := "Message type: $header_.messageType_ length: $header_.messageLength_"
+  if this.msgId:
+    s += " id: $this.msgId"
   if this.response-to:
     s += " response-to: $this.response-to"
   log.default.with-level log.DEBUG-LEVEL:
