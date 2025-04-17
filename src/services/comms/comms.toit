@@ -39,6 +39,7 @@ class Comms:
       --startOutbox/bool = true // Start the outbox (waiting for outbox messages to send over I2C)
       --sendOpen/bool = true // An Open is required to start comms and get responses ot messages. Only set to false if you will control the Open in your own code.
       --sendHeartbeat/bool = true // Send a heartbeat message every now and again to keep the connection open. Only set to false if you will control the heartbeat in your own code.
+      --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
       --idGenerator/IdGenerator? = null
       --logger=(log.default.with-name "lb-comms"):
 
@@ -57,10 +58,15 @@ class Comms:
     // TODO allow optional injection of an outbox?!
     outbox_ = Channel 15
     
-    start_ sendOpen sendHeartbeat startInbound startOutbox
+    start_ sendOpen sendHeartbeat startInbound startOutbox reinitOnStart
 
-  start_ sendOpen/bool sendHeartbeat/bool startInbound/bool startOutbox/bool:
+  start_ sendOpen/bool sendHeartbeat/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
     logger_.info "Comms starting"
+
+    if reinitOnStart:
+      logger_.info "Reinitializing"
+      if not device_.reinit:
+        logger_.error "Failed to reinitialize , but continuing..."
 
     if startInbound:
       task:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_

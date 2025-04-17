@@ -5,6 +5,7 @@ import io
 import log
 import .i2c
 import .strobe
+import .devices
 
 /*
 An interface representing a Lightbug device
@@ -14,17 +15,19 @@ interface Device extends Comms:
   name -> string
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
-  // A list of ints, mapping to supported Lightbug message types
+  // Reinit the device and communications
+  reinit -> bool
+  // CURRENTLY NOT USED: A list of ints, mapping to supported Lightbug message types
   messages-supported -> List
-  // A list of ints, mapping to not supported Lightbug message types
+  // CURRENTLY NOT USED: A list of ints, mapping to not supported Lightbug message types
   messages-not-supported -> List
 
 /*
-An interface for communicating to and from a Lightbug device
+An interface for communicationg to and from a Lightbug device
 */
 interface Comms:
   // Reader reading from the device
-  in -> io.Reader
+  in -> Reader
   // Writer writing to the device
   out -> io.Writer
 
@@ -65,6 +68,10 @@ abstract class LightbugDevice implements Device:
     return []
   i2c-device -> i2c.Device:
     return i2c-device_
+  reinit -> bool:
+    logger_.info "Lightbug I2C: Reinitializing device"
+    i2c-device_.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
+    return true
   in -> io.Reader:
     return i2c-reader_
   out -> io.Writer:

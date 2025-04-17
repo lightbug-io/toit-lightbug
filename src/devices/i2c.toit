@@ -10,6 +10,7 @@ I2C-COMMAND-LIGHTBUG-READABLE-BYTES := 0x01 // Get the number of bytes available
 I2C-COMMAND-LIGHTBUG-READ := 0x02 // Read data
 I2C-COMMAND-LIGHTBUG-WRITE := 0x03 // Write data
 I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES := 0x04 // Get the number of bytes available to write
+I2C-COMMAND-LIGHTBUG-REINIT := 0x05 // Reinitialize the device and communications. Stop previous subscriptions, reset, and clear buffers. Send 0xf0
 
 // Updated 31 March 2025
 I2C-MAX-READABLE-BYTES := 2000

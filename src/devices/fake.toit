@@ -14,6 +14,8 @@ class Fake implements Device:
     return []
   messages-not-supported -> List:
     return []
+  reinit -> bool:
+    return true
   in -> io.Reader:
     return FakeReader
   out -> io.Writer:
