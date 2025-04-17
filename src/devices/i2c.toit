@@ -23,17 +23,16 @@ LBI2CDevice --sda/int --scl/int -> i2c.Device:
     --scl=gpio.Pin scl
     --frequency=100_000
     --pull-up=true
+  // Space out bus init from any start of comms / usage
+  // This could be done in a fancier way just making sure we don't send in the first 10ms or so instead..
+  sleep --ms=10
   return bus.device I2C-ADDRESS-LIGHTBUG
 
 class Reader extends io.Reader:
   device /i2c.Device
-  finishWhenEmpty_ /bool
   logger_ /log.Logger
 
   constructor .device --finishWhenEmpty=false --logger/log.Logger:
-    // XXX: --finishWhenEmpty is not used since factoring out into the lightbug package
-    // TODO: Decide if we want to keep it, refactor it, or remove it...
-    finishWhenEmpty_ = finishWhenEmpty
     logger_ = logger
 
   /**
@@ -56,46 +55,43 @@ class Reader extends io.Reader:
     // At most 5*(tx buffer), so 5*1000 = 5KB
     while loops <= 5:
       loops++
-      // logger_.debug "Getting number of bytes available to read, loop $loops"
+      // logger_.debug "Getting bytes available to read, loop $loops"
       len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-READABLE-BYTES] 2
       len-int := LITTLE-ENDIAN.uint16 len-bytes 0
       all-expected = all-expected + len-int
       
-      // Taking uart as an example, if there are no bytes, it loops until there are some.
-      // uart does this with a read state, for now we will just sleep a bit...
+      // Taking UART as an example, if there are no bytes, it loops until there are some.
+      // UART does this with a read state, for now we will just sleep a bit...
       if len-int == 0:
-        if finishWhenEmpty_:
-          logger_.debug "No bytes to read, finishing"
-          return null
-        // logger_.debug "No bytes to read, sleeping for $I2C-WAIT-SLEEP" // verbose log
+        // logger_.debug "None to read, sleeping for $I2C-WAIT-SLEEP" // verbose log
         sleep I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
         break // Leave the while loop
 
-      // If we are told there are more bytes availbile than the largest Lightbug buffer, ignore it...
+      // If we are told there are more bytes available than the largest Lightbug buffer, ignore it...
       if len-int > I2C-MAX-READABLE-BYTES:
-        logger_.info "⚠️ Got some messy readable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
+        logger_.info "⚠️ Messy readable, bin & sleep $I2C-WAIT-SLEEP"
         sleep I2C-WAIT-SLEEP
         break
 
-      logger_.debug "Got $len-int bytes to read"
+      logger_.debug "Got $len-int to read"
 
       while len-int > 0:
         chunkSize := min len-int 254
-        logger_.debug "Requesting read chunk of $chunkSize bytes"
+        logger_.debug "Requesting chunk of $chunkSize"
         device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
-        logger_.debug "Reading chunk of $chunkSize bytes"
+        logger_.debug "Reading $chunkSize"
         b := device.read chunkSize
         if b.size != chunkSize:
-          logger_.error "Failed to read chunk $chunkSize bytes, got $b.size bytes"
+          logger_.error "Failed to read chunk of $chunkSize, got $b.size"
           return null
         all += b
         len-int -= chunkSize
 
       if all.size != all-expected:
-        logger_.error "Failed to read $all-expected bytes, got $all.size bytes"
+        logger_.error "Failed to read $all-expected, got $all.size"
         return null
 
-      logger_.debug "Read $all.size bytes after $loops loops"
+      logger_.debug "Read $all.size after $loops loops"
 
     yield // They are in our buffer now, so yield briefly before returning
     return all
