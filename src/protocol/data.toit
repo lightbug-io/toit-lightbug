@@ -17,10 +17,10 @@ class Data:
 
   constructor.from-list bytes/List:
     if bytes.size < 2:
-      throw "V3 OUT_OF_BOUNDS: Not enough bytes to read fields, expected 2 bytes but only have " + bytes.size.stringify
+      throw "V3 OOB: For fields, expected 2 got $(bytes.size)"
     fields := (bytes[1] << 8) + bytes[0]
     if bytes.size < 2 + fields:
-      throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data types, expected " + (2 + fields).stringify + " bytes but only have " + bytes.size.stringify
+      throw "V3 OOB: For data types, expected $(2 + fields) got $bytes.size"
     // read data types
     for i := 0; i < fields; i++:
       dataType := bytes[2 + i]
@@ -29,21 +29,21 @@ class Data:
     index := 2 + fields
     for i := 0; i < fields; i++:
       if index >= bytes.size:
-        throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data length, expected " + index.stringify + " bytes but only have " + bytes.size.stringify
+        throw "V3 OOB: For data length, expected $index got $bytes.size"
       length := bytes[index]
       index += 1
       if index + length > bytes.size:
-        throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data, expected " + (index + length).stringify + " bytes but only have " + bytes.size.stringify
+        throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
       index += length
       dataField := DataField (list-to-byte-array bytes[index - length..index])
       data_.add dataField
   
   constructor.from-bytes bytes/ByteArray:
     if bytes.size < 2:
-      throw "V3 OUT_OF_BOUNDS: Not enough bytes to read fields, expected 2 bytes but only have " + bytes.size.stringify
+      throw "V3 OOB: For fields, expected 2  got $bytes.size"
     fields := LITTLE-ENDIAN.uint16 bytes 0
     if bytes.size < 2 + fields:
-      throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data types, expected " + (2 + fields).stringify + " bytes but only have " + bytes.size.stringify
+      throw "V3 OOB: For data types, expected $(2 + fields) got $bytes.size"
     // read data types
     for i := 0; i < fields; i++:
       dataType := bytes[2 + i]
@@ -52,11 +52,11 @@ class Data:
     index := 2 + fields
     for i := 0; i < fields; i++:
       if index >= bytes.size:
-        throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data length, expected " + index.stringify + " bytes but only have " + bytes.size.stringify
+        throw "V3 OOB: For data length, expected $index got $bytes.size"
       length := bytes[index]
       index += 1
       if index + length > bytes.size:
-        throw "V3 OUT_OF_BOUNDS: Not enough bytes to read data, expected " + (index + length).stringify + " bytes but only have " + bytes.size.stringify
+        throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
       index += length
       dataField := DataField (bytes[index - length..index])
       data_.add dataField
@@ -237,7 +237,7 @@ class Data:
     data := get-data dataType
     if data.size != 8:
       log.error "Data size not 8 for datatype $(dataType)"
-      return Coordinate 0.0 0.0 // TOOD consider all getts returning null on error, not a 0 value...
+      return Coordinate 0.0 0.0 // TOOD consider all gets returning null on error, not a 0 value...
     return Coordinate ((LITTLE-ENDIAN.int32 data 0) / 1e7) ((LITTLE-ENDIAN.int32 data 4) / 1e7)
 
   get-data-list-coordinates dataType/int -> List:

@@ -158,7 +158,7 @@ class HttpMsg:
         // Split into lines
         lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
 
-        // Check for custom: lines, and proces and remove them...
+        // Check for custom: lines, and process and remove them...
         lines.do: |line|
           if line.starts_with "custom:":
             if custom-handlers_.get (line.replace "custom:" ""):

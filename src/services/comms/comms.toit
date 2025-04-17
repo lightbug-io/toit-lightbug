@@ -135,9 +135,9 @@ class Comms:
       messageBytes := device_.in.peek-bytes messageLength
       // TODO remove once we are sure its good?
       if messageBytes.size != messageLength: // Fail safe, but shouldn't happen due to the try-enure-buffered above
-        logger_.error "Message length mismatch, no more bytes availible? skipping message"
+        logger_.error "Message length mismatch, no more bytes available? skipping message"
         device_.in.read-byte
-        throw "Message length mismatch, no more bytes availible? skipping message"
+        throw "Message length mismatch, no more bytes available? skipping message"
         continue
 
       e := catch --trace:
@@ -165,7 +165,7 @@ class Comms:
       if e:
         // output a row of red cross emojis
         logger_.error " ❌ " * 20
-        logger_.error "Error parsing message (probably garbeled): $(e) $(stringify-all-bytes messageBytes)"
+        logger_.error "Error parsing message (probably garbled): $(e) $(stringify-all-bytes messageBytes)"
         logger_.error " ❌ " * 20
         // Read a byte, and continue looking for a message
         device_.in.read-byte

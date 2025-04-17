@@ -14,13 +14,13 @@ interface Device extends Comms:
   name -> string
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
-  // A list of ints, mapping to supported Lightbug message typess
+  // A list of ints, mapping to supported Lightbug message types
   messages-supported -> List
-  // A list of ints, mapping to not supported Lightbug message typess
+  // A list of ints, mapping to not supported Lightbug message types
   messages-not-supported -> List
 
 /*
-An interface for communicationg to and from a Lightbug device
+An interface for communicating to and from a Lightbug device
 */
 interface Comms:
   // Reader reading from the device
@@ -47,7 +47,7 @@ abstract class LightbugDevice implements Device:
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL
       --strobe/Strobe=NoStrobe
       --logger/log.Logger=(log.default.with-name "lb-device"):
-    // TODO if more than one device is instantiated, things will liekly break due to gpio / i2c conflicts, so WARN / throw in this case
+    // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
     name_ = name
     strobe_ = strobe
     logger_ = logger
