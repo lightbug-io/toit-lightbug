@@ -238,12 +238,13 @@ class Comms:
       --onError/Lambda? = null
       --withLatch/bool = false
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "Sending message: $(msg) $(message-bytes-to-docs-url msg.bytes)"
   
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "SEND: $(msg)"
 
     latch := monitor.Latch
     
