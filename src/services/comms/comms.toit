@@ -71,9 +71,9 @@ class Comms:
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
     if sendOpen:
-      sendOpen_
+      catch-and-restart "sendOpen_" (:: sendOpen_ ) --limit=5 --restart-always=false --logger=logger_
     if sendHearbeat:
-      task:: catch-and-restart "sendHeartbeats_" (:: sendHeartbeats_)
+      task:: catch-and-restart "sendHeartbeats_" (:: sendHeartbeats_) --logger=logger_
     
     logger_.info "Comms started"
 
