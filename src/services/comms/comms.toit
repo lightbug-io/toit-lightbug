@@ -86,7 +86,7 @@ class Comms:
   sendOpen_:
     if not (send messages.Open.msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
       throw "Failed to open device link"
-    logger_.debug "Opened device link"
+    logger_.info "Opened device link"
 
   sendHeartbeats_:
     while true:
