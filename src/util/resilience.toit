@@ -5,8 +5,8 @@ Catches exceptions from the given $lambda and restarts it.
 
 If $limit is -1, it will run indefinitely, otherwise it will run $limit times at most.
 
-If $restart-always is true (the default), it will always restart the given $l, even if it finishes successfully.
-If $restart-always is false, it will only restart the given $l if it throws an exception.
+If $restart-always is true (the default), it will always restart the given $lambda, even if it finishes successfully.
+If $restart-always is false, it will only restart the given $lambda if it throws an exception.
 
 # Example
 ```
