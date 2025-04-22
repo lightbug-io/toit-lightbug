@@ -45,6 +45,7 @@ class HttpMsg:
     custom-actions_ = custom-actions
     custom-handlers_ = custom-handlers
     if device.strobe.available:
+      partyMode := false
       custom-actions_["Strobe"] = {
         "Off": "custom:strobe:OFF",
         "R": "custom:strobe:R",
@@ -52,41 +53,45 @@ class HttpMsg:
         "B": "custom:strobe:B",
         "Party": "custom:strobe:PARTY",
       }
-      strobePartyMode := false
       custom-handlers_["strobe:OFF"] = (:: | writer |
-        strobePartyMode = false
+        partyMode = false
         writer.out.write "Strobe: Off\n"
         device.strobe.set false false false
       )
       custom-handlers_["strobe:R"] = (:: | writer |
-          strobePartyMode = false
+          partyMode = false
           writer.out.write "Strobe: Red\n"
           device.strobe.set true false false
       )
       custom-handlers_["strobe:G"] = (:: | writer |
-          strobePartyMode = false
+          partyMode = false
           writer.out.write "Strobe: Green\n"
           device.strobe.set false true false
       )
       custom-handlers_["strobe:B"] = (:: | writer |
-          strobePartyMode = false
+          partyMode = false
           writer.out.write "Strobe: Blue\n"
           device.strobe.set false false true
       )
       custom-handlers_["strobe:PARTY"] = (:: | writer |
-          strobePartyMode = true
+          partyMode = true
           writer.out.write "Strobe: Party\n"
-          while strobePartyMode:
-              device.strobe.set true false false
-              sleep (Duration --ms=10)
-              if not strobePartyMode:
+          while partyMode:
+            device.strobe.set true false false
+            sleep (Duration --ms=10)
+            if not partyMode:
+              log.info "Strobe: Party 1 break"
               break
-              device.strobe.set false true false
-              sleep (Duration --ms=10)
-              if not strobePartyMode:
+            log.info "Strobe: Party 2"
+            device.strobe.set false true false
+            sleep (Duration --ms=10)
+            if not partyMode:
               break
-              device.strobe.set false false true
-              sleep (Duration --ms=10)
+            log.info "Strobe: Party 2"
+            device.strobe.set false false true
+            sleep (Duration --ms=10)
+            if not partyMode:
+              break
       )
     if response-message-formatter != null:
       response-message-formatter_ = response-message-formatter
@@ -95,7 +100,7 @@ class HttpMsg:
         e := catch:
           writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
         if e:
-          // do nothing for now (is this needed or caught higer up?)
+          // do nothing for now (is this needed or caught higher up?)
       )
 
     // Create an inbox to receive all messages on, that can be shown to the user via /poll logging
@@ -156,7 +161,7 @@ class HttpMsg:
         // Split into lines
         lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
 
-        // Check for custom: lines, and process and remove them...
+        // Check for custom: lines, and proces and remove them...
         lines.do: |line|
           if line.starts_with "custom:":
             if custom-handlers_.get (line.replace "custom:" ""):
