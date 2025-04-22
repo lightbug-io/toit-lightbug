@@ -51,6 +51,10 @@ class HttpMsg:
         "R": "custom:strobe:R",
         "G": "custom:strobe:G",
         "B": "custom:strobe:B",
+        "C": "custom:strobe:C",
+        "M": "custom:strobe:M",
+        "Y": "custom:strobe:Y",
+        "W": "custom:strobe:W",
         "Party": "custom:strobe:PARTY",
       }
       custom-handlers_["strobe:OFF"] = (:: | writer |
@@ -72,6 +76,26 @@ class HttpMsg:
           partyMode = false
           writer.out.write "Strobe: Blue\n"
           device.strobe.set false false true
+      )
+      custom-handlers_["strobe:C"] = (:: | writer |
+          partyMode = false
+          writer.out.write "Strobe: Cyan\n"
+          device.strobe.set false true true
+      )
+      custom-handlers_["strobe:M"] = (:: | writer |
+          partyMode = false
+          writer.out.write "Strobe: Magenta\n"
+          device.strobe.set true false true
+      )
+      custom-handlers_["strobe:Y"] = (:: | writer |
+          partyMode = false
+          writer.out.write "Strobe: Yellow\n"
+          device.strobe.set true true false
+      )
+      custom-handlers_["strobe:W"] = (:: | writer |
+          partyMode = false
+          writer.out.write "Strobe: White\n"
+          device.strobe.set true true true
       )
       custom-handlers_["strobe:PARTY"] = (:: | writer |
           partyMode = true
