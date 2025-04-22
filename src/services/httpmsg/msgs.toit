@@ -11,9 +11,10 @@ sample-messages := {
         "$(messages.Open.MT) Open": messages.Open.msg.bytes-for-protocol,
         "$(messages.Close.MT) Close": messages.Close.msg.bytes-for-protocol,
         "$(messages.Heartbeat.MT) Heartbeat": messages.Heartbeat.msg.bytes-for-protocol,
+        "$(messages.CPU1Reset.MT) CPU1 Reset": (messages.CPU1Reset.do-msg).bytes-for-protocol,
+        "$(messages.CPU2Sleep.MT) CPU2 Sleep": (messages.CPU2Sleep.do-msg --interval=1 --wake-on-event=false).bytes-for-protocol,
     },
     "Getters": {
-        "$(messages.LastPosition.MT) Location": (messages.LastPosition.get-msg).bytes-for-protocol,
         "$(messages.Status.MT) Status": (messages.Status.get-msg).bytes-for-protocol,
         "$(messages.DeviceIds.MT) Device IDs": (messages.DeviceIds.get-msg).bytes-for-protocol,
         "$(messages.DeviceTime.MT) Time": (messages.DeviceTime.get-msg).bytes-for-protocol,
@@ -23,6 +24,11 @@ sample-messages := {
     },
     "Actions": {
         "$(messages.TxNow.MT) Cellular 'Transmit Now'": (messages.TxNow.do-msg --data="hello".to-byte-array).bytes-for-protocol,
+    },
+    "Position": {
+      "$(messages.GPSControl.MT) GPS Enable": (messages.GPSControl.set-msg --gps-enable=1 --rtk-enable-correction=0).bytes-for-protocol,
+      "$(messages.GPSControl.MT) GPS Disable": (messages.GPSControl.set-msg --gps-enable=0 --rtk-enable-correction=0).bytes-for-protocol,
+      "$(messages.LastPosition.MT) Last Position": (messages.LastPosition.get-msg).bytes-for-protocol,
     },
     "Screen": {
         "$(messages.PresetPage.MT) Home page": messages.PresetPage.to-msg.bytes-for-protocol,

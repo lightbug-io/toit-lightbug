@@ -20,6 +20,7 @@ import .m45-alarm-control show AlarmControl
 import .m46-buzzer-sequence show BuzzerSequence
 import .m47-cpu2-sleep show CPU2Sleep
 import .m48-power-profile show PowerProfile
+import .m49-cpu1-reset show CPU1Reset
 import .m50-link-control show LinkControl
 import .m53-ublox-protection-level show UbloxProtectionLevel
 import .m1004-lora show Lora
