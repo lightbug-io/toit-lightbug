@@ -29,7 +29,7 @@ sample-messages := {
         "$(messages.MenuPage.MT) Menu 3 items": (messages.MenuPage.to-msg --page-id=101 --items=["Option 1", "Option 2", "Option 3"]).bytes-for-protocol,
         "$(messages.TextPage.MT) Text page": (messages.TextPage.to-msg --page-id=102 --page-title="Page 101" --line1="First Line" --line2="Second Line").bytes-for-protocol,
         "$(messages.DrawBitmap.MT) Lightbug Logo": (messages.DrawBitmap.to-msg --page-id=103 --bitmap-data=lightbug-40-40 --bitmap-height=40 --bitmap-width=40).bytes-for-protocol,
-        "$(messages.DrawBitmap.MT) Overlay Logo": (messages.DrawBitmap.to-msg --bitmap-data=lightbug-40-40 --bitmap-height=40 --bitmap-width=40 --redraw-type=1 --bitmap-x=(SCREEN-WIDTH - 40) --bitmap-y=(SCREEN-HEIGHT - 40)).bytes-for-protocol,
+        // "$(messages.DrawBitmap.MT) Overlay Logo": (messages.DrawBitmap.to-msg --bitmap-data=lightbug-40-40 --bitmap-height=40 --bitmap-width=40 --redraw-type=1 --bitmap-x=(SCREEN-WIDTH - 40) --bitmap-y=(SCREEN-HEIGHT - 40)).bytes-for-protocol,
     },
     "$(messages.HapticsControl.MT) Haptics": {
         "Pattern 1 low intensity": (messages.HapticsControl.do-msg messages.HapticsControl.PATTERN_1 messages.HapticsControl.INTENSITY-LOW).bytes-for-protocol,
