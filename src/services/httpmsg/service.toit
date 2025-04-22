@@ -80,14 +80,11 @@ class HttpMsg:
             device.strobe.set true false false
             sleep (Duration --ms=10)
             if not partyMode:
-              log.info "Strobe: Party 1 break"
               break
-            log.info "Strobe: Party 2"
             device.strobe.set false true false
             sleep (Duration --ms=10)
             if not partyMode:
               break
-            log.info "Strobe: Party 2"
             device.strobe.set false false true
             sleep (Duration --ms=10)
             if not partyMode:
@@ -161,7 +158,7 @@ class HttpMsg:
         // Split into lines
         lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
 
-        // Check for custom: lines, and proces and remove them...
+        // Check for custom: lines, and process and remove them...
         lines.do: |line|
           if line.starts_with "custom:":
             if custom-handlers_.get (line.replace "custom:" ""):
