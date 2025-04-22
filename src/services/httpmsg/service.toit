@@ -31,6 +31,7 @@ class HttpMsg:
       device/devices.Device
       device-comms/services.Comms
       --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
+      --custom-handlers/Map={:} // A map of handlers for custom actions. The key is the action name, and the value is a function that takes a writer which can be used to write a response.
       --response-message-formatter/Lambda?=null // A function that takes a writer and message and returns a string to be displayed in the response. Otherwise bytes will be shown...
       --port/int=DEFAULT_PORT
       --serve/bool=true
@@ -42,6 +43,7 @@ class HttpMsg:
     device_ = device
     device-comms_ = device-comms
     custom-actions_ = custom-actions
+    custom-handlers_ = custom-handlers
     if device.strobe.available:
       custom-actions_["Strobe"] = {
         "Off": "custom:strobe:OFF",
@@ -51,45 +53,41 @@ class HttpMsg:
         "Party": "custom:strobe:PARTY",
       }
       strobePartyMode := false
-      custom-handlers_ = {
-        "strobe:OFF": (:: | writer |
-          strobePartyMode = false
-          writer.out.write "Strobe: Off\n"
-          device.strobe.set false false false
-        ),
-        "strobe:R": (:: | writer |
+      custom-handlers_["strobe:OFF"] = (:: | writer |
+        strobePartyMode = false
+        writer.out.write "Strobe: Off\n"
+        device.strobe.set false false false
+      )
+      custom-handlers_["strobe:R"] = (:: | writer |
           strobePartyMode = false
           writer.out.write "Strobe: Red\n"
           device.strobe.set true false false
-        ),
-        "strobe:G": (:: | writer |
+      )
+      custom-handlers_["strobe:G"] = (:: | writer |
           strobePartyMode = false
           writer.out.write "Strobe: Green\n"
           device.strobe.set false true false
-        ),
-        "strobe:B": (:: | writer |
+      )
+      custom-handlers_["strobe:B"] = (:: | writer |
           strobePartyMode = false
           writer.out.write "Strobe: Blue\n"
           device.strobe.set false false true
-        ),
-        "strobe:PARTY": (:: | writer |
+      )
+      custom-handlers_["strobe:PARTY"] = (:: | writer |
           strobePartyMode = true
           writer.out.write "Strobe: Party\n"
           while strobePartyMode:
-            device.strobe.set true false false
-            sleep (Duration --ms=10)
-            if not strobePartyMode:
+              device.strobe.set true false false
+              sleep (Duration --ms=10)
+              if not strobePartyMode:
               break
-            device.strobe.set false true false
-            sleep (Duration --ms=10)
-            if not strobePartyMode:
+              device.strobe.set false true false
+              sleep (Duration --ms=10)
+              if not strobePartyMode:
               break
-            device.strobe.set false false true
-            sleep (Duration --ms=10)
-        ),
-      }
-    else:
-      custom-handlers_ = {"x":"x"}
+              device.strobe.set false false true
+              sleep (Duration --ms=10)
+      )
     if response-message-formatter != null:
       response-message-formatter_ = response-message-formatter
     else:
