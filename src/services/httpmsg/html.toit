@@ -339,7 +339,7 @@ generate-screen-html -> string:
         submitMulti(toSend);
     }
 
-    function box2msgb(box, pageId, onlyOne=true, isFirst=true, isLast=true) {
+    function box2msgb(box, pageId, onlyOneLeft=true, isFirst=true, isLast=true) {
         const ui16le = (num) => {
             return [num & 0xff, (num >> 8) & 0xff];
         };
@@ -357,7 +357,7 @@ generate-screen-html -> string:
         d.set(9, [box.exportSizeX]);
         d.set(10, [box.exportSizeY]);
         d.set(25, box.cArrayOutput.split(',').map(byte => parseInt(byte, 16)));
-        if(onlyOne) {
+        if(onlyOneLeft && isFirst) {
           d.set(6, [2]); // FullRedraw
         } else {
         if(isFirst) {
