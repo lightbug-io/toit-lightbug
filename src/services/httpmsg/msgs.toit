@@ -51,7 +51,7 @@ sample-messages := {
     },
     "$(messages.Lora.MT) LORA, Transmit & Receive for 10s": {
       "Lightbug": (messages.Lora.do-msg --payload="Lightbug".to-byte-array --receive-ms=10000).bytes-for-protocol,
-      "MWC": (messages.Lora.do-msg --payload="MWC".to-byte-array --receive-ms=10000).bytes-for-protocol,
+      "Demo": (messages.Lora.do-msg --payload="Demo".to-byte-array --receive-ms=10000).bytes-for-protocol,
       "2025": (messages.Lora.do-msg --payload="2025".to-byte-array --receive-ms=10000).bytes-for-protocol,
       // "Subscribe": (messages.Lora.subscribe-msg).bytes-for-protocol, // Don't have a subscribe button, just ask for subscription on startup
       // "Unsubscribe": (messages.Lora.unsubscribe-msg).bytes-for-protocol,
