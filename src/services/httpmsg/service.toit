@@ -11,6 +11,7 @@ import net
 import log
 import monitor show Channel
 import crypto.crc
+import io
 import io.byte-order show LITTLE-ENDIAN
 
 // Hosts a small HTTP server that serves a page for directly sending bytes or messages to a Lightbug device
@@ -57,49 +58,58 @@ class HttpMsg:
         "W": "custom:strobe:W",
         "Party": "custom:strobe:PARTY",
       }
-      custom-handlers_["strobe:OFF"] = (:: | writer |
-        partyMode = false
-        writer.out.write "Strobe: Off\n"
-        device.strobe.set false false false
-      )
-      custom-handlers_["strobe:R"] = (:: | writer |
+      if not custom-handlers_.get "strobe:OFF":
+        custom-handlers_["strobe:OFF"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: Red\n"
+          writer.write "Strobe: Off\n"
+          device.strobe.set false false false
+        )
+      if not custom-handlers_.get "strobe:R":
+        custom-handlers_["strobe:R"] = (:: | writer |
+          partyMode = false
+          writer.write "Strobe: Red\n"
           device.strobe.set true false false
-      )
-      custom-handlers_["strobe:G"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:G":
+        custom-handlers_["strobe:G"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: Green\n"
+          writer.write "Strobe: Green\n"
           device.strobe.set false true false
-      )
-      custom-handlers_["strobe:B"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:B":
+        custom-handlers_["strobe:B"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: Blue\n"
+          writer.write "Strobe: Blue\n"
           device.strobe.set false false true
-      )
-      custom-handlers_["strobe:C"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:C":
+        custom-handlers_["strobe:C"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: Cyan\n"
+          writer.write "Strobe: Cyan\n"
           device.strobe.set false true true
-      )
-      custom-handlers_["strobe:M"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:M":
+        custom-handlers_["strobe:M"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: Magenta\n"
+          writer.write "Strobe: Magenta\n"
           device.strobe.set true false true
-      )
-      custom-handlers_["strobe:Y"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:Y":
+        custom-handlers_["strobe:Y"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: Yellow\n"
+          writer.write "Strobe: Yellow\n"
           device.strobe.set true true false
-      )
-      custom-handlers_["strobe:W"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:W":
+        custom-handlers_["strobe:W"] = (:: | writer |
           partyMode = false
-          writer.out.write "Strobe: White\n"
+          writer.write "Strobe: White\n"
           device.strobe.set true true true
-      )
-      custom-handlers_["strobe:PARTY"] = (:: | writer |
+        )
+      if not custom-handlers_.get "strobe:PARTY":
+        custom-handlers_["strobe:PARTY"] = (:: | writer |
           partyMode = true
-          writer.out.write "Strobe: Party\n"
+          writer.write "Strobe: Party\n"
           while partyMode:
             device.strobe.set true false false
             sleep (Duration --ms=10)
@@ -113,13 +123,13 @@ class HttpMsg:
             sleep (Duration --ms=10)
             if not partyMode:
               break
-      )
+        )
     if response-message-formatter != null:
       response-message-formatter_ = response-message-formatter
     else:
       response-message-formatter_ = (:: | writer msg prefix |
         e := catch:
-          writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+          writer.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
         if e:
           // do nothing for now (is this needed or caught higher up?)
       )
@@ -172,15 +182,18 @@ class HttpMsg:
     writer.close
 
   handle-post request/http.RequestIncoming writer/http.ResponseWriter:
-    body := request.body.read-all
-    bodyS := body.to-string
+    try:
+      writer.headers.set "Content-Type" "text/plain"
+      writer.headers.set "Access-Control-Allow-Origin" "*"
+      writer.write_headers 200
+      handle-post-string request.body.read-all.to-string writer.out
+    finally:
+      writer.close
+  
+  handle-post-string input/string writer/io.Writer:
     e := catch --trace=true:
-      try:
-        writer.headers.set "Content-Type" "text/plain"
-        writer.headers.set "Access-Control-Allow-Origin" "*"
-        writer.write_headers 200
         // Split into lines
-        lines := ((bodyS.replace "," " ").replace "  " " ").split "\n"
+        lines := ((input.replace "," " ").replace "  " " ").split "\n"
 
         // Check for custom: lines, and process and remove them...
         lines.do: |line|
@@ -215,7 +228,7 @@ class HttpMsg:
             l := []
             ((line.split " ").do: |s| l.add (int.parse s))
             msg := protocol.Message.from-list l // TODO account for if the bytes are not a msg....
-            writer.out.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+            writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
             if not listen-and-log-all_:
               // TODO listen to the responses and output them? (wait max 5s?)
               // if not response:
@@ -233,8 +246,8 @@ class HttpMsg:
             msgLatch := device-comms_.send msg
               --withLatch=true
               --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
-              --preSend=(:: writer.out.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array l) --short=true --commas=false --hex=false)\n")
-              --postSend=(:: writer.out.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
+              --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array l) --short=true --commas=false --hex=false)\n")
+              --postSend=(:: writer.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
             // Wait for the response (async), so that we can still send the next message
             tasksWaiting++
             task::
@@ -242,7 +255,7 @@ class HttpMsg:
                 try:
                   response := msgLatch.get
                   if not response:
-                    writer.out.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
+                    writer.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
                   else:
                     // Only write out the response if we are not listening to all messages, as then it will be logged anyway
                     if not listen-and-log-all_:
@@ -253,13 +266,10 @@ class HttpMsg:
                 logger_.error "Error in handle-post task: $e"
           while tasksDone < tasksWaiting:
             sleep (Duration --ms=100)
-
-      finally:
-        writer.close
     if e:
       logger_.error "Error in handle-post: $e"
 
-  write-msg-out writer/http.ResponseWriter msg/protocol.Message prefix/string="":
+  write-msg-out writer/io.Writer msg/protocol.Message prefix/string="":
     prefix = "$(prefix) $(msg.msgId)"
     if msg.response-to:
         prefix = "$(prefix) Response $(msg.response-to):"
@@ -267,7 +277,7 @@ class HttpMsg:
     if response-message-formatter_ != null:
       response-message-formatter_.call writer msg prefix
     else:
-      writer.out.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+      writer.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
 
   // It might be more efficient to store messages that have been received, to send
   // TODO having a "force-send" on monitor would be nice..
@@ -295,10 +305,10 @@ class HttpMsg:
     while polling-queue.size > 0:
       writer.out.write polling-queue.receive
     while polling-messages.size > 0:
-      write-msg-out writer polling-messages.receive "Received"
+      write-msg-out writer.out polling-messages.receive "Received"
     while inbox.size > 0:
       msg := inbox.receive
-      write-msg-out writer msg "Received"
+      write-msg-out writer.out msg "Received"
     writer.close
 
 
