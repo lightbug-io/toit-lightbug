@@ -1,6 +1,6 @@
 import lightbug.devices as devices
 import lightbug.services as services
-import lightbug.messages as messages
+import lightbug.messages.messages_gen as messages
 import log
 
 // A simple application waits for button press messages, and changes the strobe based on them
@@ -15,13 +15,14 @@ main:
   comms := services.Comms --device=device
 
   // Draw a new page with instructions, and to replace any existing page
-  latch := comms.send (messages.TextPage.to-msg
-    --page-id=3001
-    --page-title="Strobe Example"
-    --line2="Press the buttons"
-    --line3="to change the strobe"
-    --redraw-type=2 // FullRedraw
-  )
+  textPageData := messages.TextPage
+  textPageData.add-data-uint messages.TextPage.PAGE-ID 3001
+  textPageData.add-data-ascii messages.TextPage.PAGE-TITLE "Strobe Example"
+  textPageData.add-data-ascii messages.TextPage.LINE-2 "Press the buttons"
+  textPageData.add-data-ascii messages.TextPage.LINE-3 "to change the strobe"
+  textPageData.add-data-uint messages.TextPage.REDRAW-TYPE 2 // FullRedraw
+  
+  latch := comms.send (messages.TextPage.do-msg)
     --now=true
     --withLatch=true
     --preSend=(:: print "💬 Sending instruction page to device")
@@ -31,7 +32,7 @@ main:
     --onError=(:: print "❌ Instruction page error")
 
   // Subscribe to button presses
-  if not ( comms.send (messages.ButtonPress.subscribe-msg) --now=true
+  if not ( comms.send (messages.ButtonPress.subscribe-msg --ms=1000) --now=true
     --preSend=(:: print "💬 Sending button press subscribe")
     --onAck=(:: print "✅ Subscription ACKed")
     --onNack=(:: if it.msg-status != null: log.warn "Button not yet subscribed, state: $(it.msg-status)" else: log.warn "Button not yet subscribed" )
@@ -50,11 +51,11 @@ main:
         if buttonData.duration >= 1000:
           device.strobe.set false false false
         else:
-          if buttonData.button-id == 1:
+          if buttonData.id == 1:
             device.strobe.set true false false
-          else if buttonData.button-id == 0:
+          else if buttonData.id == 0:
             device.strobe.set false true false
-          else if buttonData.button-id == 2:
+          else if buttonData.id == 2:
             device.strobe.set false false true
       else:
         log.info "Received message: $msg"

@@ -12,9 +12,12 @@ class GSMRequestOwnership extends protocol.Data:
   constructor:
     super
 
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   // SET
-  static set-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static set-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 

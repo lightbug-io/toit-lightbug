@@ -19,17 +19,20 @@ class TextPage extends protocol.Data:
   constructor:
     super
 
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static get-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   // SET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static set-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
@@ -44,23 +47,23 @@ class TextPage extends protocol.Data:
 
   // UNSUBSCRIBE
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
   // DO
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static do-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
   page-id -> int:
     return get-data-uint PAGE-ID
 
-  page-title -> int:
-    return get-data-uint PAGE-TITLE
+  page-title -> string:
+    return get-data-ascii PAGE-TITLE
 
   status-bar -> int:
     return get-data-uint STATUS-BAR
@@ -68,20 +71,20 @@ class TextPage extends protocol.Data:
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE
 
-  line-1 -> int:
-    return get-data-uint LINE-1
+  line-1 -> string:
+    return get-data-ascii LINE-1
 
-  line-2 -> int:
-    return get-data-uint LINE-2
+  line-2 -> string:
+    return get-data-ascii LINE-2
 
-  line-3 -> int:
-    return get-data-uint LINE-3
+  line-3 -> string:
+    return get-data-ascii LINE-3
 
-  line-4 -> int:
-    return get-data-uint LINE-4
+  line-4 -> string:
+    return get-data-ascii LINE-4
 
-  line-5 -> int:
-    return get-data-uint LINE-5
+  line-5 -> string:
+    return get-data-ascii LINE-5
 
   stringify -> string:
     return {

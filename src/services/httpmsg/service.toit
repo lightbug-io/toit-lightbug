@@ -1,7 +1,7 @@
 import ...protocol as protocol
 import ...devices as devices
 import ...services as services
-import ...messages as messages
+import ...messages.messages_gen as messages
 import ...util.resilience show catch-and-restart
 import ...util.docs show docsUrl
 import ...util.bytes show stringify-all-bytes
@@ -142,7 +142,7 @@ class HttpMsg:
       inbox = Channel 1
 
     if subscribe-lora:
-      device-comms.send messages.Lora.subscribe-msg
+      device-comms.send (messages.LORA.subscribe-msg --ms=1000)
 
     if serve:
       service-http-catch-and-restart

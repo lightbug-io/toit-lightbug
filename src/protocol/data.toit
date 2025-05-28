@@ -66,6 +66,9 @@ class Data:
     for i := 0; i < dataTypes_.size; i++:
       s += dataTypes_[i].stringify + ": " + data_[i].stringify + ", "
     return s
+  
+  add-data-string dataType/int data/string -> none:
+    add-data-ascii dataType data
 
   add-data-ascii dataType/int data/string -> none:
     add-data dataType data.to-byte-array

@@ -1,6 +1,6 @@
 import ...protocol as protocol
 import ...devices as devices
-import ...messages as messages
+import ...messages.messages_gen as messages
 import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
@@ -84,14 +84,14 @@ class Comms:
     logger_.info "Comms started"
 
   sendOpen_:
-    if not (send messages.Open.msg --now=true --withLatch=true --timeout=(Duration --s=10)).get:
+    if not (send (messages.Open.do-msg --data=null) --now=true --withLatch=true --timeout=(Duration --s=10)).get:
       throw "Failed to open device link"
     logger_.info "Opened device link"
 
   sendHeartbeats_:
     while true:
       // Send a heartbeat message every 10 seconds (via outbox)
-      if not (send messages.Heartbeat.msg --withLatch=true).get:
+      if not (send (messages.Heartbeat.do-msg --data=null) --withLatch=true).get:
         logger_.error "Failed to send heartbeat"
       else:
         logger_.debug "Sent heartbeat"

@@ -1,6 +1,7 @@
 import lightbug.devices as devices
 import lightbug.services as services
-import lightbug.messages as messages
+import lightbug.messages.messages_gen as messages
+import lightbug.protocol as protocol
 import log
 
 // A simple application that draws a simple text page on the E-ink display
@@ -15,14 +16,17 @@ main:
   comms := services.Comms --device=device
 
   // Send a basic text page to the device to display
-  // https://docs.lightbug.io/devices/api/tools/parse?bytes=03%2C57%2C00%2C19%2C27%2C02%2C00%2C05%2C01%2C01%2C01%2C04%2C7f%2C0e%2C60%2C9b%2C05%2C00%2C03%2C04%2C06%2C65%2C66%2C02%2Cd1%2C07%2C0b%2C48%2C65%2C6c%2C6c%2C6f%2C20%2C77%2C6f%2C72%2C6c%2C64%2C01%2C02%2C1f%2C57%2C65%2C6c%2C63%2C6f%2C6d%2C65%2C20%2C74%2C6f%2C20%2C79%2C6f%2C75%2C72%2C20%2C4c%2C69%2C67%2C68%2C74%2C62%2C75%2C67%2C20%2C64%2C65%2C76%2C69%2C63%2C65%2C0c%2C72%2C75%2C6e%2C6e%2C69%2C6e%2C67%2C20%2C54%2C6f%2C69%2C74%2Cb8%2C71
-  latch := comms.send (messages.TextPage.to-msg
-    --page-id=2001
-    --page-title="Hello world"
-    --line2="Welcome to your Lightbug device"
-    --line3="running Toit"
-    --redraw-type=2 // FullRedraw
-  )
+  // Create a TextPage message using the new API
+  text_page_data := protocol.Data
+  text_page_data.add-data-uint messages.TextPage.PAGE-ID 2001
+  text_page_data.add-data-string messages.TextPage.PAGE-TITLE "Hello world"
+  text_page_data.add-data-string messages.TextPage.LINE-2 "Welcome to your Lightbug device"
+  text_page_data.add-data-string messages.TextPage.LINE-3 "running Toit"
+  text_page_data.add-data-uint8 messages.TextPage.REDRAW-TYPE 2 // FullRedraw
+  
+  text_page := messages.TextPage.do-msg --data=text_page_data
+  
+  latch := comms.send text_page
     --now=true
     --withLatch=true
     --preSend=(:: print "💬 Sending text page to device")

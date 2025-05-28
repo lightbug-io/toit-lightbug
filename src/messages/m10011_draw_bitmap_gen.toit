@@ -8,26 +8,29 @@ class DrawBitmap extends protocol.Data:
 
   static PAGE-ID := 3
   static REDRAW-TYPE := 6
-  static X := 21
-  static Y := 22
-  static WIDTH := 23
-  static HEIGHT := 24
+  static X := 7
+  static Y := 8
+  static WIDTH := 9
+  static HEIGHT := 10
   static DATA := 25
 
   constructor:
     super
 
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static get-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   // SET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static set-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
@@ -42,15 +45,15 @@ class DrawBitmap extends protocol.Data:
 
   // UNSUBSCRIBE
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
   // DO
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static do-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 

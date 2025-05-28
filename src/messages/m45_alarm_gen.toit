@@ -23,17 +23,20 @@ class Alarm extends protocol.Data:
   constructor:
     super
 
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static get-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   // SET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static set-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
@@ -48,15 +51,15 @@ class Alarm extends protocol.Data:
 
   // UNSUBSCRIBE
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
   // DO
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static do-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
@@ -84,20 +87,20 @@ class Alarm extends protocol.Data:
   strobe-intensity -> int:
     return get-data-uint STROBE-INTENSITY
 
-  prompt-message -> int:
-    return get-data-uint PROMPT-MESSAGE
+  prompt-message -> string:
+    return get-data-ascii PROMPT-MESSAGE
 
   prompt-timeout -> int:
     return get-data-uint PROMPT-TIMEOUT
 
-  prompt-button-1-text -> int:
-    return get-data-uint PROMPT-BUTTON-1-TEXT
+  prompt-button-1-text -> string:
+    return get-data-ascii PROMPT-BUTTON-1-TEXT
 
-  prompt-button-2-text -> int:
-    return get-data-uint PROMPT-BUTTON-2-TEXT
+  prompt-button-2-text -> string:
+    return get-data-ascii PROMPT-BUTTON-2-TEXT
 
-  prompt-button-3-text -> int:
-    return get-data-uint PROMPT-BUTTON-3-TEXT
+  prompt-button-3-text -> string:
+    return get-data-ascii PROMPT-BUTTON-3-TEXT
 
   stringify -> string:
     return {

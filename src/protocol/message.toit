@@ -14,8 +14,10 @@ class Message:
  constructor messageType/int:
   header_.messageType_ = messageType
 
- constructor.with-data messageType/int data/Data:
+ constructor.with-data messageType/int data/Data?:
   header_.messageType_ = messageType
+  if data == null:
+    data = Data
   data_ = data
 
  constructor.from-list bytes/List:

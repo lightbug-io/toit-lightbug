@@ -11,7 +11,7 @@ main:
   device := devices.RtkHandheld2
 
   // Setup the comms service, which allows communication with the Lightbug device, but disable the default processing operations
-  comms := services.Comms --device=device --startInbound=false --startOutbox=false --sendOpen=false --sendHearbeat=false
+  comms := services.Comms --device=device --startInbound=false --startOutbox=false --sendOpen=false --sendHeartbeat=false
 
   // Write some bytes to the device
 

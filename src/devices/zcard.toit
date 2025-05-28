@@ -3,26 +3,26 @@ import io
 import .base
 import .i2c
 import .strobe
-import ..messages
+import ..messages.messages_gen
 
 ZCARD-MESSAGES := [
     // TODO fully fill this list
     // TODO provide a base set supported by everything..
-    Ack.MT,
+    ACK.MT,
     Open.MT,
     Close.MT,
     Heartbeat.MT,
-    LastPosition.MT,
-    TxNow.MT,
-    Status.MT,
-    DeviceIds.MT,
+    Position.MT,
+    TransmitNow.MT,
+    DeviceStatus.MT,
+    DeviceIDs.MT,
     DeviceTime.MT,
     GPSControl.MT,
     BuzzerControl.MT,
     BatteryStatus.MT,
-    AlarmControl.MT,
+    Alarm.MT,
     LinkControl.MT,
-    Lora.MT,
+    LORA.MT,
     PresetPage.MT,
     TextPage.MT,
     MenuPage.MT,

@@ -9,17 +9,20 @@ class Close extends protocol.Data:
   constructor:
     super
 
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static get-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   // SET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static set-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
@@ -34,15 +37,15 @@ class Close extends protocol.Data:
 
   // UNSUBSCRIBE
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
   // DO
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static do-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 

@@ -12,9 +12,12 @@ class CPU2Sleep extends protocol.Data:
   constructor:
     super
 
+  constructor.from-data data/protocol.Data:
+    super.from-data data
+
   // DO
-  static do-msg -> protocol.Message:
-    msg := protocol.Message MT
+  static do-msg --data/protocol.Data? -> protocol.Message:
+    msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
