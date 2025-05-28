@@ -250,6 +250,9 @@ class Data:
       l.add (Coordinate ((LITTLE-ENDIAN.int32 data i) / 1e7) ((LITTLE-ENDIAN.int32 data (i + 4)) / 1e7))
     return l
 
+  get-data-float dataType/int -> float:
+    return get-data-float32 dataType
+
   get-data-float32 dataType/int -> float:
     d := get-data dataType
     return LITTLE-ENDIAN.float32 d 0
@@ -284,6 +287,9 @@ class Data:
         return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
     log.error "Data size too large for uintn: $(data.size)"
     return 0
+
+  get-data-int dataType/int -> int:
+    return get-data-intn dataType
 
   get-data-intn dataType/int -> int:
     // read the data for the type, and decide which size it fits in
