@@ -3,7 +3,7 @@ import io
 import .base
 import .i2c
 import .strobe
-import ..messages.messages_gen
+import ..messages
 
 ZCARD-MESSAGES := [
     // TODO fully fill this list

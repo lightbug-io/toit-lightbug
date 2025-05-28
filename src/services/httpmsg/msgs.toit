@@ -1,4 +1,4 @@
-import ...messages.messages_gen as messages
+import ...messages as messages
 import ...protocol as protocol
 import ...util.bitmaps show lightbug-40-40
 

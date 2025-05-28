@@ -1,6 +1,6 @@
 import ...protocol as protocol
 import ...devices as devices
-import ...messages.messages_gen as messages
+import ...messages as messages
 import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator

@@ -30,6 +30,5 @@ import .m10008_preset_page_gen show PresetPage
 import .m10009_text_page_gen show TextPage
 import .m10010_menu_page_gen show MenuPage
 import .m10011_draw_bitmap_gen show DrawBitmap
-import .types show *
 
 export *
