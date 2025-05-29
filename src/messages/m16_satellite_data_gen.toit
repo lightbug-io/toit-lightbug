@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class SatelliteData extends protocol.Data:
 
   static MT := 16
+  static NAME := "SatelliteData"
 
   static AVERAGE-SNR := 1
   static MINIMUM-SNR := 2
@@ -27,7 +27,7 @@ class SatelliteData extends protocol.Data:
     super.from-data data
 
   // GET
-  static get-msg --data/protocol.Data? -> protocol.Message:
+  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
@@ -41,7 +41,7 @@ class SatelliteData extends protocol.Data:
     return msg
 
   // UNSUBSCRIBE
-  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg

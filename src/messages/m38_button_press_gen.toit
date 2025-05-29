@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class ButtonPress extends protocol.Data:
 
   static MT := 38
+  static NAME := "ButtonPress"
 
   static ID := 1
   static DURATION := 2
@@ -24,7 +24,7 @@ class ButtonPress extends protocol.Data:
     return msg
 
   // UNSUBSCRIBE
-  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg

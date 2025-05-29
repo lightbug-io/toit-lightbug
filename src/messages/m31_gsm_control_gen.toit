@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class GSMControl extends protocol.Data:
 
   static MT := 31
+  static NAME := "GSMControl"
 
   static FLIGHT-MODE := 1
   static DURATION := 2
@@ -18,13 +18,13 @@ class GSMControl extends protocol.Data:
     super.from-data data
 
   // GET
-  static get-msg --data/protocol.Data? -> protocol.Message:
+  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   // SET
-  static set-msg --data/protocol.Data? -> protocol.Message:
+  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg

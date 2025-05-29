@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class Position extends protocol.Data:
 
   static MT := 15
+  static NAME := "Position"
 
   static TIMESTAMP := 1
   static LATITUDE := 2
@@ -26,7 +26,7 @@ class Position extends protocol.Data:
     super.from-data data
 
   // GET
-  static get-msg --data/protocol.Data? -> protocol.Message:
+  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
@@ -40,7 +40,7 @@ class Position extends protocol.Data:
     return msg
 
   // UNSUBSCRIBE
-  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg

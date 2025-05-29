@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class PowerProfile extends protocol.Data:
 
   static MT := 48
+  static NAME := "PowerProfile"
 
   static TOTAL-POWER := 3
   static CURRENT-NOW := 4
@@ -24,7 +24,7 @@ class PowerProfile extends protocol.Data:
     return msg
 
   // UNSUBSCRIBE
-  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg

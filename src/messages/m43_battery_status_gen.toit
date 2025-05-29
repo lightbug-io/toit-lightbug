@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class BatteryStatus extends protocol.Data:
 
   static MT := 43
+  static NAME := "BatteryStatus"
 
   static VOLTAGE := 1
   static PERCENT := 2
@@ -17,14 +17,14 @@ class BatteryStatus extends protocol.Data:
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg --data/protocol.Data? -> protocol.Message:
+  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
   // SET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data? -> protocol.Message:
+  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
@@ -40,17 +40,21 @@ class BatteryStatus extends protocol.Data:
 
   // UNSUBSCRIBE
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data? -> protocol.Message:
+  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
   // DO
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data? -> protocol.Message:
+  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
+
+  // Creates a message with no method set
+  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-data MT data
 
   voltage -> float:
     return get-data-float VOLTAGE

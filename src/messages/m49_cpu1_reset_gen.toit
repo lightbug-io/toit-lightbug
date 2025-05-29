@@ -1,10 +1,10 @@
 import ..protocol as protocol
-import fixed-point show FixedPoint
 
 // Auto generated class for protocol message
 class CPU1Reset extends protocol.Data:
 
   static MT := 49
+  static NAME := "CPU1Reset"
 
   constructor:
     super
@@ -13,7 +13,7 @@ class CPU1Reset extends protocol.Data:
     super.from-data data
 
   // DO
-  static do-msg --data/protocol.Data? -> protocol.Message:
+  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
