@@ -34,6 +34,8 @@ class GenericUart implements Device:
   // XXX: Does reinit really make sense for a generic UART device? Possibly not?
   reinit -> bool:
     return true
+  prefix -> bool:
+    return true
   in -> io.Reader:
     return _port.in
   out -> io.Writer:

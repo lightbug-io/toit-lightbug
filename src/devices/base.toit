@@ -17,6 +17,8 @@ interface Device extends Comms:
   strobe -> Strobe
   // Reinit the device and communications
   reinit -> bool
+  // Should messages be sent with a Lightbug message prefix, LB
+  prefix -> bool
   // CURRENTLY NOT USED: A list of ints, mapping to supported Lightbug message types
   messages-supported -> List
   // CURRENTLY NOT USED: A list of ints, mapping to not supported Lightbug message types
@@ -72,6 +74,8 @@ abstract class LightbugDevice implements Device:
     logger_.info "Lightbug I2C: Reinitializing device"
     i2c-device_.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
     return true
+  prefix -> bool:
+    return false
   in -> io.Reader:
     return i2c-reader_
   out -> io.Writer:

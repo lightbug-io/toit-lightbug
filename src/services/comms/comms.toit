@@ -50,9 +50,10 @@ class Comms:
     else:
       msgIdGenerator = idGenerator
 
-    // TODO add into the toit LB package if devices need sync bytes or not?
-    // LBSyncBytes_ = #[0x4c, 0x42]
-    LBSyncBytes_ = #[]
+    if device_.prefix:
+      LBSyncBytes_ = #[0x4c, 0x42] // LB
+    else:
+      LBSyncBytes_ = #[]
 
     // Start with randomish numbers for msg and page id, incase we restarted but the STM didn't
     // TODO allow optional injection of an outbox?!
@@ -294,7 +295,6 @@ class Comms:
       if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
         msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-      // TODO only send sync bytes on UART?
       m := LBSyncBytes_ + msg.bytes
 
       // Send the message

@@ -16,6 +16,8 @@ class Fake implements Device:
     return []
   reinit -> bool:
     return true
+  prefix -> bool:
+    return false
   in -> io.Reader:
     return FakeReader
   out -> io.Writer:
