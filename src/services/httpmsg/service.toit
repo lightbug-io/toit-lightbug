@@ -34,7 +34,7 @@ class HttpMsg:
   constructor
       device/devices.Device
       device-comms/services.Comms
-      --defaults/Map? // A map of default messages to show on the page, similar to the messages map
+      --defaults/Map?=sample-messages // A map of default messages to show on the page, similar to the messages map
       --hide-screen/bool=false // Hide the screen input...
       --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
       --custom-handlers/Map={:} // A map of handlers for custom actions. The key is the action name, and the value is a function that takes a writer which can be used to write a response.
@@ -45,10 +45,7 @@ class HttpMsg:
       --subscribe-lora/bool=false
       --listen-and-log-all/bool=false:
     logger_ = logger
-    if defaults != null:
-      default-messages_ = defaults
-    else:
-      default-messages_ = sample-messages
+    default-messages_ = defaults
     hide-screen_ = hide-screen
     serve-port = port
     device_ = device
