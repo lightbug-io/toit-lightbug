@@ -5,6 +5,7 @@ import ...messages as messages
 import ...util.resilience show catch-and-restart
 import ...util.docs show docsUrl
 import ...util.bytes show stringify-all-bytes
+import .msgs show sample-messages
 import .html
 import http
 import net
@@ -19,6 +20,8 @@ class HttpMsg:
 
   static DEFAULT_PORT /int := 80
   serve-port /int
+  default-messages_ /Map
+  hide-screen_ /bool
   custom-actions_ /Map
   custom-handlers_ /Map
   response-message-formatter_ /Lambda
@@ -31,6 +34,8 @@ class HttpMsg:
   constructor
       device/devices.Device
       device-comms/services.Comms
+      --defaults/Map? // A map of default messages to show on the page, similar to the messages map
+      --hide-screen/bool=false // Hide the screen input...
       --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
       --custom-handlers/Map={:} // A map of handlers for custom actions. The key is the action name, and the value is a function that takes a writer which can be used to write a response.
       --response-message-formatter/Lambda?=null // A function that takes a writer and message and returns a string to be displayed in the response. Otherwise bytes will be shown...
@@ -40,6 +45,11 @@ class HttpMsg:
       --subscribe-lora/bool=false
       --listen-and-log-all/bool=false:
     logger_ = logger
+    if defaults != null:
+      default-messages_ = defaults
+    else:
+      default-messages_ = sample-messages
+    hide-screen_ = hide-screen
     serve-port = port
     device_ = device
     device-comms_ = device-comms
@@ -174,7 +184,7 @@ class HttpMsg:
     writer.close
 
   handle-page request/http.RequestIncoming writer/http.ResponseWriter:
-    html := html-page device_ docsUrl custom-actions_
+    html := html-page device_ docsUrl default-messages_ hide-screen_ custom-actions_
     writer.headers.set "Content-Type" "text/html"
     writer.headers.set "Content-Length" html.size.stringify
     writer.write_headers 200
