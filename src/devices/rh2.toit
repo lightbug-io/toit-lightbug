@@ -8,15 +8,25 @@ RtkHandheld2-MESSAGES := [
     // TODO
 ]
 
-// The RtkHandheld2 device, currently at revision 3
+// The latest revision of the RtkHandheld2 device
+class RtkHandheld2 extends RtkHandheld2Rev5:
+
+// The RtkHandheld2 device, currently at revision 5
+class RtkHandheld2Rev5 extends LightbugDevice:
+  constructor:
+    super "RtkHandheld2" --strobe=StandardStrobe --i2c-frequency=400_000
+  messages-supported -> List:
+    return RtkHandheld2-MESSAGES
+
+// Rev 3 and 4 of the RtkHandheld2 device (slower I2C speed)
 // Introduced Feb 2025
-class RtkHandheld2 extends LightbugDevice:
+class RtkHandheld2Rev3 extends LightbugDevice:
   constructor:
     super "RtkHandheld2" --strobe=StandardStrobe
   messages-supported -> List:
     return RtkHandheld2-MESSAGES
 
-// A previous version of the RtkHandheld2 device, that had a different I2C setup
+// Rev 2 of the RtkHandheld2 device, with different I2C pins
 // Retired Feb 2025
 class RtkHandheld2Rev2 extends LightbugDevice:
   static I2C-SDA := 0

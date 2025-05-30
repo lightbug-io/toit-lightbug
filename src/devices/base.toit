@@ -49,14 +49,14 @@ abstract class LightbugDevice implements Device:
   strobe_ /Strobe
   logger_ /log.Logger
 
-  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL
+  constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
       --strobe/Strobe=NoStrobe
       --logger/log.Logger=(log.default.with-name "lb-device"):
     // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
     name_ = name
     strobe_ = strobe
     logger_ = logger
-    i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl
+    i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
     i2c-reader_ = Reader i2c-device_ --logger=logger_
     i2c-writer_ = Writer i2c-device_ --logger=logger_
 

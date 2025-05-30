@@ -18,11 +18,11 @@ I2C-MAX-WRITABLE-BYTES := 2000
 
 I2C-WAIT-SLEEP := (Duration --ms=75)
 
-LBI2CDevice --sda/int --scl/int -> i2c.Device:
+LBI2CDevice --sda/int --scl/int --frequency/int=100_000 -> i2c.Device:
   bus := i2c.Bus
     --sda=gpio.Pin sda
     --scl=gpio.Pin scl
-    --frequency=100_000
+    --frequency=frequency
     --pull-up=true
   // Space out bus init from any start of comms / usage
   // This could be done in a fancier way just making sure we don't send in the first 10ms or so instead..
