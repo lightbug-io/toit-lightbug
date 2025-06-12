@@ -4,7 +4,7 @@ import ..protocol as protocol
 class ACK extends protocol.Data:
 
   static MT := 5
-  static NAME := "ACK"
+  static MT_NAME := "ACK"
 
   static ACKED-TYPE := 1
 

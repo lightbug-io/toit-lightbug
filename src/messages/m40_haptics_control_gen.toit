@@ -4,7 +4,7 @@ import ..protocol as protocol
 class HapticsControl extends protocol.Data:
 
   static MT := 40
-  static NAME := "HapticsControl"
+  static MT_NAME := "HapticsControl"
 
   static PATTERN := 1
   static INTENSITY := 2

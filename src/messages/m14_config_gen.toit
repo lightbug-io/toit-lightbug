@@ -4,10 +4,12 @@ import ..protocol as protocol
 class Config extends protocol.Data:
 
   static MT := 14
-  static NAME := "Config"
+  static MT_NAME := "Config"
 
   static KEY := 7
   static PAYLOAD := 9
+  static PAYLOAD_RTKMINUSABLESATDB := 19
+  static PAYLOAD_RTKMINELEVATION := 20
 
   constructor:
     super

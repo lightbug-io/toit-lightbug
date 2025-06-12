@@ -4,7 +4,7 @@ import ..protocol as protocol
 class BatteryStatus extends protocol.Data:
 
   static MT := 43
-  static NAME := "BatteryStatus"
+  static MT_NAME := "BatteryStatus"
 
   static VOLTAGE := 1
   static PERCENT := 2

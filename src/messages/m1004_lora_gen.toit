@@ -4,7 +4,7 @@ import ..protocol as protocol
 class LORA extends protocol.Data:
 
   static MT := 1004
-  static NAME := "LORA"
+  static MT_NAME := "LORA"
 
   static PAYLOAD := 2
   static SPREAD-FACTOR := 4

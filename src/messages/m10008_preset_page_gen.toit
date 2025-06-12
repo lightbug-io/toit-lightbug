@@ -4,7 +4,7 @@ import ..protocol as protocol
 class PresetPage extends protocol.Data:
 
   static MT := 10008
-  static NAME := "PresetPage"
+  static MT_NAME := "PresetPage"
 
   constructor:
     super

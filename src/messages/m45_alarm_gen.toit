@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Alarm extends protocol.Data:
 
   static MT := 45
-  static NAME := "Alarm"
+  static MT_NAME := "Alarm"
 
   static LEGACY-ALARM-ACTION := 1
   static DURATION := 2

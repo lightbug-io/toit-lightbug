@@ -4,7 +4,7 @@ import ..protocol as protocol
 class CPU1Reset extends protocol.Data:
 
   static MT := 49
-  static NAME := "CPU1Reset"
+  static MT_NAME := "CPU1Reset"
 
   constructor:
     super

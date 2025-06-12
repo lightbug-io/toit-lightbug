@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Open extends protocol.Data:
 
   static MT := 11
-  static NAME := "Open"
+  static MT_NAME := "Open"
 
   constructor:
     super

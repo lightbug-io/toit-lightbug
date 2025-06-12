@@ -4,7 +4,7 @@ import ..protocol as protocol
 class MenuPage extends protocol.Data:
 
   static MT := 10010
-  static NAME := "MenuPage"
+  static MT_NAME := "MenuPage"
 
   static ITEM-COUNT := 2
   static PAGE-ID := 3

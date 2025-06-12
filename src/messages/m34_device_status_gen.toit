@@ -4,12 +4,18 @@ import ..protocol as protocol
 class DeviceStatus extends protocol.Data:
 
   static MT := 34
-  static NAME := "DeviceStatus"
+  static MT_NAME := "DeviceStatus"
 
   static BATTERY := 1
   static SIGNAL-STRENGTH := 2
   static MODE := 3
+  static MODE_SLEEP := 0
+  static MODE_AWAKE := 1
   static NETWORK-TYPE := 4
+  static NETWORK-TYPE_NO-NETWORK := 0
+  static NETWORK-TYPE_GSM := 2
+  static NETWORK-TYPE_WCDMA := 3
+  static NETWORK-TYPE_LTE := 4
   static NETWORK-MNC := 5
   static NETWORK-MCC := 6
   static FIRMWARE-VERSION := 7

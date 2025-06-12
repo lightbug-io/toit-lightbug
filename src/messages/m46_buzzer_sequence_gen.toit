@@ -4,7 +4,7 @@ import ..protocol as protocol
 class BuzzerSequence extends protocol.Data:
 
   static MT := 46
-  static NAME := "BuzzerSequence"
+  static MT_NAME := "BuzzerSequence"
 
   static FREQUENCIES := 6
   static TIMINGS := 7

@@ -4,10 +4,16 @@ import ..protocol as protocol
 class DrawBitmap extends protocol.Data:
 
   static MT := 10011
-  static NAME := "DrawBitmap"
+  static MT_NAME := "DrawBitmap"
 
   static PAGE-ID := 3
   static REDRAW-TYPE := 6
+  static REDRAW-TYPE_AUTO := 0
+  static REDRAW-TYPE_PARTIALREDRAW := 1
+  static REDRAW-TYPE_FULLREDRAW := 2
+  static REDRAW-TYPE_BUFFERONLY := 3
+  static REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR := 4
+  static REDRAW-TYPE_CLEARDONTDRAW := 5
   static X := 7
   static Y := 8
   static WIDTH := 9

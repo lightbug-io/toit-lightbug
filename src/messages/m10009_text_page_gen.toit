@@ -4,12 +4,18 @@ import ..protocol as protocol
 class TextPage extends protocol.Data:
 
   static MT := 10009
-  static NAME := "TextPage"
+  static MT_NAME := "TextPage"
 
   static PAGE-ID := 3
   static PAGE-TITLE := 4
   static STATUS-BAR := 5
   static REDRAW-TYPE := 6
+  static REDRAW-TYPE_AUTO := 0
+  static REDRAW-TYPE_PARTIALREDRAW := 1
+  static REDRAW-TYPE_FULLREDRAW := 2
+  static REDRAW-TYPE_BUFFERONLY := 3
+  static REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR := 4
+  static REDRAW-TYPE_CLEARDONTDRAW := 5
   static LINE-1 := 100
   static LINE-2 := 101
   static LINE-3 := 102

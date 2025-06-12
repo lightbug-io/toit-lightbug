@@ -4,7 +4,7 @@ import ..protocol as protocol
 class GSMControl extends protocol.Data:
 
   static MT := 31
-  static NAME := "GSMControl"
+  static MT_NAME := "GSMControl"
 
   static FLIGHT-MODE := 1
   static DURATION := 2

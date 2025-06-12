@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Heartbeat extends protocol.Data:
 
   static MT := 13
-  static NAME := "Heartbeat"
+  static MT_NAME := "Heartbeat"
 
   constructor:
     super

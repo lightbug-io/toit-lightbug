@@ -4,7 +4,7 @@ import ..protocol as protocol
 class SatelliteData extends protocol.Data:
 
   static MT := 16
-  static NAME := "SatelliteData"
+  static MT_NAME := "SatelliteData"
 
   static AVERAGE-SNR := 1
   static MINIMUM-SNR := 2

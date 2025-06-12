@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Close extends protocol.Data:
 
   static MT := 12
-  static NAME := "Close"
+  static MT_NAME := "Close"
 
   constructor:
     super

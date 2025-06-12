@@ -4,7 +4,7 @@ import ..protocol as protocol
 class TransmitNow extends protocol.Data:
 
   static MT := 30
-  static NAME := "TransmitNow"
+  static MT_NAME := "TransmitNow"
 
   static SEARCH-GPS := 1
   static DATA := 2

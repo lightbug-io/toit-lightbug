@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Temperature extends protocol.Data:
 
   static MT := 41
-  static NAME := "Temperature"
+  static MT_NAME := "Temperature"
 
   static TEMPERATURE := 1
 

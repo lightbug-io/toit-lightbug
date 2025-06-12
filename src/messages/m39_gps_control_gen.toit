@@ -4,11 +4,19 @@ import ..protocol as protocol
 class GPSControl extends protocol.Data:
 
   static MT := 39
-  static NAME := "GPSControl"
+  static MT_NAME := "GPSControl"
 
   static GPS-ENABLE := 1
+  static GPS-ENABLE_DISABLED := 0
+  static GPS-ENABLE_ENABLED := 1
   static RTK-ENABLE-CORRECTION := 2
+  static RTK-ENABLE-CORRECTION_DISABLED := 0
+  static RTK-ENABLE-CORRECTION_ENABLED := 1
   static START-MODE := 3
+  static START-MODE_NORMAL := 1
+  static START-MODE_COLD := 2
+  static START-MODE_WARM := 3
+  static START-MODE_HOT := 4
 
   constructor:
     super

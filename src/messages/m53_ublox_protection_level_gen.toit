@@ -4,7 +4,7 @@ import ..protocol as protocol
 class UbloxProtectionLevel extends protocol.Data:
 
   static MT := 53
-  static NAME := "UbloxProtectionLevel"
+  static MT_NAME := "UbloxProtectionLevel"
 
   static PL-VALID := 1
   static PL-X := 2

@@ -4,11 +4,13 @@ import ..protocol as protocol
 class LinkControl extends protocol.Data:
 
   static MT := 50
-  static NAME := "LinkControl"
+  static MT_NAME := "LinkControl"
 
   static ADDRESS := 1
   static PORT := 2
   static ENABLE := 3
+  static ENABLE_ENABLE := 1
+  static ENABLE_DISABLE := 2
 
   constructor:
     super

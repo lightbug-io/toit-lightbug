@@ -4,7 +4,7 @@ import ..protocol as protocol
 class DeviceTime extends protocol.Data:
 
   static MT := 36
-  static NAME := "DeviceTime"
+  static MT_NAME := "DeviceTime"
 
   static UNIX-TIME := 1
   static YEAR := 2

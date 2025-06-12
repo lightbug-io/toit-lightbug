@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Pressure extends protocol.Data:
 
   static MT := 44
-  static NAME := "Pressure"
+  static MT_NAME := "Pressure"
 
   static PRESSURE := 1
 

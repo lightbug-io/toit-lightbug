@@ -4,7 +4,7 @@ import ..protocol as protocol
 class ButtonPress extends protocol.Data:
 
   static MT := 38
-  static NAME := "ButtonPress"
+  static MT_NAME := "ButtonPress"
 
   static ID := 1
   static DURATION := 2

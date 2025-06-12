@@ -4,10 +4,18 @@ import ..protocol as protocol
 class BuzzerControl extends protocol.Data:
 
   static MT := 42
-  static NAME := "BuzzerControl"
+  static MT_NAME := "BuzzerControl"
 
   static DURATION := 1
   static SOUND-TYPE := 2
+  static SOUND-TYPE_SOLID := 0
+  static SOUND-TYPE_SIREN := 1
+  static SOUND-TYPE_BEEP-BEEP := 2
+  static SOUND-TYPE_AMBULANCE := 3
+  static SOUND-TYPE_FIRETRUCK := 4
+  static SOUND-TYPE_POSITIVE1 := 5
+  static SOUND-TYPE_SLOWBEEP := 6
+  static SOUND-TYPE_ALARM := 7
   static INTENSITY := 3
   static RUN-COUNT := 4
   static FREQUENCY := 5

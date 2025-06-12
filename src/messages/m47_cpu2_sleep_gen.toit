@@ -4,7 +4,7 @@ import ..protocol as protocol
 class CPU2Sleep extends protocol.Data:
 
   static MT := 47
-  static NAME := "CPU2Sleep"
+  static MT_NAME := "CPU2Sleep"
 
   static INTERVAL := 1
   static WAKE-ON-EVENT := 2

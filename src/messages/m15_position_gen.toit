@@ -4,7 +4,7 @@ import ..protocol as protocol
 class Position extends protocol.Data:
 
   static MT := 15
-  static NAME := "Position"
+  static MT_NAME := "Position"
 
   static TIMESTAMP := 1
   static LATITUDE := 2
@@ -16,7 +16,16 @@ class Position extends protocol.Data:
   static SATELLITES := 8
   static CN0 := 9
   static TYPE := 10
+  static TYPE_INVALID := 0
+  static TYPE_FIXED := 1
+  static TYPE_RESERVED := 2
+  static TYPE_STANDALONE := 3
+  static TYPE_RTK-FLOAT := 4
+  static TYPE_RTK-FIX := 5
+  static TYPE_SURVEYING := 6
   static SOURCE := 11
+  static SOURCE_GPS := 0
+  static SOURCE_RTK := 1
   static CORRECTION-AGE := 12
 
   constructor:

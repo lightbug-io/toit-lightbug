@@ -4,7 +4,7 @@ import ..protocol as protocol
 class PowerProfile extends protocol.Data:
 
   static MT := 48
-  static NAME := "PowerProfile"
+  static MT_NAME := "PowerProfile"
 
   static TOTAL-POWER := 3
   static CURRENT-NOW := 4

@@ -4,7 +4,7 @@ import ..protocol as protocol
 class GSMRequestOwnership extends protocol.Data:
 
   static MT := 32
-  static NAME := "GSMRequestOwnership"
+  static MT_NAME := "GSMRequestOwnership"
 
   static DURATION := 2
   static REQUEST-CONTROL := 4

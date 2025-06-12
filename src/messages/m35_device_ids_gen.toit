@@ -4,7 +4,7 @@ import ..protocol as protocol
 class DeviceIDs extends protocol.Data:
 
   static MT := 35
-  static NAME := "DeviceIDs"
+  static MT_NAME := "DeviceIDs"
 
   static ID := 1
   static IMEI := 2
