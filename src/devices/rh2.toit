@@ -14,7 +14,7 @@ class RtkHandheld2 extends RtkHandheld2Rev5:
 // The RtkHandheld2 device, currently at revision 5
 class RtkHandheld2Rev5 extends LightbugDevice:
   constructor:
-    super "RtkHandheld2" --strobe=StandardStrobe --i2c-frequency=400_000
+    super "RtkHandheld2" --strobe=StandardStrobe --i2c-frequency=100_000
   messages-supported -> List:
     return RtkHandheld2-MESSAGES
 
