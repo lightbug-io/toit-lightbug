@@ -28,5 +28,5 @@ main:
   // Read all pending bytes
   // This should include the ACK for the message above
   print "Reading all bytes from device"
-  read := device.in.read-all
+  read := device.in.read
   print "Read bytes: $read"
