@@ -37,7 +37,7 @@ class ZCard extends ZCardRev2:
 // Introduced Mid 2025
 class ZCardRev2 extends LightbugDevice:
   constructor:
-    super "ZCard" --strobe=(StandardStrobe --initial-value=0)
+    super "ZCard" --strobe=(StandardStrobe --initial-value=1)
   messages-supported -> List:
     return ZCARD-MESSAGES
   messages-not-supported -> List:

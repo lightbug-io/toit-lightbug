@@ -23,6 +23,8 @@ class StandardStrobe implements Strobe:
     pinG = gpio.Pin 22 --output=true --value=initial-value
     pinB = gpio.Pin 23 --output=true --value=initial-value
 
+//
+
   available -> bool:
     return true
 
