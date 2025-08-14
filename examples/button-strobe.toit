@@ -22,7 +22,7 @@ main:
   textPageData.add-data-ascii messages.TextPage.LINE-3 "to change the strobe"
   textPageData.add-data-uint messages.TextPage.REDRAW-TYPE 2 // FullRedraw
   
-  latch := comms.send (messages.TextPage.do-msg)
+  latch := comms.send (messages.TextPage.do-msg --data=textPageData)
     --now=true
     --withLatch=true
     --preSend=(:: print "💬 Sending instruction page to device")
