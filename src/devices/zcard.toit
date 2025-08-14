@@ -30,9 +30,27 @@ ZCARD-MESSAGES := [
     // TODO change button press
 ]
 
+// The latest revision of the ZCard device
+class ZCard extends ZCardRev2:
+
+// The second of the ZCard devices
+// Introduced Mid 2025
+class ZCardRev2 extends LightbugDevice:
+  constructor:
+    super "ZCard" --strobe=(StandardStrobe --initial-value=0)
+  messages-supported -> List:
+    return ZCARD-MESSAGES
+  messages-not-supported -> List:
+    return [
+      Config.MT,
+      HapticsControl.MT,
+      Temperature.MT, // Needs to be implemented
+      Pressure.MT,
+    ]
+
 // The first ZCard devices
 // Introduced Feb 2025
-class ZCard extends LightbugDevice:
+class ZCardRev1 extends LightbugDevice:
   constructor:
     super "ZCard" --strobe=(StandardStrobe --initial-value=1)
   messages-supported -> List:
