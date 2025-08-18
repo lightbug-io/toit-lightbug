@@ -15,6 +15,13 @@ class BatteryStatus extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --voltage/float?=null --percent/int?=null -> protocol.Data:
+    data := protocol.Data
+    if voltage != null: data.add-data-float VOLTAGE voltage
+    if percent != null: data.add-data-uint PERCENT percent
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

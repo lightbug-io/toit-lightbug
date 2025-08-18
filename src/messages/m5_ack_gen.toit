@@ -6,13 +6,19 @@ class ACK extends protocol.Data:
   static MT := 5
   static MT_NAME := "ACK"
 
-  static ACKED-TYPE := 1
+  static ACK-TYPE := 1
 
   constructor:
     super
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --ack-type/int?=null -> protocol.Data:
+    data := protocol.Data
+    if ack-type != null: data.add-data-uint ACK-TYPE ack-type
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
@@ -55,10 +61,10 @@ class ACK extends protocol.Data:
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
-  acked-type -> int:
-    return get-data-uint ACKED-TYPE
+  ack-type -> int:
+    return get-data-uint ACK-TYPE
 
   stringify -> string:
     return {
-      "ACKed Type": acked-type,
+      "ACK Type": ack-type,
     }.stringify

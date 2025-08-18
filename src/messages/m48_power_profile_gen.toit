@@ -7,13 +7,20 @@ class PowerProfile extends protocol.Data:
   static MT_NAME := "PowerProfile"
 
   static TOTAL-POWER := 3
-  static CURRENT-NOW := 4
+  static CURRENT := 4
 
   constructor:
     super
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --total-power/float?=null --current/float?=null -> protocol.Data:
+    data := protocol.Data
+    if total-power != null: data.add-data-float TOTAL-POWER total-power
+    if current != null: data.add-data-float CURRENT current
+    return data
 
   // SUBSCRIBE to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
@@ -32,11 +39,11 @@ class PowerProfile extends protocol.Data:
   total-power -> float:
     return get-data-float TOTAL-POWER
 
-  current-now -> float:
-    return get-data-float CURRENT-NOW
+  current -> float:
+    return get-data-float CURRENT
 
   stringify -> string:
     return {
       "Total power": total-power,
-      "Current now": current-now,
+      "Current": current,
     }.stringify

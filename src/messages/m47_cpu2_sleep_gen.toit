@@ -15,6 +15,13 @@ class CPU2Sleep extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --interval/int?=null --wake-on-event/bool?=null -> protocol.Data:
+    data := protocol.Data
+    if interval != null: data.add-data-uint INTERVAL interval
+    if wake-on-event != null: data.add-data-bool WAKE-ON-EVENT wake-on-event
+    return data
+
   // DO
   static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
@@ -24,8 +31,8 @@ class CPU2Sleep extends protocol.Data:
   interval -> int:
     return get-data-uint INTERVAL
 
-  wake-on-event -> int:
-    return get-data-uint WAKE-ON-EVENT
+  wake-on-event -> bool:
+    return get-data-bool WAKE-ON-EVENT
 
   stringify -> string:
     return {

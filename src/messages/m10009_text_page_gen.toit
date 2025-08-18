@@ -16,6 +16,19 @@ class TextPage extends protocol.Data:
   static REDRAW-TYPE_BUFFERONLY := 3
   static REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR := 4
   static REDRAW-TYPE_CLEARDONTDRAW := 5
+
+  static REDRAW-TYPE_STRINGS := {
+    0: "Auto",
+    1: "PartialRedraw",
+    2: "FullRedraw",
+    3: "BufferOnly",
+    4: "FullRedrawWithoutClear",
+    5: "ClearDontDraw",
+  }
+
+  static redraw-type-from-int value/int -> string:
+    return REDRAW-TYPE_STRINGS.get value --if-absent=(: "unknown")
+
   static LINE-1 := 100
   static LINE-2 := 101
   static LINE-3 := 102
@@ -27,6 +40,20 @@ class TextPage extends protocol.Data:
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --page-id/int?=null --page-title/string?=null --status-bar/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --line-5/string?=null -> protocol.Data:
+    data := protocol.Data
+    if page-id != null: data.add-data-uint PAGE-ID page-id
+    if page-title != null: data.add-data-ascii PAGE-TITLE page-title
+    if status-bar != null: data.add-data-bool STATUS-BAR status-bar
+    if redraw-type != null: data.add-data-uint REDRAW-TYPE redraw-type
+    if line-1 != null: data.add-data-ascii LINE-1 line-1
+    if line-2 != null: data.add-data-ascii LINE-2 line-2
+    if line-3 != null: data.add-data-ascii LINE-3 line-3
+    if line-4 != null: data.add-data-ascii LINE-4 line-4
+    if line-5 != null: data.add-data-ascii LINE-5 line-5
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
@@ -75,8 +102,8 @@ class TextPage extends protocol.Data:
   page-title -> string:
     return get-data-ascii PAGE-TITLE
 
-  status-bar -> int:
-    return get-data-uint STATUS-BAR
+  status-bar -> bool:
+    return get-data-bool STATUS-BAR
 
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE

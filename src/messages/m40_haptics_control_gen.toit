@@ -15,6 +15,13 @@ class HapticsControl extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --pattern/int?=null --intensity/int?=null -> protocol.Data:
+    data := protocol.Data
+    if pattern != null: data.add-data-uint PATTERN pattern
+    if intensity != null: data.add-data-uint INTENSITY intensity
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

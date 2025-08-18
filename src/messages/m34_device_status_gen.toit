@@ -11,11 +11,31 @@ class DeviceStatus extends protocol.Data:
   static MODE := 3
   static MODE_SLEEP := 0
   static MODE_AWAKE := 1
+
+  static MODE_STRINGS := {
+    0: "Sleep",
+    1: "Awake",
+  }
+
+  static mode-from-int value/int -> string:
+    return MODE_STRINGS.get value --if-absent=(: "unknown")
+
   static NETWORK-TYPE := 4
   static NETWORK-TYPE_NO-NETWORK := 0
   static NETWORK-TYPE_GSM := 2
   static NETWORK-TYPE_WCDMA := 3
   static NETWORK-TYPE_LTE := 4
+
+  static NETWORK-TYPE_STRINGS := {
+    0: "No network",
+    2: "GSM (2G)",
+    3: "WCDMA (3G)",
+    4: "LTE (4G)",
+  }
+
+  static network-type-from-int value/int -> string:
+    return NETWORK-TYPE_STRINGS.get value --if-absent=(: "unknown")
+
   static NETWORK-MNC := 5
   static NETWORK-MCC := 6
   static FIRMWARE-VERSION := 7
@@ -26,46 +46,23 @@ class DeviceStatus extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --battery/int?=null --signal-strength/int?=null --mode/int?=null --network-type/int?=null --network-mnc/int?=null --network-mcc/int?=null --firmware-version/int?=null -> protocol.Data:
+    data := protocol.Data
+    if battery != null: data.add-data-uint BATTERY battery
+    if signal-strength != null: data.add-data-uint SIGNAL-STRENGTH signal-strength
+    if mode != null: data.add-data-uint MODE mode
+    if network-type != null: data.add-data-uint NETWORK-TYPE network-type
+    if network-mnc != null: data.add-data-uint NETWORK-MNC network-mnc
+    if network-mcc != null: data.add-data-uint NETWORK-MCC network-mcc
+    if firmware-version != null: data.add-data-uint FIRMWARE-VERSION firmware-version
+    return data
+
   // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
-
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
 
   battery -> int:
     return get-data-uint BATTERY

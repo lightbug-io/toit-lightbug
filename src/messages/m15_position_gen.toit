@@ -19,13 +19,34 @@ class Position extends protocol.Data:
   static TYPE_INVALID := 0
   static TYPE_FIXED := 1
   static TYPE_RESERVED := 2
-  static TYPE_STANDALONE := 3
+  static TYPE_STANDALONE-3D-FIX := 3
   static TYPE_RTK-FLOAT := 4
   static TYPE_RTK-FIX := 5
-  static TYPE_SURVEYING := 6
+
+  static TYPE_STRINGS := {
+    0: "invalid",
+    1: "fixed",
+    2: "reserved",
+    3: "standalone 3d fix",
+    4: "rtk-float",
+    5: "rtk-fix",
+  }
+
+  static type-from-int value/int -> string:
+    return TYPE_STRINGS.get value --if-absent=(: "unknown")
+
   static SOURCE := 11
   static SOURCE_GPS := 0
   static SOURCE_RTK := 1
+
+  static SOURCE_STRINGS := {
+    0: "gps",
+    1: "rtk",
+  }
+
+  static source-from-int value/int -> string:
+    return SOURCE_STRINGS.get value --if-absent=(: "unknown")
+
   static CORRECTION-AGE := 12
 
   constructor:
@@ -33,6 +54,9 @@ class Position extends protocol.Data:
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data -> protocol.Data: return protocol.Data
 
   // GET
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
@@ -66,7 +90,7 @@ class Position extends protocol.Data:
   latitude -> float:
     return (get-data-int LATITUDE) / 1e7
 
-  // Raw value for Latitude before conversion
+  // Fixed point representation of Latitude.
   latitude-raw -> int:
     return get-data-int LATITUDE
 
@@ -74,7 +98,7 @@ class Position extends protocol.Data:
   longitude -> float:
     return (get-data-int LONGITUDE) / 1e7
 
-  // Raw value for Longitude before conversion
+  // Fixed point representation of Longitude.
   longitude-raw -> int:
     return get-data-int LONGITUDE
 
@@ -82,7 +106,7 @@ class Position extends protocol.Data:
   altitude -> float:
     return (get-data-int ALTITUDE) / 1e3
 
-  // Raw value for Altitude before conversion
+  // Altitude in mm.
   altitude-raw -> int:
     return get-data-int ALTITUDE
 
@@ -90,7 +114,7 @@ class Position extends protocol.Data:
   accuracy -> float:
     return (get-data-uint ACCURACY) / 1e2
 
-  // Raw value for Accuracy before conversion
+  // [unit: cm] Raw value for Accuracy before conversion (division by 1e2)
   accuracy-raw -> int:
     return get-data-uint ACCURACY
 
@@ -98,7 +122,7 @@ class Position extends protocol.Data:
   course -> float:
     return (get-data-uint COURSE) / 1e2
 
-  // Raw value for Course before conversion
+  // Course over ground centi-degrees (cd).
   course-raw -> int:
     return get-data-uint COURSE
 
@@ -106,7 +130,7 @@ class Position extends protocol.Data:
   speed -> float:
     return (get-data-uint SPEED) / 1e2
 
-  // Raw value for Speed before conversion
+  // Speed in meters per second (m/s).
   speed-raw -> int:
     return get-data-uint SPEED
 
@@ -126,7 +150,7 @@ class Position extends protocol.Data:
   correction-age -> float:
     return (get-data-uint CORRECTION-AGE) / 10.0
 
-  // Raw value for Correction Age before conversion
+  // Raw value for Correction Age before conversion (division by 10)
   correction-age-raw -> int:
     return get-data-uint CORRECTION-AGE
 

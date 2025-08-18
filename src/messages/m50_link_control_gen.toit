@@ -6,17 +6,23 @@ class LinkControl extends protocol.Data:
   static MT := 50
   static MT_NAME := "LinkControl"
 
-  static ADDRESS := 1
+  static IP-ADDRESS := 1
   static PORT := 2
   static ENABLE := 3
-  static ENABLE_ENABLE := 1
-  static ENABLE_DISABLE := 2
 
   constructor:
     super
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --ip-address/string?=null --port/int?=null --enable/bool?=null -> protocol.Data:
+    data := protocol.Data
+    if ip-address != null: data.add-data-ascii IP-ADDRESS ip-address
+    if port != null: data.add-data-uint PORT port
+    if enable != null: data.add-data-bool ENABLE enable
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
@@ -59,18 +65,18 @@ class LinkControl extends protocol.Data:
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
-  address -> string:
-    return get-data-ascii ADDRESS
+  ip-address -> string:
+    return get-data-ascii IP-ADDRESS
 
   port -> int:
     return get-data-uint PORT
 
-  enable -> int:
-    return get-data-uint ENABLE
+  enable -> bool:
+    return get-data-bool ENABLE
 
   stringify -> string:
     return {
-      "Address": address,
+      "IP Address": ip-address,
       "Port": port,
       "Enable": enable,
     }.stringify

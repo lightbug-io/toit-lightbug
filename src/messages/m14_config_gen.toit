@@ -11,11 +11,27 @@ class Config extends protocol.Data:
   static PAYLOAD_RTKMINUSABLESATDB := 19
   static PAYLOAD_RTKMINELEVATION := 20
 
+  static PAYLOAD_STRINGS := {
+    19: "RtkMinUsableSatDb",
+    20: "RtkMinElevation",
+  }
+
+  static payload-from-int value/int -> string:
+    return PAYLOAD_STRINGS.get value --if-absent=(: "unknown")
+
+
   constructor:
     super
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --key/int?=null --payload/ByteArray?=null -> protocol.Data:
+    data := protocol.Data
+    if key != null: data.add-data-uint KEY key
+    if payload != null: data.add-data PAYLOAD payload
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
@@ -61,8 +77,8 @@ class Config extends protocol.Data:
   key -> int:
     return get-data-uint KEY
 
-  payload -> int:
-    return get-data-uint PAYLOAD
+  payload -> ByteArray:
+    return get-data PAYLOAD
 
   stringify -> string:
     return {

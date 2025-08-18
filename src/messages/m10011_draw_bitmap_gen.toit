@@ -14,17 +14,42 @@ class DrawBitmap extends protocol.Data:
   static REDRAW-TYPE_BUFFERONLY := 3
   static REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR := 4
   static REDRAW-TYPE_CLEARDONTDRAW := 5
+
+  static REDRAW-TYPE_STRINGS := {
+    0: "Auto",
+    1: "PartialRedraw",
+    2: "FullRedraw",
+    3: "BufferOnly",
+    4: "FullRedrawWithoutClear",
+    5: "ClearDontDraw",
+  }
+
+  static redraw-type-from-int value/int -> string:
+    return REDRAW-TYPE_STRINGS.get value --if-absent=(: "unknown")
+
   static X := 7
   static Y := 8
   static WIDTH := 9
   static HEIGHT := 10
-  static DATA := 25
+  static BITMAP := 25
 
   constructor:
     super
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --page-id/int?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null -> protocol.Data:
+    data := protocol.Data
+    if page-id != null: data.add-data-uint PAGE-ID page-id
+    if redraw-type != null: data.add-data-uint REDRAW-TYPE redraw-type
+    if x != null: data.add-data-uint X x
+    if y != null: data.add-data-uint Y y
+    if width != null: data.add-data-uint WIDTH width
+    if height != null: data.add-data-uint HEIGHT height
+    if bitmap != null: data.add-data BITMAP bitmap
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
@@ -85,8 +110,8 @@ class DrawBitmap extends protocol.Data:
   height -> int:
     return get-data-uint HEIGHT
 
-  data -> int:
-    return get-data-uint DATA
+  bitmap -> ByteArray:
+    return get-data BITMAP
 
   stringify -> string:
     return {
@@ -96,5 +121,5 @@ class DrawBitmap extends protocol.Data:
       "Y": y,
       "Width": width,
       "Height": height,
-      "Data": data,
+      "Bitmap": bitmap,
     }.stringify

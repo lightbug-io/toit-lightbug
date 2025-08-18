@@ -23,14 +23,13 @@ create-cpu2sleep-data interval/int wake-on-event/bool -> protocol.Data:
 // Helper function to create TransmitNow data
 create-transmit-now-data payload/ByteArray -> protocol.Data:
   data := protocol.Data
-  data.add-data messages.TransmitNow.DATA payload
+  data.add-data messages.TransmitNow.PAYLOAD payload
   return data
 
 // Helper function to create GPSControl data
-create-gps-control-data gps-enable/int rtk-enable-correction/int -> protocol.Data:
+create-gps-control-data rtk-enable-correction/int -> protocol.Data:
   data := protocol.Data
-  data.add-data-uint8 messages.GPSControl.GPS-ENABLE gps-enable
-  data.add-data-uint8 messages.GPSControl.RTK-ENABLE-CORRECTION rtk-enable-correction
+  data.add-data-uint8 messages.GPSControl.CORRECTIONS-ENABLED rtk-enable-correction
   return data
 
 // Helper function to create MenuPage data
@@ -63,7 +62,7 @@ create-draw-bitmap-data page-id/int bitmap-data/ByteArray bitmap-height/int bitm
   data.add-data-uint messages.DrawBitmap.Y y
   data.add-data-uint messages.DrawBitmap.WIDTH bitmap-width
   data.add-data-uint messages.DrawBitmap.HEIGHT bitmap-height
-  data.add-data messages.DrawBitmap.DATA bitmap-data
+  data.add-data messages.DrawBitmap.BITMAP bitmap-data
   return data
 
 // Helper function to create HapticsControl data
@@ -123,8 +122,8 @@ sample-messages := {
         "$(messages.TransmitNow.MT) Cellular 'Transmit Now'": (messages.TransmitNow.do-msg --data=(create-transmit-now-data "hello".to-byte-array)).bytes-for-protocol,
     },
     "Position": {
-      "$(messages.GPSControl.MT) GPS Enable": (messages.GPSControl.set-msg --data=(create-gps-control-data 1 0)).bytes-for-protocol,
-      "$(messages.GPSControl.MT) GPS Disable": (messages.GPSControl.set-msg --data=(create-gps-control-data 0 0)).bytes-for-protocol,
+      "$(messages.GPSControl.MT) RTK Enable (if supported)": (messages.GPSControl.set-msg --data=(create-gps-control-data 0)).bytes-for-protocol,
+      "$(messages.GPSControl.MT) RTK Disable (if supported)": (messages.GPSControl.set-msg --data=(create-gps-control-data 0)).bytes-for-protocol,
       "$(messages.Position.MT) Last Position": (messages.Position.get-msg --data=null).bytes-for-protocol,
     },
     "Screen": {

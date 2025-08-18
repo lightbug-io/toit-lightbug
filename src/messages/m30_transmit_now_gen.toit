@@ -6,8 +6,8 @@ class TransmitNow extends protocol.Data:
   static MT := 30
   static MT_NAME := "TransmitNow"
 
-  static SEARCH-GPS := 1
-  static DATA := 2
+  static GPS-SEARCH := 1
+  static PAYLOAD := 2
   static RETRIES := 3
   static PRIORITY := 4
 
@@ -17,17 +17,26 @@ class TransmitNow extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --gps-search/bool?=null --payload/ByteArray?=null --retries/int?=null --priority/int?=null -> protocol.Data:
+    data := protocol.Data
+    if gps-search != null: data.add-data-bool GPS-SEARCH gps-search
+    if payload != null: data.add-data PAYLOAD payload
+    if retries != null: data.add-data-uint RETRIES retries
+    if priority != null: data.add-data-uint PRIORITY priority
+    return data
+
   // DO
   static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
-  search-gps -> int:
-    return get-data-uint SEARCH-GPS
+  gps-search -> bool:
+    return get-data-bool GPS-SEARCH
 
-  data -> int:
-    return get-data-uint DATA
+  payload -> ByteArray:
+    return get-data PAYLOAD
 
   retries -> int:
     return get-data-uint RETRIES
@@ -37,8 +46,8 @@ class TransmitNow extends protocol.Data:
 
   stringify -> string:
     return {
-      "Search GPS": search-gps,
-      "Data": data,
+      "GPS Search": gps-search,
+      "Payload": payload,
       "Retries": retries,
       "Priority": priority,
     }.stringify

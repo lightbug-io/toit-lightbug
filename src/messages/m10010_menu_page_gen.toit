@@ -37,6 +37,35 @@ class MenuPage extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --item-count/int?=null --page-id/int?=null --page-title/string?=null --initial-item-selection/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null -> protocol.Data:
+    data := protocol.Data
+    if item-count != null: data.add-data-uint ITEM-COUNT item-count
+    if page-id != null: data.add-data-uint PAGE-ID page-id
+    if page-title != null: data.add-data-ascii PAGE-TITLE page-title
+    if initial-item-selection != null: data.add-data-uint INITIAL-ITEM-SELECTION initial-item-selection
+    if item-1 != null: data.add-data-ascii ITEM-1 item-1
+    if item-2 != null: data.add-data-ascii ITEM-2 item-2
+    if item-3 != null: data.add-data-ascii ITEM-3 item-3
+    if item-4 != null: data.add-data-ascii ITEM-4 item-4
+    if item-5 != null: data.add-data-ascii ITEM-5 item-5
+    if item-6 != null: data.add-data-ascii ITEM-6 item-6
+    if item-7 != null: data.add-data-ascii ITEM-7 item-7
+    if item-8 != null: data.add-data-ascii ITEM-8 item-8
+    if item-9 != null: data.add-data-ascii ITEM-9 item-9
+    if item-10 != null: data.add-data-ascii ITEM-10 item-10
+    if item-11 != null: data.add-data-ascii ITEM-11 item-11
+    if item-12 != null: data.add-data-ascii ITEM-12 item-12
+    if item-13 != null: data.add-data-ascii ITEM-13 item-13
+    if item-14 != null: data.add-data-ascii ITEM-14 item-14
+    if item-15 != null: data.add-data-ascii ITEM-15 item-15
+    if item-16 != null: data.add-data-ascii ITEM-16 item-16
+    if item-17 != null: data.add-data-ascii ITEM-17 item-17
+    if item-18 != null: data.add-data-ascii ITEM-18 item-18
+    if item-19 != null: data.add-data-ascii ITEM-19 item-19
+    if item-20 != null: data.add-data-ascii ITEM-20 item-20
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

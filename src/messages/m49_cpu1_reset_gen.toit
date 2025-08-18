@@ -12,6 +12,9 @@ class CPU1Reset extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data -> protocol.Data: return protocol.Data
+
   // DO
   static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data

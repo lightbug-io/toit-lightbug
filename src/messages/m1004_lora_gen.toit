@@ -23,6 +23,20 @@ class LORA extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --payload/ByteArray?=null --spread-factor/int?=null --coding-rate/int?=null --bandwidth/int?=null --center-frequency/int?=null --tx-power/int?=null --preamble-length/int?=null --receive-ms/int?=null --sleep/bool?=null -> protocol.Data:
+    data := protocol.Data
+    if payload != null: data.add-data PAYLOAD payload
+    if spread-factor != null: data.add-data-uint SPREAD-FACTOR spread-factor
+    if coding-rate != null: data.add-data-uint CODING-RATE coding-rate
+    if bandwidth != null: data.add-data-uint BANDWIDTH bandwidth
+    if center-frequency != null: data.add-data-uint CENTER-FREQUENCY center-frequency
+    if tx-power != null: data.add-data-uint TX-POWER tx-power
+    if preamble-length != null: data.add-data-uint PREAMBLE-LENGTH preamble-length
+    if receive-ms != null: data.add-data-uint RECEIVE-MS receive-ms
+    if sleep != null: data.add-data-bool SLEEP sleep
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
@@ -64,8 +78,8 @@ class LORA extends protocol.Data:
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
-  payload -> int:
-    return get-data-uint PAYLOAD
+  payload -> ByteArray:
+    return get-data PAYLOAD
 
   spread-factor -> int:
     return get-data-uint SPREAD-FACTOR
@@ -88,8 +102,8 @@ class LORA extends protocol.Data:
   receive-ms -> int:
     return get-data-uint RECEIVE-MS
 
-  sleep -> int:
-    return get-data-uint SLEEP
+  sleep -> bool:
+    return get-data-bool SLEEP
 
   state -> int:
     return get-data-uint STATE

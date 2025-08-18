@@ -6,9 +6,9 @@ class SatelliteData extends protocol.Data:
   static MT := 16
   static MT_NAME := "SatelliteData"
 
-  static AVERAGE-SNR := 1
-  static MINIMUM-SNR := 2
-  static MAXIMUM-SNR := 3
+  static SNR-AVERAGE := 1
+  static SNR-MINIMUM := 2
+  static SNR-MAXIMUM := 3
   static TOTAL-SATELLITES := 4
   static GOOD-SATELLITES := 5
   static GPS-L1 := 10
@@ -25,6 +25,24 @@ class SatelliteData extends protocol.Data:
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --snr-average/int?=null --snr-minimum/int?=null --snr-maximum/int?=null --total-satellites/int?=null --good-satellites/int?=null --gps-l1/ByteArray?=null --gps-lx/ByteArray?=null --glonass-l1/ByteArray?=null --glonass-lx/ByteArray?=null --beidou-l1/ByteArray?=null --beidou-lx/ByteArray?=null --galileo-l1/ByteArray?=null --galileo-lx/ByteArray?=null -> protocol.Data:
+    data := protocol.Data
+    if snr-average != null: data.add-data-uint SNR-AVERAGE snr-average
+    if snr-minimum != null: data.add-data-uint SNR-MINIMUM snr-minimum
+    if snr-maximum != null: data.add-data-uint SNR-MAXIMUM snr-maximum
+    if total-satellites != null: data.add-data-uint TOTAL-SATELLITES total-satellites
+    if good-satellites != null: data.add-data-uint GOOD-SATELLITES good-satellites
+    if gps-l1 != null: data.add-data GPS-L1 gps-l1
+    if gps-lx != null: data.add-data GPS-LX gps-lx
+    if glonass-l1 != null: data.add-data GLONASS-L1 glonass-l1
+    if glonass-lx != null: data.add-data GLONASS-LX glonass-lx
+    if beidou-l1 != null: data.add-data BEIDOU-L1 beidou-l1
+    if beidou-lx != null: data.add-data BEIDOU-LX beidou-lx
+    if galileo-l1 != null: data.add-data GALILEO-L1 galileo-l1
+    if galileo-lx != null: data.add-data GALILEO-LX galileo-lx
+    return data
 
   // GET
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
@@ -46,14 +64,14 @@ class SatelliteData extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
-  average-snr -> int:
-    return get-data-uint AVERAGE-SNR
+  snr-average -> int:
+    return get-data-uint SNR-AVERAGE
 
-  minimum-snr -> int:
-    return get-data-uint MINIMUM-SNR
+  snr-minimum -> int:
+    return get-data-uint SNR-MINIMUM
 
-  maximum-snr -> int:
-    return get-data-uint MAXIMUM-SNR
+  snr-maximum -> int:
+    return get-data-uint SNR-MAXIMUM
 
   total-satellites -> int:
     return get-data-uint TOTAL-SATELLITES
@@ -61,35 +79,35 @@ class SatelliteData extends protocol.Data:
   good-satellites -> int:
     return get-data-uint GOOD-SATELLITES
 
-  gps-l1 -> int:
-    return get-data-uint GPS-L1
+  gps-l1 -> ByteArray:
+    return get-data GPS-L1
 
-  gps-lx -> int:
-    return get-data-uint GPS-LX
+  gps-lx -> ByteArray:
+    return get-data GPS-LX
 
-  glonass-l1 -> int:
-    return get-data-uint GLONASS-L1
+  glonass-l1 -> ByteArray:
+    return get-data GLONASS-L1
 
-  glonass-lx -> int:
-    return get-data-uint GLONASS-LX
+  glonass-lx -> ByteArray:
+    return get-data GLONASS-LX
 
-  beidou-l1 -> int:
-    return get-data-uint BEIDOU-L1
+  beidou-l1 -> ByteArray:
+    return get-data BEIDOU-L1
 
-  beidou-lx -> int:
-    return get-data-uint BEIDOU-LX
+  beidou-lx -> ByteArray:
+    return get-data BEIDOU-LX
 
-  galileo-l1 -> int:
-    return get-data-uint GALILEO-L1
+  galileo-l1 -> ByteArray:
+    return get-data GALILEO-L1
 
-  galileo-lx -> int:
-    return get-data-uint GALILEO-LX
+  galileo-lx -> ByteArray:
+    return get-data GALILEO-LX
 
   stringify -> string:
     return {
-      "Average SNR": average-snr,
-      "Minimum SNR": minimum-snr,
-      "Maximum SNR": maximum-snr,
+      "SNR Average": snr-average,
+      "SNR Minimum": snr-minimum,
+      "SNR Maximum": snr-maximum,
       "Total Satellites": total-satellites,
       "Good Satellites": good-satellites,
       "GPS L1": gps-l1,

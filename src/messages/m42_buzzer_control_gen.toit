@@ -16,6 +16,21 @@ class BuzzerControl extends protocol.Data:
   static SOUND-TYPE_POSITIVE1 := 5
   static SOUND-TYPE_SLOWBEEP := 6
   static SOUND-TYPE_ALARM := 7
+
+  static SOUND-TYPE_STRINGS := {
+    0: "Solid",
+    1: "Siren",
+    2: "Beep Beep",
+    3: "Ambulance",
+    4: "FireTruck",
+    5: "Positive1",
+    6: "SlowBeep",
+    7: "Alarm",
+  }
+
+  static sound-type-from-int value/int -> string:
+    return SOUND-TYPE_STRINGS.get value --if-absent=(: "unknown")
+
   static INTENSITY := 3
   static RUN-COUNT := 4
   static FREQUENCY := 5
@@ -25,6 +40,16 @@ class BuzzerControl extends protocol.Data:
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --duration/int?=null --sound-type/int?=null --intensity/int?=null --run-count/int?=null --frequency/float?=null -> protocol.Data:
+    data := protocol.Data
+    if duration != null: data.add-data-uint DURATION duration
+    if sound-type != null: data.add-data-uint SOUND-TYPE sound-type
+    if intensity != null: data.add-data-uint INTENSITY intensity
+    if run-count != null: data.add-data-uint RUN-COUNT run-count
+    if frequency != null: data.add-data-float FREQUENCY frequency
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.

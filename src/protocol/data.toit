@@ -108,6 +108,9 @@ class Data:
     else:
       log.error "Data too large for uintn: $(data)"
 
+  add-data-float dataType/int data/float -> none:
+    add-data-float32 dataType data
+
   add-data-float32 dataType/int data/float -> none:
     b := #[0,0,0,0]
     LITTLE-ENDIAN.put-float32 b 0 data
@@ -120,6 +123,15 @@ class Data:
   // TODO kill this method
   add-data-list dataType/int data/List -> none:
     add-data dataType (list-to-byte-array data)
+
+  add-data-bool dataType/int data/bool -> none:
+    if data:
+      add-data-uint8 dataType 1
+    else:
+      add-data-uint8 dataType 0
+
+  get-data-bool dataType/int -> bool:
+    return (get-data-uint8 dataType) == 1
 
   has-data dataType/int -> bool:
     e := catch:

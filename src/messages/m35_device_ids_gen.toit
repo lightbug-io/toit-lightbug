@@ -16,6 +16,14 @@ class DeviceIDs extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --id/int?=null --imei/string?=null --iccid/string?=null -> protocol.Data:
+    data := protocol.Data
+    if id != null: data.add-data-uint ID id
+    if imei != null: data.add-data-ascii IMEI imei
+    if iccid != null: data.add-data-ascii ICCID iccid
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

@@ -8,6 +8,7 @@ import .m16_satellite_data_gen show SatelliteData
 import .m30_transmit_now_gen show TransmitNow
 import .m31_gsm_control_gen show GSMControl
 import .m32_gsm_request_ownership_gen show GSMRequestOwnership
+import .m33_change_sim_settings_gen show ChangeSIMsettings
 import .m34_device_status_gen show DeviceStatus
 import .m35_device_ids_gen show DeviceIDs
 import .m36_device_time_gen show DeviceTime
@@ -24,7 +25,8 @@ import .m47_cpu2_sleep_gen show CPU2Sleep
 import .m48_power_profile_gen show PowerProfile
 import .m49_cpu1_reset_gen show CPU1Reset
 import .m50_link_control_gen show LinkControl
-import .m53_ublox_protection_level_gen show UbloxProtectionLevel
+import .m53_protection_level_gen show ProtectionLevel
+import .m54_charger_settings_gen show ChargerSettings
 import .m1004_lora_gen show LORA
 import .m10008_preset_page_gen show PresetPage
 import .m10009_text_page_gen show TextPage

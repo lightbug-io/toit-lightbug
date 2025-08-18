@@ -6,7 +6,7 @@ class ButtonPress extends protocol.Data:
   static MT := 38
   static MT_NAME := "ButtonPress"
 
-  static ID := 1
+  static BUTTON-ID := 1
   static DURATION := 2
 
   constructor:
@@ -14,6 +14,13 @@ class ButtonPress extends protocol.Data:
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --button-id/int?=null --duration/int?=null -> protocol.Data:
+    data := protocol.Data
+    if button-id != null: data.add-data-uint BUTTON-ID button-id
+    if duration != null: data.add-data-uint DURATION duration
+    return data
 
   // SUBSCRIBE to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
@@ -29,14 +36,14 @@ class ButtonPress extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
-  id -> int:
-    return get-data-uint ID
+  button-id -> int:
+    return get-data-uint BUTTON-ID
 
   duration -> int:
     return get-data-uint DURATION
 
   stringify -> string:
     return {
-      "ID": id,
+      "Button ID": button-id,
       "Duration": duration,
     }.stringify

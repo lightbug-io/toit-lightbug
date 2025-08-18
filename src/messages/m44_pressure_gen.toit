@@ -14,6 +14,12 @@ class Pressure extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --pressure/float?=null -> protocol.Data:
+    data := protocol.Data
+    if pressure != null: data.add-data-float PRESSURE pressure
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

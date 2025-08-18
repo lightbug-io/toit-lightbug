@@ -21,6 +21,19 @@ class DeviceTime extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --unix-time/int?=null --year/int?=null --month/int?=null --date/int?=null --weekday/int?=null --hour/int?=null --minute/int?=null --second/int?=null -> protocol.Data:
+    data := protocol.Data
+    if unix-time != null: data.add-data-uint UNIX-TIME unix-time
+    if year != null: data.add-data-uint YEAR year
+    if month != null: data.add-data-uint MONTH month
+    if date != null: data.add-data-uint DATE date
+    if weekday != null: data.add-data-uint WEEKDAY weekday
+    if hour != null: data.add-data-uint HOUR hour
+    if minute != null: data.add-data-uint MINUTE minute
+    if second != null: data.add-data-uint SECOND second
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

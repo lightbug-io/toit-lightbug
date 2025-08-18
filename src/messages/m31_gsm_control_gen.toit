@@ -6,9 +6,9 @@ class GSMControl extends protocol.Data:
   static MT := 31
   static MT_NAME := "GSMControl"
 
-  static FLIGHT-MODE := 1
+  static ENABLE-FLIGHT-MODE := 1
   static DURATION := 2
-  static GSM-ACTIVE := 3
+  static IS-GSM-ACTIVE := 3
   static REQUEST-CONTROL := 4
 
   constructor:
@@ -16,6 +16,14 @@ class GSMControl extends protocol.Data:
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --enable-flight-mode/bool?=null --duration/int?=null --request-control/bool?=null -> protocol.Data:
+    data := protocol.Data
+    if enable-flight-mode != null: data.add-data-bool ENABLE-FLIGHT-MODE enable-flight-mode
+    if duration != null: data.add-data-uint DURATION duration
+    if request-control != null: data.add-data-bool REQUEST-CONTROL request-control
+    return data
 
   // GET
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
@@ -29,22 +37,22 @@ class GSMControl extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
-  flight-mode -> int:
-    return get-data-uint FLIGHT-MODE
+  enable-flight-mode -> bool:
+    return get-data-bool ENABLE-FLIGHT-MODE
 
   duration -> int:
     return get-data-uint DURATION
 
-  gsm-active -> int:
-    return get-data-uint GSM-ACTIVE
+  is-gsm-active -> bool:
+    return get-data-bool IS-GSM-ACTIVE
 
-  request-control -> int:
-    return get-data-uint REQUEST-CONTROL
+  request-control -> bool:
+    return get-data-bool REQUEST-CONTROL
 
   stringify -> string:
     return {
-      "Flight mode": flight-mode,
+      "Enable Flight mode": enable-flight-mode,
       "Duration": duration,
-      "GSM Active": gsm-active,
+      "Is GSM Active": is-gsm-active,
       "Request Control": request-control,
     }.stringify

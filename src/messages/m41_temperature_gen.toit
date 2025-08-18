@@ -14,6 +14,12 @@ class Temperature extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
+  // Helper to create a data object for this message type.
+  static data --temperature/float?=null -> protocol.Data:
+    data := protocol.Data
+    if temperature != null: data.add-data-float TEMPERATURE temperature
+    return data
+
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:

@@ -16,15 +16,31 @@ class Alarm extends protocol.Data:
   static STROBE-INTENSITY := 8
   static PROMPT-MESSAGE := 9
   static PROMPT-TIMEOUT := 10
-  static PROMPT-BUTTON-1-TEXT := 11
-  static PROMPT-BUTTON-2-TEXT := 12
-  static PROMPT-BUTTON-3-TEXT := 13
+  static PROMPT-BUTTON-1 := 11
+  static PROMPT-BUTTON-2 := 12
 
   constructor:
     super
 
   constructor.from-data data/protocol.Data:
     super.from-data data
+
+  // Helper to create a data object for this message type.
+  static data --legacy-alarm-action/int?=null --duration/int?=null --buzzer-pattern/int?=null --buzzer-intensity/int?=null --haptics-pattern/int?=null --haptics-intensity/int?=null --strobe-pattern/int?=null --strobe-intensity/int?=null --prompt-message/string?=null --prompt-timeout/int?=null --prompt-button-1/string?=null --prompt-button-2/string?=null -> protocol.Data:
+    data := protocol.Data
+    if legacy-alarm-action != null: data.add-data-uint LEGACY-ALARM-ACTION legacy-alarm-action
+    if duration != null: data.add-data-uint DURATION duration
+    if buzzer-pattern != null: data.add-data-uint BUZZER-PATTERN buzzer-pattern
+    if buzzer-intensity != null: data.add-data-uint BUZZER-INTENSITY buzzer-intensity
+    if haptics-pattern != null: data.add-data-uint HAPTICS-PATTERN haptics-pattern
+    if haptics-intensity != null: data.add-data-uint HAPTICS-INTENSITY haptics-intensity
+    if strobe-pattern != null: data.add-data-uint STROBE-PATTERN strobe-pattern
+    if strobe-intensity != null: data.add-data-uint STROBE-INTENSITY strobe-intensity
+    if prompt-message != null: data.add-data-ascii PROMPT-MESSAGE prompt-message
+    if prompt-timeout != null: data.add-data-uint PROMPT-TIMEOUT prompt-timeout
+    if prompt-button-1 != null: data.add-data-ascii PROMPT-BUTTON-1 prompt-button-1
+    if prompt-button-2 != null: data.add-data-ascii PROMPT-BUTTON-2 prompt-button-2
+    return data
 
   // GET
   // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
@@ -97,14 +113,11 @@ class Alarm extends protocol.Data:
   prompt-timeout -> int:
     return get-data-uint PROMPT-TIMEOUT
 
-  prompt-button-1-text -> string:
-    return get-data-ascii PROMPT-BUTTON-1-TEXT
+  prompt-button-1 -> string:
+    return get-data-ascii PROMPT-BUTTON-1
 
-  prompt-button-2-text -> string:
-    return get-data-ascii PROMPT-BUTTON-2-TEXT
-
-  prompt-button-3-text -> string:
-    return get-data-ascii PROMPT-BUTTON-3-TEXT
+  prompt-button-2 -> string:
+    return get-data-ascii PROMPT-BUTTON-2
 
   stringify -> string:
     return {
@@ -118,7 +131,6 @@ class Alarm extends protocol.Data:
       "Strobe Intensity": strobe-intensity,
       "Prompt message": prompt-message,
       "Prompt timeout": prompt-timeout,
-      "Prompt button 1 text": prompt-button-1-text,
-      "Prompt button 2 text": prompt-button-2-text,
-      "Prompt button 3 text": prompt-button-3-text,
+      "Prompt button 1": prompt-button-1,
+      "Prompt button 2": prompt-button-2,
     }.stringify
