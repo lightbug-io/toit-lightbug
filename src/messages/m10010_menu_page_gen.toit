@@ -6,10 +6,10 @@ class MenuPage extends protocol.Data:
   static MT := 10010
   static MT_NAME := "MenuPage"
 
-  static ITEM-COUNT := 2
   static PAGE-ID := 3
   static PAGE-TITLE := 4
-  static INITIAL-ITEM-SELECTION := 5
+  static ITEM-COUNT := 30
+  static INITIAL-ITEM-SELECTION := 31
   static ITEM-1 := 100
   static ITEM-2 := 101
   static ITEM-3 := 102
@@ -45,11 +45,11 @@ class MenuPage extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --item-count/int?=null --page-id/int?=null --page-title/string?=null --initial-item-selection/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --page-id/int?=null --page-title/string?=null --item-count/int?=null --initial-item-selection/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
-    if item-count != null: data.add-data-uint ITEM-COUNT item-count
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if page-title != null: data.add-data-ascii PAGE-TITLE page-title
+    if item-count != null: data.add-data-uint ITEM-COUNT item-count
     if initial-item-selection != null: data.add-data-uint INITIAL-ITEM-SELECTION initial-item-selection
     if item-1 != null: data.add-data-ascii ITEM-1 item-1
     if item-2 != null: data.add-data-ascii ITEM-2 item-2
@@ -88,12 +88,6 @@ class MenuPage extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-    Item count
-  */
-  item-count -> int:
-    return get-data-uint ITEM-COUNT
-
-  /**
     Page ID
   */
   page-id -> int:
@@ -104,6 +98,12 @@ class MenuPage extends protocol.Data:
   */
   page-title -> string:
     return get-data-ascii PAGE-TITLE
+
+  /**
+    Item count
+  */
+  item-count -> int:
+    return get-data-uint ITEM-COUNT
 
   /**
     An optional item to show as initially selected
@@ -233,9 +233,9 @@ class MenuPage extends protocol.Data:
 
   stringify -> string:
     return {
-      "Item count": item-count,
       "Page ID": page-id,
       "Page Title": page-title,
+      "Item count": item-count,
       "Initial item selection": initial-item-selection,
       "Item 1": item-1,
       "Item 2": item-2,

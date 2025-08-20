@@ -59,14 +59,6 @@ class LORA extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-  Creates a UNSUBSCRIBE Request message for LORA.
-  
-  Returns: A Message ready to be sent
-  */
-  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
-
-  /**
   Creates a SET Request message for LORA.
   
   Returns: A Message ready to be sent
@@ -97,6 +89,14 @@ class LORA extends protocol.Data:
     if ms != null:
       msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
     return msg
+
+  /**
+  Creates a UNSUBSCRIBE Request message for LORA.
+  
+  Returns: A Message ready to be sent
+  */
+  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
     Payload
