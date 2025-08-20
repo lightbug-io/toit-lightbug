@@ -5,6 +5,7 @@ import io
 import log
 import .i2c
 import .strobe
+import .eink
 import .devices
 
 /*
@@ -15,6 +16,8 @@ interface Device extends Comms:
   name -> string
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
+  // Device eink screen. You can use eink.available to see if the device has a screen
+  eink -> Eink
   // Reinit the device and communications
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
@@ -47,14 +50,17 @@ abstract class LightbugDevice implements Device:
 
   name_ /string
   strobe_ /Strobe
+  eink_ /Eink
   logger_ /log.Logger
 
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
       --strobe/Strobe=NoStrobe
+      --eink/Eink=NoEink
       --logger/log.Logger=(log.default.with-name "lb-device"):
     // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
     name_ = name
     strobe_ = strobe
+    eink_ = eink
     logger_ = logger
     i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
     i2c-reader_ = Reader i2c-device_ --logger=logger_
@@ -64,6 +70,8 @@ abstract class LightbugDevice implements Device:
     return name_
   strobe -> Strobe:
     return strobe_
+  eink -> Eink:
+    return eink_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

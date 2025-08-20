@@ -3,6 +3,7 @@ import io
 import .base
 import .i2c
 import .strobe
+import .eink
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
@@ -10,6 +11,8 @@ class Fake implements Device:
     return "Fake"
   strobe -> Strobe:
     return NoStrobe
+  eink -> Eink:
+    return NoEink
   messages-supported -> List:
     return []
   messages-not-supported -> List:

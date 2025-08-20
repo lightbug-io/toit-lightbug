@@ -3,6 +3,7 @@ import gpio
 import io
 import .base
 import .strobe
+import .eink
 
 // ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
 // UART0 GPIO17 (RX) GPIO16 (TX) Defaults
@@ -27,6 +28,8 @@ class GenericUart implements Device:
     return "Uart"
   strobe -> Strobe:
     return NoStrobe
+  eink -> Eink:
+    return NoEink
   messages-supported -> List:
     return []
   messages-not-supported -> List:
