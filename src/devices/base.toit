@@ -25,7 +25,7 @@ interface Device extends Comms:
   messages-not-supported -> List
 
 /*
-An interface for communicationg to and from a Lightbug device
+An interface for communicating to and from a Lightbug device
 */
 interface Comms:
   // Reader reading from the device
