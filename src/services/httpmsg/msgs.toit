@@ -104,30 +104,30 @@ create-alarm-data duration/int buzzer-pattern/int?=null buzzer-intensity/int?=nu
 // A set of predefined messages that can be shown as buttons on the web page
 sample-messages := {
     "Basic": {
-        "$(messages.Open.MT) Open": (messages.Open.msg --data=null).bytes-for-protocol,
-        "$(messages.Close.MT) Close": (messages.Close.msg --data=null).bytes-for-protocol,
-        "$(messages.Heartbeat.MT) Heartbeat": (messages.Heartbeat.msg --data=null).bytes-for-protocol,
-        "$(messages.CPU1Reset.MT) CPU1 Reset": (messages.CPU1Reset.do-msg --data=null).bytes-for-protocol,
-        "$(messages.CPU2Sleep.MT) CPU2 Sleep": (messages.CPU2Sleep.do-msg --data=(create-cpu2sleep-data 1 false)).bytes-for-protocol,
+        "$(messages.Open.MT) Open": messages.Open.msg.bytes-for-protocol,
+        "$(messages.Close.MT) Close": messages.Close.msg.bytes-for-protocol,
+        "$(messages.Heartbeat.MT) Heartbeat": messages.Heartbeat.msg.bytes-for-protocol,
+        "$(messages.CPU1Reset.MT) CPU1 Reset": (messages.CPU1Reset.do-msg).bytes-for-protocol,
+        "$(messages.CPU2Sleep.MT) CPU2 Sleep": (messages.CPU2Sleep.do-msg --base-data=(create-cpu2sleep-data 1 false)).bytes-for-protocol,
     },
     "Getters": {
-        "$(messages.DeviceStatus.MT) Status": (messages.DeviceStatus.get-msg --data=null).bytes-for-protocol,
-        "$(messages.DeviceIDs.MT) Device IDs": (messages.DeviceIDs.get-msg --data=null).bytes-for-protocol,
-        "$(messages.DeviceTime.MT) Time": (messages.DeviceTime.get-msg --data=null).bytes-for-protocol,
-        "$(messages.Temperature.MT) Temperature": (messages.Temperature.get-msg --data=null).bytes-for-protocol,
-        "$(messages.Pressure.MT) Pressure": (messages.Pressure.get-msg --data=null).bytes-for-protocol,
-        "$(messages.BatteryStatus.MT) Battery": (messages.BatteryStatus.get-msg --data=null).bytes-for-protocol,
+        "$(messages.DeviceStatus.MT) Status": messages.DeviceStatus.get-msg.bytes-for-protocol,
+        "$(messages.DeviceIDs.MT) Device IDs": messages.DeviceIDs.get-msg.bytes-for-protocol,
+        "$(messages.DeviceTime.MT) Time": messages.DeviceTime.get-msg.bytes-for-protocol,
+        "$(messages.Temperature.MT) Temperature": messages.Temperature.get-msg.bytes-for-protocol,
+        "$(messages.Pressure.MT) Pressure": messages.Pressure.get-msg.bytes-for-protocol,
+        "$(messages.BatteryStatus.MT) Battery": messages.BatteryStatus.get-msg.bytes-for-protocol,
     },
     "Actions": {
-        "$(messages.TransmitNow.MT) Cellular 'Transmit Now'": (messages.TransmitNow.do-msg --data=(create-transmit-now-data "hello".to-byte-array)).bytes-for-protocol,
+        "$(messages.TransmitNow.MT) Cellular 'Transmit Now'": (messages.TransmitNow.do-msg --base-data=(create-transmit-now-data "hello".to-byte-array)).bytes-for-protocol,
     },
     "Position": {
       "$(messages.GPSControl.MT) RTK Enable (if supported)": (messages.GPSControl.set-msg --corrections-enabled=messages.GPSControl.CORRECTIONS-ENABLED_FULL-RTCM-STREAM).bytes-for-protocol,
       "$(messages.GPSControl.MT) RTK Disable (if supported)": (messages.GPSControl.set-msg --corrections-enabled=messages.GPSControl.CORRECTIONS-ENABLED_DISABLED).bytes-for-protocol,
-      "$(messages.Position.MT) Last Position": (messages.Position.get-msg --data=null).bytes-for-protocol,
+      "$(messages.Position.MT) Last Position": (messages.Position.get-msg).bytes-for-protocol,
     },
     "Screen": {
-        "$(messages.PresetPage.MT) Home page": (messages.PresetPage.msg --data=null).bytes-for-protocol,
+        "$(messages.PresetPage.MT) Home page": messages.PresetPage.msg.bytes-for-protocol,
         "$(messages.MenuPage.MT) Menu 3 items": (messages.MenuPage.msg --data=(create-menu-page-data 101 ["Option 1", "Option 2", "Option 3"])).bytes-for-protocol,
         "$(messages.TextPage.MT) Text page": (messages.TextPage.msg --data=(create-text-page-data 102 "Page 101" "First Line" "Second Line")).bytes-for-protocol,
         "$(messages.DrawBitmap.MT) Lightbug Logo": (messages.DrawBitmap.msg --data=(create-draw-bitmap-data 103 lightbug-40-40 40 40 0 0 0)).bytes-for-protocol,
@@ -151,9 +151,9 @@ sample-messages := {
         "3s pattern 4 intensity 1": (messages.Alarm.msg --data=(create-alarm-data 3000 4 1)).bytes-for-protocol,
     },
     "$(messages.LORA.MT) LORA, Transmit & Receive for 10s": {
-      "Lightbug": (messages.LORA.do-msg --data=(create-lora-data "Lightbug")).bytes-for-protocol,
-      "Demo": (messages.LORA.do-msg --data=(create-lora-data "Demo")).bytes-for-protocol,
-      "2025": (messages.LORA.do-msg --data=(create-lora-data "2025")).bytes-for-protocol,
+      "Lightbug": (messages.LORA.do-msg --base-data=(create-lora-data "Lightbug")).bytes-for-protocol,
+      "Demo": (messages.LORA.do-msg --base-data=(create-lora-data "Demo")).bytes-for-protocol,
+      "2025": (messages.LORA.do-msg --base-data=(create-lora-data "2025")).bytes-for-protocol,
       // "Subscribe": (messages.LORA.subscribe-msg).bytes-for-protocol, // Don't have a subscribe button, just ask for subscription on startup
       // "Unsubscribe": (messages.LORA.unsubscribe-msg).bytes-for-protocol,
     },

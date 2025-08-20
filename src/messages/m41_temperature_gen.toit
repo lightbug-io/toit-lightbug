@@ -27,11 +27,13 @@ class Temperature extends protocol.Data:
     if temperature != null: data.add-data-float TEMPERATURE temperature
     return data
 
-  // GET
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
+  /**
+  Creates a GET Request message for Temperature.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     Temperature in Celsius

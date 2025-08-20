@@ -29,11 +29,13 @@ class CPU2Sleep extends protocol.Data:
     if wake-on-event != null: data.add-data-bool WAKE-ON-EVENT wake-on-event
     return data
 
-  // DO
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
+  /**
+  Creates a DO Request message for CPU2 Sleep.
+  
+  Returns: A Message ready to be sent
+  */
+  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
 
   /**
     Interval in ms to turn off the CPU2 for, before turning it back on

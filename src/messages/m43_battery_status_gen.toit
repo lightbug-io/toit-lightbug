@@ -29,11 +29,13 @@ class BatteryStatus extends protocol.Data:
     if percent != null: data.add-data-uint PERCENT percent
     return data
 
-  // GET
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
+  /**
+  Creates a GET Request message for Battery Status.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     Current battery voltage

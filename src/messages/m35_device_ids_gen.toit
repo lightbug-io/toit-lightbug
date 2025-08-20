@@ -31,11 +31,13 @@ class DeviceIDs extends protocol.Data:
     if iccid != null: data.add-data-ascii ICCID iccid
     return data
 
-  // GET
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
+  /**
+  Creates a GET Request message for Device IDs.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     Unique ID for the device which is used in the cloud API. uint32 or uint64 only

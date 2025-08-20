@@ -33,11 +33,13 @@ class TransmitNow extends protocol.Data:
     if priority != null: data.add-data-uint PRIORITY priority
     return data
 
-  // DO
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
+  /**
+  Creates a DO Request message for Transmit Now.
+  
+  Returns: A Message ready to be sent
+  */
+  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
 
   /**
     GPS Search

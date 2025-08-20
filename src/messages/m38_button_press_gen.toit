@@ -37,11 +37,13 @@ class ButtonPress extends protocol.Data:
       msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
     return msg
 
-  // UNSUBSCRIBE
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
+  /**
+  Creates a UNSUBSCRIBE Request message for Button Press.
+  
+  Returns: A Message ready to be sent
+  */
+  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
     ID of the button, 0 indexed. Check device spec for button numbering

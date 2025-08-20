@@ -45,17 +45,21 @@ class ChangeSIMsettings extends protocol.Data:
     if sim2-apn-password != null: data.add-data-ascii SIM2-APN-PASSWORD sim2-apn-password
     return data
 
-  // SET
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
+  /**
+  Creates a SET Request message for Change SIM settings.
+  
+  Returns: A Message ready to be sent
+  */
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
-  // GET
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
+  /**
+  Creates a GET Request message for Change SIM settings.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     Activate the specified SIM

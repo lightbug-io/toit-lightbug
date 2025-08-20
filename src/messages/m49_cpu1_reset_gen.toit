@@ -22,11 +22,13 @@ class CPU1Reset extends protocol.Data:
   */
   static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
 
-  // DO
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
+  /**
+  Creates a DO Request message for CPU1 Reset.
+  
+  Returns: A Message ready to be sent
+  */
+  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
 
   stringify -> string:
     return {
