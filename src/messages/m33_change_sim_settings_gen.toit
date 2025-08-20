@@ -46,20 +46,20 @@ class ChangeSIMsettings extends protocol.Data:
     return data
 
   /**
-  Creates a SET Request message for Change SIM settings.
-  
-  Returns: A Message ready to be sent
-  */
-  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
-
-  /**
   Creates a GET Request message for Change SIM settings.
   
   Returns: A Message ready to be sent
   */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
+
+  /**
+  Creates a SET Request message for Change SIM settings.
+  
+  Returns: A Message ready to be sent
+  */
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
     Activate the specified SIM

@@ -82,8 +82,8 @@ class GPSControl extends protocol.Data:
   Creates a SET Request message for GPS Control.
   
   Parameters:
-  - corrections-enabled: Request and apply correction data to the GPS, such as RTK. (valid values: Full RTCM stream, Disabled)
-  - start-mode: Start mode of the GPS module. (valid values: Normal, Cold, Warm, Hot)
+  - corrections-enabled: Request and apply correction data to the GPS, such as RTK. (valid values: Disabled, Full RTCM stream)
+  - start-mode: Start mode of the GPS module. (valid values: Cold, Warm, Hot, Normal)
   
   Returns: A Message ready to be sent
   */

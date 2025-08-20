@@ -51,6 +51,14 @@ class SatelliteData extends protocol.Data:
     if galileo-lx != null: data.add-data GALILEO-LX galileo-lx
     return data
 
+  /**
+  Creates a GET Request message for Satellite Data.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
+
   // Subscribe to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
     msg := protocol.Message MT
@@ -66,14 +74,6 @@ class SatelliteData extends protocol.Data:
   */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
-
-  /**
-  Creates a GET Request message for Satellite Data.
-  
-  Returns: A Message ready to be sent
-  */
-  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     Average signal-to-noise ratio across all satellites
