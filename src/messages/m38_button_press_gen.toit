@@ -15,14 +15,21 @@ class ButtonPress extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --button-id/int?=null --duration/int?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --button-id/int?=null --duration/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if button-id != null: data.add-data-uint BUTTON-ID button-id
     if duration != null: data.add-data-uint DURATION duration
     return data
 
-  // SUBSCRIBE to a message with an optional interval in milliseconds
+  // Subscribe to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
@@ -36,9 +43,15 @@ class ButtonPress extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
+  /**
+    ID of the button, 0 indexed. Check device spec for button numbering
+  */
   button-id -> int:
     return get-data-uint BUTTON-ID
 
+  /**
+    Duration of the button press in ms
+  */
   duration -> int:
     return get-data-uint DURATION
 

@@ -37,9 +37,16 @@ class MenuPage extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --item-count/int?=null --page-id/int?=null --page-title/string?=null --initial-item-selection/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --item-count/int?=null --page-id/int?=null --page-title/string?=null --initial-item-selection/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if item-count != null: data.add-data-uint ITEM-COUNT item-count
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if page-title != null: data.add-data-ascii PAGE-TITLE page-title
@@ -66,116 +73,161 @@ class MenuPage extends protocol.Data:
     if item-20 != null: data.add-data-ascii ITEM-20 item-20
     return data
 
-  // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
-
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
+  /**
+  Creates a Menu Page message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+    Item count
+  */
   item-count -> int:
     return get-data-uint ITEM-COUNT
 
+  /**
+    Page ID
+  */
   page-id -> int:
     return get-data-uint PAGE-ID
 
+  /**
+    Page Title
+  */
   page-title -> string:
     return get-data-ascii PAGE-TITLE
 
+  /**
+    An optional item to show as initially selected
+  */
   initial-item-selection -> int:
     return get-data-uint INITIAL-ITEM-SELECTION
 
+  /**
+    Item 1
+  */
   item-1 -> string:
     return get-data-ascii ITEM-1
 
+  /**
+    Item 2
+  */
   item-2 -> string:
     return get-data-ascii ITEM-2
 
+  /**
+    Item 3
+  */
   item-3 -> string:
     return get-data-ascii ITEM-3
 
+  /**
+    Item 4
+  */
   item-4 -> string:
     return get-data-ascii ITEM-4
 
+  /**
+    Item 5
+  */
   item-5 -> string:
     return get-data-ascii ITEM-5
 
+  /**
+    Item 6
+  */
   item-6 -> string:
     return get-data-ascii ITEM-6
 
+  /**
+    Item 7
+  */
   item-7 -> string:
     return get-data-ascii ITEM-7
 
+  /**
+    Item 8
+  */
   item-8 -> string:
     return get-data-ascii ITEM-8
 
+  /**
+    Item 9
+  */
   item-9 -> string:
     return get-data-ascii ITEM-9
 
+  /**
+    Item 10
+  */
   item-10 -> string:
     return get-data-ascii ITEM-10
 
+  /**
+    Item 11
+  */
   item-11 -> string:
     return get-data-ascii ITEM-11
 
+  /**
+    Item 12
+  */
   item-12 -> string:
     return get-data-ascii ITEM-12
 
+  /**
+    Item 13
+  */
   item-13 -> string:
     return get-data-ascii ITEM-13
 
+  /**
+    Item 14
+  */
   item-14 -> string:
     return get-data-ascii ITEM-14
 
+  /**
+    Item 15
+  */
   item-15 -> string:
     return get-data-ascii ITEM-15
 
+  /**
+    Item 16
+  */
   item-16 -> string:
     return get-data-ascii ITEM-16
 
+  /**
+    Item 17
+  */
   item-17 -> string:
     return get-data-ascii ITEM-17
 
+  /**
+    Item 18
+  */
   item-18 -> string:
     return get-data-ascii ITEM-18
 
+  /**
+    Item 19
+  */
   item-19 -> string:
     return get-data-ascii ITEM-19
 
+  /**
+    Item 20
+  */
   item-20 -> string:
     return get-data-ascii ITEM-20
 

@@ -104,9 +104,9 @@ create-alarm-data duration/int buzzer-pattern/int?=null buzzer-intensity/int?=nu
 // A set of predefined messages that can be shown as buttons on the web page
 sample-messages := {
     "Basic": {
-        "$(messages.Open.MT) Open": (messages.Open.do-msg --data=null).bytes-for-protocol,
-        "$(messages.Close.MT) Close": (messages.Close.do-msg --data=null).bytes-for-protocol,
-        "$(messages.Heartbeat.MT) Heartbeat": (messages.Heartbeat.do-msg --data=null).bytes-for-protocol,
+        "$(messages.Open.MT) Open": (messages.Open.msg --data=null).bytes-for-protocol,
+        "$(messages.Close.MT) Close": (messages.Close.msg --data=null).bytes-for-protocol,
+        "$(messages.Heartbeat.MT) Heartbeat": (messages.Heartbeat.msg --data=null).bytes-for-protocol,
         "$(messages.CPU1Reset.MT) CPU1 Reset": (messages.CPU1Reset.do-msg --data=null).bytes-for-protocol,
         "$(messages.CPU2Sleep.MT) CPU2 Sleep": (messages.CPU2Sleep.do-msg --data=(create-cpu2sleep-data 1 false)).bytes-for-protocol,
     },
@@ -122,33 +122,33 @@ sample-messages := {
         "$(messages.TransmitNow.MT) Cellular 'Transmit Now'": (messages.TransmitNow.do-msg --data=(create-transmit-now-data "hello".to-byte-array)).bytes-for-protocol,
     },
     "Position": {
-      "$(messages.GPSControl.MT) RTK Enable (if supported)": (messages.GPSControl.set-msg --data=(create-gps-control-data 0)).bytes-for-protocol,
-      "$(messages.GPSControl.MT) RTK Disable (if supported)": (messages.GPSControl.set-msg --data=(create-gps-control-data 0)).bytes-for-protocol,
+      "$(messages.GPSControl.MT) RTK Enable (if supported)": (messages.GPSControl.set-msg --corrections-enabled=messages.GPSControl.CORRECTIONS-ENABLED_FULL-RTCM-STREAM).bytes-for-protocol,
+      "$(messages.GPSControl.MT) RTK Disable (if supported)": (messages.GPSControl.set-msg --corrections-enabled=messages.GPSControl.CORRECTIONS-ENABLED_DISABLED).bytes-for-protocol,
       "$(messages.Position.MT) Last Position": (messages.Position.get-msg --data=null).bytes-for-protocol,
     },
     "Screen": {
-        "$(messages.PresetPage.MT) Home page": (messages.PresetPage.do-msg --data=null).bytes-for-protocol,
-        "$(messages.MenuPage.MT) Menu 3 items": (messages.MenuPage.do-msg --data=(create-menu-page-data 101 ["Option 1", "Option 2", "Option 3"])).bytes-for-protocol,
-        "$(messages.TextPage.MT) Text page": (messages.TextPage.do-msg --data=(create-text-page-data 102 "Page 101" "First Line" "Second Line")).bytes-for-protocol,
-        "$(messages.DrawBitmap.MT) Lightbug Logo": (messages.DrawBitmap.set-msg --data=(create-draw-bitmap-data 103 lightbug-40-40 40 40 0 0 0)).bytes-for-protocol,
+        "$(messages.PresetPage.MT) Home page": (messages.PresetPage.msg --data=null).bytes-for-protocol,
+        "$(messages.MenuPage.MT) Menu 3 items": (messages.MenuPage.msg --data=(create-menu-page-data 101 ["Option 1", "Option 2", "Option 3"])).bytes-for-protocol,
+        "$(messages.TextPage.MT) Text page": (messages.TextPage.msg --data=(create-text-page-data 102 "Page 101" "First Line" "Second Line")).bytes-for-protocol,
+        "$(messages.DrawBitmap.MT) Lightbug Logo": (messages.DrawBitmap.msg --data=(create-draw-bitmap-data 103 lightbug-40-40 40 40 0 0 0)).bytes-for-protocol,
     },
     "$(messages.HapticsControl.MT) Haptics": {
-        "Pattern 1 low intensity": (messages.HapticsControl.do-msg --data=(create-haptics-control-data 1 1)).bytes-for-protocol,
-        "Pattern 2 low intensity": (messages.HapticsControl.do-msg --data=(create-haptics-control-data 2 1)).bytes-for-protocol,
-        "Pattern 3 low intensity": (messages.HapticsControl.do-msg --data=(create-haptics-control-data 3 1)).bytes-for-protocol,
+        "Pattern 1 low intensity": (messages.HapticsControl.msg --data=(create-haptics-control-data 1 1)).bytes-for-protocol,
+        "Pattern 2 low intensity": (messages.HapticsControl.msg --data=(create-haptics-control-data 2 1)).bytes-for-protocol,
+        "Pattern 3 low intensity": (messages.HapticsControl.msg --data=(create-haptics-control-data 3 1)).bytes-for-protocol,
     },
     "$(messages.BuzzerControl.MT) Buzzer": {
-        "20ms 0.5khz": (messages.BuzzerControl.do-msg --data=(create-buzzer-control-data 20 0.5)).bytes-for-protocol,
-        "200ms 1khz": (messages.BuzzerControl.do-msg --data=(create-buzzer-control-data 200 1.0)).bytes-for-protocol,
-        "2s Ambulance": (messages.BuzzerControl.do-msg --data=(create-buzzer-control-data 2000 null 1 1)).bytes-for-protocol,
+        "20ms 0.5khz": (messages.BuzzerControl.msg --data=(create-buzzer-control-data 20 0.5)).bytes-for-protocol,
+        "200ms 1khz": (messages.BuzzerControl.msg --data=(create-buzzer-control-data 200 1.0)).bytes-for-protocol,
+        "2s Ambulance": (messages.BuzzerControl.msg --data=(create-buzzer-control-data 2000 null 1 1)).bytes-for-protocol,
     },
     "$(messages.BuzzerSequence.MT) Buzzer Sequence": {
-        "Starwars": (messages.BuzzerSequence.do-msg --data=(create-buzzer-sequence-data [0.440, 0.0, 0.440, 0.0, 0.440, 0.0, 0.349, 0.0, 0.523, 0.0, 0.440, 0.0,  0.349, 0.0, 0.523, 0.0, 0.440, 0.0, 0.659, 0.0, 0.659, 0.0, 0.659, 0.0,  0.698, 0.0, 0.523, 0.0, 0.415, 0.0, 0.349, 0.0, 0.523, 0.0, 0.440] [400, 50, 400, 50, 400, 50, 300, 50, 100, 50, 400, 50,  300, 50, 100, 50, 800, 50, 400, 50, 400, 50, 400, 50,  300, 50, 100, 50, 400, 50, 300, 50, 100, 50, 800])).bytes-for-protocol,
+        "Starwars": (messages.BuzzerSequence.msg --data=(create-buzzer-sequence-data [0.440, 0.0, 0.440, 0.0, 0.440, 0.0, 0.349, 0.0, 0.523, 0.0, 0.440, 0.0,  0.349, 0.0, 0.523, 0.0, 0.440, 0.0, 0.659, 0.0, 0.659, 0.0, 0.659, 0.0,  0.698, 0.0, 0.523, 0.0, 0.415, 0.0, 0.349, 0.0, 0.523, 0.0, 0.440] [400, 50, 400, 50, 400, 50, 300, 50, 100, 50, 400, 50,  300, 50, 100, 50, 800, 50, 400, 50, 400, 50, 400, 50,  300, 50, 100, 50, 400, 50, 300, 50, 100, 50, 800])).bytes-for-protocol,
         // "Nokia_Tune": (messages.BuzzerSequence.do-msg [ 1.318, 0.0, 1.174, 0.0, 1.480, 0.0, 1.662, 0.0, 1.108, 0.0, 0.988, 0.0, 1.174, 0.0, 1.318, 0.0, 0.988, 0.0, 0.880, 0.0, 1.108, 0.0, 1.318, 0.0, 0.880 ] [75, 50, 75, 50, 150, 50, 150, 50, 75, 50, 75, 50, 150, 50, 150, 50, 75, 50, 75, 50, 150, 50, 150, 50, 500]).bytes-for-protocol,
     },
     "$(messages.Alarm.MT) Alarm": {
-        "Duration 0": (messages.Alarm.do-msg --data=(create-alarm-data 0)).bytes-for-protocol,
-        "3s pattern 4 intensity 1": (messages.Alarm.do-msg --data=(create-alarm-data 3000 4 1)).bytes-for-protocol,
+        "Duration 0": (messages.Alarm.msg --data=(create-alarm-data 0)).bytes-for-protocol,
+        "3s pattern 4 intensity 1": (messages.Alarm.msg --data=(create-alarm-data 3000 4 1)).bytes-for-protocol,
     },
     "$(messages.LORA.MT) LORA, Transmit & Receive for 10s": {
       "Lightbug": (messages.LORA.do-msg --data=(create-lora-data "Lightbug")).bytes-for-protocol,

@@ -17,9 +17,16 @@ class TransmitNow extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --gps-search/bool?=null --payload/ByteArray?=null --retries/int?=null --priority/int?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --gps-search/bool?=null --payload/ByteArray?=null --retries/int?=null --priority/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if gps-search != null: data.add-data-bool GPS-SEARCH gps-search
     if payload != null: data.add-data PAYLOAD payload
     if retries != null: data.add-data-uint RETRIES retries
@@ -32,15 +39,27 @@ class TransmitNow extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
+  /**
+    GPS Search
+  */
   gps-search -> bool:
     return get-data-bool GPS-SEARCH
 
+  /**
+    Data to send, can be up to 200 bytes
+  */
   payload -> ByteArray:
     return get-data PAYLOAD
 
+  /**
+    0 - 10
+  */
   retries -> int:
     return get-data-uint RETRIES
 
+  /**
+    0 - 1
+  */
   priority -> int:
     return get-data-uint PRIORITY
 

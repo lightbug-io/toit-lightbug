@@ -41,9 +41,16 @@ class BuzzerControl extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --duration/int?=null --sound-type/int?=null --intensity/int?=null --run-count/int?=null --frequency/float?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --duration/int?=null --sound-type/int?=null --intensity/int?=null --run-count/int?=null --frequency/float?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if duration != null: data.add-data-uint DURATION duration
     if sound-type != null: data.add-data-uint SOUND-TYPE sound-type
     if intensity != null: data.add-data-uint INTENSITY intensity
@@ -51,59 +58,57 @@ class BuzzerControl extends protocol.Data:
     if frequency != null: data.add-data-float FREQUENCY frequency
     return data
 
-  // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
-
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
+  /**
+  Creates a Buzzer Control message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+    Duration of buzzer in milliseconds
+  */
   duration -> int:
     return get-data-uint DURATION
 
+  /**
+    A predefined sound type
+    
+    Valid values:
+    - SOUND-TYPE_SOLID (0): Solid
+    - SOUND-TYPE_SIREN (1): Siren
+    - SOUND-TYPE_BEEP-BEEP (2): Beep Beep
+    - SOUND-TYPE_AMBULANCE (3): Ambulance
+    - SOUND-TYPE_FIRETRUCK (4): FireTruck
+    - SOUND-TYPE_POSITIVE1 (5): Positive1
+    - SOUND-TYPE_SLOWBEEP (6): SlowBeep
+    - SOUND-TYPE_ALARM (7): Alarm
+  */
   sound-type -> int:
     return get-data-uint SOUND-TYPE
 
+  /**
+    Intensity of buzzer. [0-2]. Work as frequency control for buzzer types (moving towards and away from resonance).
+  */
   intensity -> int:
     return get-data-uint INTENSITY
 
+  /**
+    Number of times to run the buzzer
+  */
   run-count -> int:
     return get-data-uint RUN-COUNT
 
+  /**
+    Frequency of buzzer of KHz.(if frequency is sent, only duration and frequency parameters will be inside the message)
+  */
   frequency -> float:
     return get-data-float FREQUENCY
 

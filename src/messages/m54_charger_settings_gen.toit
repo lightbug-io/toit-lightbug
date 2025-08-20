@@ -16,9 +16,16 @@ class ChargerSettings extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --input-current-limit/int?=null --charge-current-limit/int?=null --charge-termination-volgate/int?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --input-current-limit/int?=null --charge-current-limit/int?=null --charge-termination-volgate/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if input-current-limit != null: data.add-data-uint INPUT-CURRENT-LIMIT input-current-limit
     if charge-current-limit != null: data.add-data-uint CHARGE-CURRENT-LIMIT charge-current-limit
     if charge-termination-volgate != null: data.add-data-uint CHARGE-TERMINATION-VOLGATE charge-termination-volgate
@@ -36,12 +43,27 @@ class ChargerSettings extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
+  /**
+    Maximum power draw allowed from Vin. Typically higher than Charge Current Limit (additional current is used to power device operation whilst charging)
+    
+    Unit: mA
+  */
   input-current-limit -> int:
     return get-data-uint INPUT-CURRENT-LIMIT
 
+  /**
+    Maximum charge rate for the battery. Recommended value is 0.5C (where C is the battery capacity)
+    
+    Unit: mA
+  */
   charge-current-limit -> int:
     return get-data-uint CHARGE-CURRENT-LIMIT
 
+  /**
+    Target charge voltage for the battery. Typically 4.25V for lithium ion batteries.
+    
+    Unit: mV
+  */
   charge-termination-volgate -> int:
     return get-data-uint CHARGE-TERMINATION-VOLGATE
 

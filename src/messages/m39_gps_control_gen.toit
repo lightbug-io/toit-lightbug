@@ -42,31 +42,91 @@ class GPSControl extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --corrections-enabled/int?=null --start-mode/int?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --corrections-enabled/int?=null --start-mode/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if corrections-enabled != null: data.add-data-uint CORRECTIONS-ENABLED corrections-enabled
     if start-mode != null: data.add-data-uint START-MODE start-mode
     return data
 
-  // GET
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
+  /**
+  Creates a GET Request message for GPS Control.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
-  // SET
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
+  /**
+  Creates a GET Response message for GPS Control.
+  
+  Parameters:
+  - corrections-enabled: Request and apply correction data to the GPS, such as RTK. (valid values: Disabled, Full RTCM stream)
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg-response -> protocol.Message
+      --corrections-enabled/int?=null
+      --base-data/protocol.Data?=protocol.Data:
+    data-obj := data --corrections-enabled=corrections-enabled --base-data=base-data
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET data-obj
 
+  /**
+  Creates a SET Request message for GPS Control.
+  
+  Parameters:
+  - start-mode: Start mode of the GPS module. (valid values: Normal, Cold, Warm, Hot)
+  - corrections-enabled: Request and apply correction data to the GPS, such as RTK. (valid values: Disabled, Full RTCM stream)
+  
+  Returns: A Message ready to be sent
+  */
+  static set-msg -> protocol.Message
+      --start-mode/int?=null
+      --corrections-enabled/int?=null
+      --base-data/protocol.Data?=protocol.Data:
+    data-obj := data --start-mode=start-mode --corrections-enabled=corrections-enabled --base-data=base-data
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET data-obj
+
+  /**
+  Creates a SET Response message for GPS Control.
+  
+  Returns: A Message ready to be sent
+  */
+  static set-msg-response --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
+
+  /**
+    Status of the GPS, is it on?
+  */
   gps-is-on -> bool:
     return get-data-bool GPS-IS-ON
 
+  /**
+    Request and apply correction data to the GPS, such as RTK.
+    
+    Valid values:
+    - CORRECTIONS-ENABLED_DISABLED (0): Disabled
+    - CORRECTIONS-ENABLED_FULL-RTCM-STREAM (1): Full RTCM stream
+  */
   corrections-enabled -> int:
     return get-data-uint CORRECTIONS-ENABLED
 
+  /**
+    Start mode of the GPS module.
+    
+    Valid values:
+    - START-MODE_NORMAL (1): Normal
+    - START-MODE_COLD (2): Cold
+    - START-MODE_WARM (3): Warm
+    - START-MODE_HOT (4): Hot
+  */
   start-mode -> int:
     return get-data-uint START-MODE
 

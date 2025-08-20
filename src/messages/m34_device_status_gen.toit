@@ -46,9 +46,16 @@ class DeviceStatus extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --battery/int?=null --signal-strength/int?=null --mode/int?=null --network-type/int?=null --network-mnc/int?=null --network-mcc/int?=null --firmware-version/int?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --battery/int?=null --signal-strength/int?=null --mode/int?=null --network-type/int?=null --network-mnc/int?=null --network-mcc/int?=null --firmware-version/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if battery != null: data.add-data-uint BATTERY battery
     if signal-strength != null: data.add-data-uint SIGNAL-STRENGTH signal-strength
     if mode != null: data.add-data-uint MODE mode
@@ -64,24 +71,59 @@ class DeviceStatus extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
+  /**
+    Battery level
+    
+    Unit: %
+  */
   battery -> int:
     return get-data-uint BATTERY
 
+  /**
+    Signal strength
+    
+    Unit: %
+  */
   signal-strength -> int:
     return get-data-uint SIGNAL-STRENGTH
 
+  /**
+    Device mode
+    
+    Valid values:
+    - MODE_SLEEP (0): Sleep
+    - MODE_AWAKE (1): Awake
+  */
   mode -> int:
     return get-data-uint MODE
 
+  /**
+    Network type
+    
+    Valid values:
+    - NETWORK-TYPE_NO-NETWORK (0): No network
+    - NETWORK-TYPE_GSM-(2G) (2): GSM (2G)
+    - NETWORK-TYPE_WCDMA-(3G) (3): WCDMA (3G)
+    - NETWORK-TYPE_LTE-(4G) (4): LTE (4G)
+  */
   network-type -> int:
     return get-data-uint NETWORK-TYPE
 
+  /**
+    Network MNC
+  */
   network-mnc -> int:
     return get-data-uint NETWORK-MNC
 
+  /**
+    Network MCC
+  */
   network-mcc -> int:
     return get-data-uint NETWORK-MCC
 
+  /**
+    Firmware Version
+  */
   firmware-version -> int:
     return get-data-uint FIRMWARE-VERSION
 

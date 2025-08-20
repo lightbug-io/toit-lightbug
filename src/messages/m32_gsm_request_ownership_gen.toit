@@ -15,18 +15,19 @@ class GSMRequestOwnership extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --duration/int?=null --request-control/bool?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --duration/int?=null --request-control/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if duration != null: data.add-data-uint DURATION duration
     if request-control != null: data.add-data-bool REQUEST-CONTROL request-control
     return data
-
-  // GET
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
 
   // SET
   static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
@@ -34,9 +35,21 @@ class GSMRequestOwnership extends protocol.Data:
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
+  // GET
+  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+    msg := protocol.Message.with-data MT data
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
+    return msg
+
+  /**
+    in mins
+  */
   duration -> int:
     return get-data-uint DURATION
 
+  /**
+    Request Control
+  */
   request-control -> bool:
     return get-data-bool REQUEST-CONTROL
 

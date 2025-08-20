@@ -16,61 +16,42 @@ class DeviceIDs extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --id/int?=null --imei/string?=null --iccid/string?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --id/int?=null --imei/string?=null --iccid/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if id != null: data.add-data-uint ID id
     if imei != null: data.add-data-ascii IMEI imei
     if iccid != null: data.add-data-ascii ICCID iccid
     return data
 
   // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
-
+  /**
+    Unique ID for the device which is used in the cloud API. uint32 or uint64 only
+  */
   id -> int:
     return get-data-uint ID
 
+  /**
+    IMEI - 15 characters
+  */
   imei -> string:
     return get-data-ascii IMEI
 
+  /**
+    ICCID - 19 to 22 characters
+  */
   iccid -> string:
     return get-data-ascii ICCID
 

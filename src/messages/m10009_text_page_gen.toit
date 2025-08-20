@@ -41,9 +41,16 @@ class TextPage extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --page-id/int?=null --page-title/string?=null --status-bar/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --line-5/string?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --page-id/int?=null --page-title/string?=null --status-bar/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --line-5/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if page-title != null: data.add-data-ascii PAGE-TITLE page-title
     if status-bar != null: data.add-data-bool STATUS-BAR status-bar
@@ -55,71 +62,79 @@ class TextPage extends protocol.Data:
     if line-5 != null: data.add-data-ascii LINE-5 line-5
     return data
 
-  // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
-
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
+  /**
+  Creates a Text Page message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+    ID of page to display or update
+  */
   page-id -> int:
     return get-data-uint PAGE-ID
 
+  /**
+    Title of the page
+  */
   page-title -> string:
     return get-data-ascii PAGE-TITLE
 
+  /**
+    Show the status bar
+  */
   status-bar -> bool:
     return get-data-bool STATUS-BAR
 
+  /**
+    Redraw Type
+    
+    Valid values:
+    - REDRAW-TYPE_AUTO (0): Automatically choose the redraw type
+    - REDRAW-TYPE_PARTIALREDRAW (1): Only redraw the parts of the screen changed in this message
+    - REDRAW-TYPE_FULLREDRAW (2): Clear the screen buffer, and redraw the entire screen
+    - REDRAW-TYPE_BUFFERONLY (3): Update the buffer only, do not redraw
+    - REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR (4): Redraw the entire screen, without clearing the buffer
+    - REDRAW-TYPE_CLEARDONTDRAW (5): Clear the screen buffer, but don't redraw
+  */
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE
 
+  /**
+    Line 1
+  */
   line-1 -> string:
     return get-data-ascii LINE-1
 
+  /**
+    Line 2
+  */
   line-2 -> string:
     return get-data-ascii LINE-2
 
+  /**
+    Line 3
+  */
   line-3 -> string:
     return get-data-ascii LINE-3
 
+  /**
+    Line 4
+  */
   line-4 -> string:
     return get-data-ascii LINE-4
 
+  /**
+    Line 5
+  */
   line-5 -> string:
     return get-data-ascii LINE-5
 

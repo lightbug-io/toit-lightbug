@@ -23,9 +23,16 @@ class LORA extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --payload/ByteArray?=null --spread-factor/int?=null --coding-rate/int?=null --bandwidth/int?=null --center-frequency/int?=null --tx-power/int?=null --preamble-length/int?=null --receive-ms/int?=null --sleep/bool?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --payload/ByteArray?=null --spread-factor/int?=null --coding-rate/int?=null --bandwidth/int?=null --center-frequency/int?=null --tx-power/int?=null --preamble-length/int?=null --receive-ms/int?=null --sleep/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if payload != null: data.add-data PAYLOAD payload
     if spread-factor != null: data.add-data-uint SPREAD-FACTOR spread-factor
     if coding-rate != null: data.add-data-uint CODING-RATE coding-rate
@@ -37,22 +44,33 @@ class LORA extends protocol.Data:
     if sleep != null: data.add-data-bool SLEEP sleep
     return data
 
+  /**
+  Creates a LORA message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
+  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-data MT data
+
   // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+  // DO
+  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
     return msg
 
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
+  // Subscribe to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
@@ -61,50 +79,74 @@ class LORA extends protocol.Data:
     return msg
 
   // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
     return msg
 
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+  // SET
+  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
     return msg
 
-  // Creates a message with no method set
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
-
+  /**
+    Payload
+  */
   payload -> ByteArray:
     return get-data PAYLOAD
 
+  /**
+    8-12
+  */
   spread-factor -> int:
     return get-data-uint SPREAD-FACTOR
 
+  /**
+    1-4. [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
+  */
   coding-rate -> int:
     return get-data-uint CODING-RATE
 
+  /**
+    0-2. [0: 125 kHz, 1: 250 kHz, 2: 500 kHz]
+  */
   bandwidth -> int:
     return get-data-uint BANDWIDTH
 
+  /**
+    860000000-925000000. value in hz
+  */
   center-frequency -> int:
     return get-data-uint CENTER-FREQUENCY
 
+  /**
+    0-22
+  */
   tx-power -> int:
     return get-data-uint TX-POWER
 
+  /**
+    4-128
+  */
   preamble-length -> int:
     return get-data-uint PREAMBLE-LENGTH
 
+  /**
+    How long to listen for after a transmit, in ms
+  */
   receive-ms -> int:
     return get-data-uint RECEIVE-MS
 
+  /**
+    True will tell the LORA to stop all activity now
+  */
   sleep -> bool:
     return get-data-bool SLEEP
 
+  /**
+    State
+  */
   state -> int:
     return get-data-uint STATE
 

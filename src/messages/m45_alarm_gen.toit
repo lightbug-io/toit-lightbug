@@ -25,9 +25,16 @@ class Alarm extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --legacy-alarm-action/int?=null --duration/int?=null --buzzer-pattern/int?=null --buzzer-intensity/int?=null --haptics-pattern/int?=null --haptics-intensity/int?=null --strobe-pattern/int?=null --strobe-intensity/int?=null --prompt-message/string?=null --prompt-timeout/int?=null --prompt-button-1/string?=null --prompt-button-2/string?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --legacy-alarm-action/int?=null --duration/int?=null --buzzer-pattern/int?=null --buzzer-intensity/int?=null --haptics-pattern/int?=null --haptics-intensity/int?=null --strobe-pattern/int?=null --strobe-intensity/int?=null --prompt-message/string?=null --prompt-timeout/int?=null --prompt-button-1/string?=null --prompt-button-2/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if legacy-alarm-action != null: data.add-data-uint LEGACY-ALARM-ACTION legacy-alarm-action
     if duration != null: data.add-data-uint DURATION duration
     if buzzer-pattern != null: data.add-data-uint BUZZER-PATTERN buzzer-pattern
@@ -42,80 +49,89 @@ class Alarm extends protocol.Data:
     if prompt-button-2 != null: data.add-data-ascii PROMPT-BUTTON-2 prompt-button-2
     return data
 
-  // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
-
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
+  /**
+  Creates a Alarm message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+    4 bytes of encoded data relating to legacy alarm formats. Can not be used with other options. Note using this field will override Duration header field setting
+  */
   legacy-alarm-action -> int:
     return get-data-uint LEGACY-ALARM-ACTION
 
+  /**
+    Duration of alarm in seconds. Max 127s
+  */
   duration -> int:
     return get-data-uint DURATION
 
+  /**
+    Buzzer Pattern
+  */
   buzzer-pattern -> int:
     return get-data-uint BUZZER-PATTERN
 
+  /**
+    Buzzer Intensity
+  */
   buzzer-intensity -> int:
     return get-data-uint BUZZER-INTENSITY
 
+  /**
+    Haptics Pattern
+  */
   haptics-pattern -> int:
     return get-data-uint HAPTICS-PATTERN
 
+  /**
+    Haptics Intensity
+  */
   haptics-intensity -> int:
     return get-data-uint HAPTICS-INTENSITY
 
+  /**
+    Strobe Pattern
+  */
   strobe-pattern -> int:
     return get-data-uint STROBE-PATTERN
 
+  /**
+    Strobe Intensity
+  */
   strobe-intensity -> int:
     return get-data-uint STROBE-INTENSITY
 
+  /**
+    Prompt message
+  */
   prompt-message -> string:
     return get-data-ascii PROMPT-MESSAGE
 
+  /**
+    Timeout for the prompt in seconds
+  */
   prompt-timeout -> int:
     return get-data-uint PROMPT-TIMEOUT
 
+  /**
+    Prompt button 1
+  */
   prompt-button-1 -> string:
     return get-data-ascii PROMPT-BUTTON-1
 
+  /**
+    Prompt button 2
+  */
   prompt-button-2 -> string:
     return get-data-ascii PROMPT-BUTTON-2
 

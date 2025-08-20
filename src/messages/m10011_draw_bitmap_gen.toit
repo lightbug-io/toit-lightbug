@@ -39,9 +39,16 @@ class DrawBitmap extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --page-id/int?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --page-id/int?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if redraw-type != null: data.add-data-uint REDRAW-TYPE redraw-type
     if x != null: data.add-data-uint X x
@@ -51,65 +58,67 @@ class DrawBitmap extends protocol.Data:
     if bitmap != null: data.add-data BITMAP bitmap
     return data
 
-  // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
-    return msg
-
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
+  /**
+  Creates a Draw Bitmap message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+    Page ID
+  */
   page-id -> int:
     return get-data-uint PAGE-ID
 
+  /**
+    Redraw Type
+    
+    Valid values:
+    - REDRAW-TYPE_AUTO (0): Automatically choose the redraw type
+    - REDRAW-TYPE_PARTIALREDRAW (1): Only redraw the parts of the screen changed in this message
+    - REDRAW-TYPE_FULLREDRAW (2): Clear the screen buffer, and redraw the entire screen
+    - REDRAW-TYPE_BUFFERONLY (3): Update the buffer only, do not redraw
+    - REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR (4): Redraw the entire screen, without clearing the buffer
+    - REDRAW-TYPE_CLEARDONTDRAW (5): Clear the screen buffer, but don't redraw
+  */
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE
 
+  /**
+    X coordinate for the start of the bitmap
+  */
   x -> int:
     return get-data-uint X
 
+  /**
+    Y coordinate for the start of the bitmap
+  */
   y -> int:
     return get-data-uint Y
 
+  /**
+    Width of the bitmap
+  */
   width -> int:
     return get-data-uint WIDTH
 
+  /**
+    Height of the bitmap
+  */
   height -> int:
     return get-data-uint HEIGHT
 
+  /**
+    Bitmap
+  */
   bitmap -> ByteArray:
     return get-data BITMAP
 

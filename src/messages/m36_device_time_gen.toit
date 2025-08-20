@@ -21,9 +21,16 @@ class DeviceTime extends protocol.Data:
   constructor.from-data data/protocol.Data:
     super.from-data data
 
-  // Helper to create a data object for this message type.
-  static data --unix-time/int?=null --year/int?=null --month/int?=null --date/int?=null --weekday/int?=null --hour/int?=null --minute/int?=null --second/int?=null -> protocol.Data:
-    data := protocol.Data
+  /**
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --unix-time/int?=null --year/int?=null --month/int?=null --date/int?=null --weekday/int?=null --hour/int?=null --minute/int?=null --second/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
     if unix-time != null: data.add-data-uint UNIX-TIME unix-time
     if year != null: data.add-data-uint YEAR year
     if month != null: data.add-data-uint MONTH month
@@ -35,67 +42,56 @@ class DeviceTime extends protocol.Data:
     return data
 
   // GET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
   static get-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     msg := protocol.Message.with-data MT data
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-GET
     return msg
 
-  // SET
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static set-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SET
-    return msg
-
-  // SUBSCRIBE to a message with an optional interval in milliseconds
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static subscribe-msg --ms/int -> protocol.Message:
-    msg := protocol.Message MT
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
-    return msg
-
-  // UNSUBSCRIBE
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static unsubscribe-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-UNSUBSCRIBE
-    return msg
-
-  // DO
-  // Warning: Available methods are not yet specified in the spec, so this message method might not actually work.
-  static do-msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    msg := protocol.Message.with-data MT data
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-DO
-    return msg
-
-  // Creates a message with no method set
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
-
+  /**
+    Unix time
+  */
   unix-time -> int:
     return get-data-uint UNIX-TIME
 
+  /**
+    Year
+  */
   year -> int:
     return get-data-uint YEAR
 
+  /**
+    Month
+  */
   month -> int:
     return get-data-uint MONTH
 
+  /**
+    Date in month
+  */
   date -> int:
     return get-data-uint DATE
 
+  /**
+    Weekday (0 = sunday, 1 = monday etc)
+  */
   weekday -> int:
     return get-data-uint WEEKDAY
 
+  /**
+    Hour
+  */
   hour -> int:
     return get-data-uint HOUR
 
+  /**
+    Minute
+  */
   minute -> int:
     return get-data-uint MINUTE
 
+  /**
+    Second
+  */
   second -> int:
     return get-data-uint SECOND
 
