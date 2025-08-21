@@ -1,5 +1,10 @@
 import gpio
 
+/**
+Some devices support a strobe light.
+This light is one or more RGB LEDs that can be controlled to display different colors.
+*/
+
 interface Strobe:
   available -> bool
   set r/bool g/bool b/bool

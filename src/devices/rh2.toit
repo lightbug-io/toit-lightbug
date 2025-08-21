@@ -2,7 +2,7 @@ import i2c
 import io
 import .base
 import .i2c
-import .strobe
+import ..modules.strobe
 
 RtkHandheld2-MESSAGES := [
     // TODO

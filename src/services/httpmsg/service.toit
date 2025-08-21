@@ -25,7 +25,6 @@ class HttpMsg:
   custom-actions_ /Map
   custom-handlers_ /Map
   response-message-formatter_ /Lambda
-  device-comms_ /services.Comms
   listen-and-log-all_/bool
   inbox /Channel
   device_/devices.Device
@@ -33,7 +32,6 @@ class HttpMsg:
 
   constructor
       device/devices.Device
-      device-comms/services.Comms
       --defaults/Map?=sample-messages // A map of default messages to show on the page, similar to the messages map
       --hide-screen/bool=false // Hide the screen input...
       --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
@@ -49,7 +47,6 @@ class HttpMsg:
     hide-screen_ = hide-screen
     serve-port = port
     device_ = device
-    device-comms_ = device-comms
     custom-actions_ = custom-actions
     custom-handlers_ = custom-handlers
     if device.strobe.available:
@@ -144,12 +141,12 @@ class HttpMsg:
     // Create an inbox to receive all messages on, that can be shown to the user via /poll logging
     listen-and-log-all_ = listen-and-log-all
     if listen-and-log-all:
-      inbox = device-comms_.inbox "httpmsg" --size=20
+      inbox = device.comms.inbox "httpmsg" --size=20
     else:
       inbox = Channel 1
 
     if subscribe-lora:
-      device-comms.send (messages.LORA.subscribe-msg --ms=1000)
+      device.comms.send (messages.LORA.subscribe-msg --ms=1000)
 
     if serve:
       service-http-catch-and-restart
@@ -230,7 +227,7 @@ class HttpMsg:
 
         // Send it (RAW), if there are multiple messages to send (speed optimization)
         if lines.size > 1:
-          device-comms_.send-raw-bytes b
+          device_.comms.send-raw-bytes b
           lines.do: |line|
             l := []
             ((line.split " ").do: |s| l.add (int.parse s))
@@ -250,7 +247,7 @@ class HttpMsg:
             ((line.split " ").do: |s| l.add (int.parse s))
             msg := protocol.Message.from-list l
             wait-for-response := 5000
-            msgLatch := device-comms_.send msg
+            msgLatch := device_.comms.send msg
               --withLatch=true
               --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
               --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array l) --short=true --commas=false --hex=false)\n")

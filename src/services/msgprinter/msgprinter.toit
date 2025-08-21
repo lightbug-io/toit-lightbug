@@ -1,6 +1,7 @@
 import ...services as services
 import ...util.docs show message-to-docs-url
 import ...util.resilience show catch-and-restart
+import ...devices as devices
 import log
 import monitor
 
@@ -9,8 +10,8 @@ class MsgPrinter:
 
   inbox /monitor.Channel
 
-  constructor comms/services.Comms --inboxSize/int=20:
-    inbox = comms.inbox "lb/MsgPrinter" --size=inboxSize
+  constructor device/devices.Device --inboxSize/int=20:
+    inbox = device.comms.inbox "lb/MsgPrinter" --size=inboxSize
     task:: catch-and-restart "lightbug-MsgPrinter::run" (:: run)
 
   run:

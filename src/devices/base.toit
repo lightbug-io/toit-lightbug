@@ -4,20 +4,20 @@ import uart
 import io
 import log
 import .i2c
-import .strobe
 import .devices
-import ..services.comms.comms as comms_service
+import ..modules.strobe
+import ..modules.comms
 
 /*
 An interface representing a Lightbug device
 */
-interface Device extends Comms:
+interface Device extends HasInOut:
   // A name identifying the type of device
   name -> string
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
   // Communications service for this device
-  comms -> comms_service.Comms
+  comms -> Comms
   // Reinit the device and communications
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
@@ -28,9 +28,9 @@ interface Device extends Comms:
   messages-not-supported -> List
 
 /*
-An interface for communicating to and from a Lightbug device
+An interface for combining a Reader and Writer for a device.
 */
-interface Comms:
+interface HasInOut:
   // Reader reading from the device
   in -> Reader
   // Writer writing to the device
@@ -51,7 +51,7 @@ abstract class LightbugDevice implements Device:
   name_ /string
   strobe_ /Strobe
   logger_ /log.Logger
-  comms_ /comms_service.Comms? := null
+  comms_ /Comms? := null
   open_ /bool
 
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
@@ -71,9 +71,9 @@ abstract class LightbugDevice implements Device:
     return name_
   strobe -> Strobe:
     return strobe_
-  comms -> comms_service.Comms:
+  comms -> Comms:
     if not comms_:
-      comms_ = comms_service.Comms 
+      comms_ = Comms 
           --device=this
           --open=open_
     return comms_
