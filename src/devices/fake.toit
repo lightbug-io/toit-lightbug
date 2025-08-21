@@ -4,10 +4,12 @@ import .base
 import .i2c
 import ..modules.strobe
 import ..modules.comms
+import ..modules.buttons
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
   comms_ /Comms? := null
+  buttons_ /Buttons? := null
   open_ /bool
 
   constructor --open/bool=true:
@@ -23,6 +25,10 @@ class Fake implements Device:
           --device=this
           --open=open_
     return comms_
+  buttons -> Buttons:
+    if not buttons_:
+      buttons_ = Buttons comms
+    return buttons_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

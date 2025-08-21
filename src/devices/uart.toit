@@ -4,6 +4,7 @@ import io
 import .base
 import ..modules.strobe
 import ..modules.comms
+import ..modules.buttons
 
 // ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
 // UART0 GPIO17 (RX) GPIO16 (TX) Defaults
@@ -21,6 +22,7 @@ ESP32C6UartPort -> uart.Port:
 class GenericUart implements Device:
   _port/ uart.Port
   comms_ /Comms? := null
+  buttons_ /Buttons? := null
   open_ /bool
 
   constructor --port/uart.Port --open/bool=true:
@@ -37,6 +39,10 @@ class GenericUart implements Device:
           --device=this
           --open=open_
     return comms_
+  buttons -> Buttons:
+    if not buttons_:
+      buttons_ = Buttons comms
+    return buttons_
   messages-supported -> List:
     return []
   messages-not-supported -> List:
