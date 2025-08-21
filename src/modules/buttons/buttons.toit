@@ -169,6 +169,12 @@ class Buttons:
           if onError:
             onError.call error-msg
         )
+        --onTimeout=(::
+          // Handle timeout case
+          logger_.debug "Button subscription timed out"
+          if onError:
+            onError.call "Subscription timed out"
+        )
         --timeout=timeout
 
   /**
@@ -199,6 +205,12 @@ class Buttons:
             logger_.debug error-msg
           if onError:
             onError.call error-msg
+        )
+        --onTimeout=(::
+          // Handle timeout case
+          logger_.debug "Button unsubscription timed out"
+          if onError:
+            onError.call "Unsubscription timed out"
         )
         --timeout=timeout
 

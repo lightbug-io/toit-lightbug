@@ -35,6 +35,7 @@ class Comms:
   lambdasForBadAck /Map := Map
   lambdasForGoodResponse /Map := Map
   lambdasForBadResponse /Map := Map
+  lambdasForTimeout /Map := Map
   waitTimeouts /Map := Map
 
   constructor
@@ -227,6 +228,7 @@ class Comms:
       lambdasForGoodAck.remove respondingTo
       lambdasForBadResponse.remove respondingTo
       lambdasForGoodResponse.remove respondingTo
+      lambdasForTimeout.remove respondingTo
 
       // If we have a latch for this message id, set it to the responding message
       if latchForMessage.contains respondingTo:
@@ -247,6 +249,7 @@ class Comms:
       --onNack/Lambda? = null
       --onResponse/Lambda? = null
       --onError/Lambda? = null
+      --onTimeout/Lambda? = null
       --withLatch/bool = false
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
   
@@ -273,6 +276,9 @@ class Comms:
       shouldTrack = true
     if onError != null:
       lambdasForBadResponse[msg.msgId] = onError
+      shouldTrack = true
+    if onTimeout != null:
+      lambdasForTimeout[msg.msgId] = onTimeout
       shouldTrack = true
 
     if shouldTrack or withLatch:
@@ -343,7 +349,14 @@ class Comms:
         durationSinceTimeout := Duration.since waitTimeouts[key]
         if (durationSinceTimeout > (Duration --s=0)):
           logger_.debug "Timeout for message: $(key) expired $(durationSinceTimeout) ago"
-          // Remove the timeout key, complete the latch, and remove all callbacks?!
+          
+          // Call timeout callback if it exists
+          if lambdasForTimeout.contains key:
+            task::
+              logger_.debug "Calling timeout lambda for message: $(key)"
+              lambdasForTimeout[key].call
+          
+          // Remove the timeout key, complete the latch, and remove all callbacks
           waitTimeouts.remove key
           latchForMessage[key].set false // false currently means timeout?
           latchForMessage.remove key
@@ -351,6 +364,7 @@ class Comms:
           lambdasForGoodAck.remove key
           lambdasForBadResponse.remove key
           lambdasForGoodResponse.remove key
+          lambdasForTimeout.remove key
         else:
           // not yet timed out
           // logger_.debug "Not yet timed out: $(key) $(durationSinceTimeout) left"
