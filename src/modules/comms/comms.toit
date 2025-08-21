@@ -240,6 +240,7 @@ class Comms:
       sendSwitching_ outbox_.receive --now=true
       yield // on each message sent
 
+
   // Send a message, and possibly do advanced things before after and during sending
   send msg/protocol.Message
       --now/bool = false // Should it be send now, of via the outbox
@@ -296,6 +297,46 @@ class Comms:
     if shouldTrack or withLatch:
       return latch
     return null
+
+  send-new msg/protocol.Message
+      --flush/bool = false
+      --timeout/Duration = (Duration --s=60) -> protocol.Message?:
+    // Ensure the message has a known message id
+    if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "SEND: $(msg)"
+
+    latch := monitor.Latch
+    latchForMessage[msg.msgId] = latch
+    waitTimeouts[msg.msgId] = Time.now + timeout
+
+    sendSwitching_ msg --now=flush
+
+    return latch.get
+
+  send-new msg/protocol.Message --async 
+      --callback/Lambda? = null
+      --flush/bool = false
+      --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
+    // Ensure the message has a known message id
+    if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "SEND: $(msg)"
+
+    latch := monitor.Latch
+    latchForMessage[msg.msgId] = latch
+    waitTimeouts[msg.msgId] = Time.now + timeout
+
+    sendSwitching_ msg --now=flush
+
+    if callback:
+      task::
+        callback.call latch.get
+    return latch
 
   // Send directly, or via the outbox
   sendSwitching_ msg/protocol.Message --now/bool?=false:
@@ -358,7 +399,7 @@ class Comms:
           
           // Remove the timeout key, complete the latch, and remove all callbacks
           waitTimeouts.remove key
-          latchForMessage[key].set false // false currently means timeout?
+          latchForMessage[key].set null // null, indicating there was no message received before the timeout
           latchForMessage.remove key
           lambdasForBadAck.remove key
           lambdasForGoodAck.remove key

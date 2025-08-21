@@ -62,6 +62,9 @@ class Message:
   if header.data.has-data Header.TYPE_MESSAGE_STATUS: return header.data.get-data-intn Header.TYPE_MESSAGE_STATUS
   return null
 
+ msg-ok -> bool:
+  return header.data.has-data Header.TYPE_MESSAGE_STATUS and (header.data.get-data-intn Header.TYPE_MESSAGE_STATUS) <= Header.STATUS_OK
+
  msg-status-id status/int -> bool:
   return header.data.has-data Header.TYPE_MESSAGE_STATUS and (header.data.get-data-intn Header.TYPE_MESSAGE_STATUS) == status
 
