@@ -18,8 +18,8 @@ main:
 
   // Start the HTTP Message server on port 80
   // This allows communicating with the device via a HTTP page
-  services.HttpMsg device device.comms --serve=true --listen-and-log-all=true
+  services.HttpMsg device --serve=true --listen-and-log-all=true
 
   // And start a service that prints all received messages to the console
   // To see the messages, `jag monitor` the device that is running this code
-  services.MsgPrinter device.comms
+  services.MsgPrinter device
