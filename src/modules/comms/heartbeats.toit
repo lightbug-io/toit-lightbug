@@ -36,7 +36,7 @@ class CommsHeartbeats implements Heartbeats:
       return
     running_ = true
     logger_.info "Starting heartbeats with period $(period_)"
-    task_ = task:: catch-and-restart "sendHeartbeats_" (:: send-heartbeats_) --logger=logger_
+    task_ = task --background=true:: catch-and-restart "sendHeartbeats_" (:: send-heartbeats_) --logger=logger_
 
   stop:
     if not running_:

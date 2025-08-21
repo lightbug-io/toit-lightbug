@@ -78,10 +78,10 @@ class Comms:
         logger_.error "Failed to reinitialize , but continuing..."
 
     if startInbound:
-      task:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
+      task --background=true:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
     if startOutbox:
-      task:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
-    task:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
+      task --background=true:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+    task --background=true:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
 
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
@@ -321,7 +321,7 @@ class Comms:
     // Start the outbox task if it hasn't been started yet
     if not outboxTaskStarted_:
       outboxTaskStarted_ = true
-      task:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+      task --background=true:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
       
     // If the outbox is full, remove the oldest message, and add the new one
     if outbox_.size == outbox_.capacity:
@@ -352,7 +352,7 @@ class Comms:
           
           // Call timeout callback if it exists
           if lambdasForTimeout.contains key:
-            task::
+            task --background=true::
               logger_.debug "Calling timeout lambda for message: $(key)"
               lambdasForTimeout[key].call
           

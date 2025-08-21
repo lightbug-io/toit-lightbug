@@ -109,7 +109,7 @@ class BaseStrobe extends Strobe:
     color-sequence/List := colors ? colors : RAINBOW-SEQUENCE
     
     sequence-mode_ = true
-    sequence-task_ = task::
+    sequence-task_ = task --background=true::
       try:
         while sequence-mode_:
           color-sequence.do: |color/List|
