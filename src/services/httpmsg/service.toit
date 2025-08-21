@@ -50,7 +50,6 @@ class HttpMsg:
     custom-actions_ = custom-actions
     custom-handlers_ = custom-handlers
     if device.strobe.available:
-      partyMode := false
       custom-actions_["Strobe"] = {
         "Off": "custom:strobe:OFF",
         "R": "custom:strobe:R",
@@ -64,69 +63,48 @@ class HttpMsg:
       }
       if not custom-handlers_.get "strobe:OFF":
         custom-handlers_["strobe:OFF"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Off\n"
-          device.strobe.set false false false
+          device.strobe.off
         )
       if not custom-handlers_.get "strobe:R":
         custom-handlers_["strobe:R"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Red\n"
-          device.strobe.set true false false
+          device.strobe.red
         )
       if not custom-handlers_.get "strobe:G":
         custom-handlers_["strobe:G"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Green\n"
-          device.strobe.set false true false
+          device.strobe.green
         )
       if not custom-handlers_.get "strobe:B":
         custom-handlers_["strobe:B"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Blue\n"
-          device.strobe.set false false true
+          device.strobe.blue
         )
       if not custom-handlers_.get "strobe:C":
         custom-handlers_["strobe:C"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Cyan\n"
-          device.strobe.set false true true
+          device.strobe.cyan
         )
       if not custom-handlers_.get "strobe:M":
         custom-handlers_["strobe:M"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Magenta\n"
-          device.strobe.set true false true
+          device.strobe.magenta
         )
       if not custom-handlers_.get "strobe:Y":
         custom-handlers_["strobe:Y"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: Yellow\n"
-          device.strobe.set true true false
+          device.strobe.yellow
         )
       if not custom-handlers_.get "strobe:W":
         custom-handlers_["strobe:W"] = (:: | writer |
-          partyMode = false
           writer.write "Strobe: White\n"
-          device.strobe.set true true true
+          device.strobe.white
         )
       if not custom-handlers_.get "strobe:PARTY":
         custom-handlers_["strobe:PARTY"] = (:: | writer |
-          partyMode = true
           writer.write "Strobe: Party\n"
-          while partyMode:
-            device.strobe.set true false false
-            sleep (Duration --ms=10)
-            if not partyMode:
-              break
-            device.strobe.set false true false
-            sleep (Duration --ms=10)
-            if not partyMode:
-              break
-            device.strobe.set false false true
-            sleep (Duration --ms=10)
-            if not partyMode:
-              break
+          device.strobe.sequence --speed-ms=10 --colors=device.strobe.RAINBOW-SEQUENCE
         )
     if response-message-formatter != null:
       response-message-formatter_ = response-message-formatter
