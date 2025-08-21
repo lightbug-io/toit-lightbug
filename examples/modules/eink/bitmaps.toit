@@ -10,14 +10,11 @@ This example shows how to display a Lightbug logo.
 main:
   // This example is setup to work with the RH2 device
   device := devices.RtkHandheld2
-
-  // Setup the comms service, which allows communication with the Lightbug device
-  comms := services.Comms --device=device
   
   print "💬 Sending bitmap logo to device screen"
   
   print "📷 Drawing 40x40 logo at (0,0) top left"
-  comms.send (messages.DrawBitmap.msg
+  device.comms.send (messages.DrawBitmap.msg
     --data=(messages.DrawBitmap.data
       --page-id=1234
       --redraw-type=messages.DrawBitmap.REDRAW-TYPE_FULLREDRAW
@@ -29,7 +26,7 @@ main:
     --now=true
 
   print "📷 Drawing a second 40x40 logo at (210,0) top right"
-  comms.send (messages.DrawBitmap.msg
+  device.comms.send (messages.DrawBitmap.msg
     --data=(messages.DrawBitmap.data
       --page-id=1234
       --redraw-type=messages.DrawBitmap.REDRAW-TYPE_PARTIALREDRAW

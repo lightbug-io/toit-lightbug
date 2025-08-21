@@ -6,6 +6,7 @@ import log
 import .i2c
 import .strobe
 import .devices
+import ..services.comms.comms as comms_service
 
 /*
 An interface representing a Lightbug device
@@ -15,6 +16,8 @@ interface Device extends Comms:
   name -> string
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
+  // Communications service for this device
+  comms -> comms_service.Comms
   // Reinit the device and communications
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
@@ -48,14 +51,18 @@ abstract class LightbugDevice implements Device:
   name_ /string
   strobe_ /Strobe
   logger_ /log.Logger
+  comms_ /comms_service.Comms? := null
+  open_ /bool
 
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
       --strobe/Strobe=NoStrobe
+      --open/bool=true
       --logger/log.Logger=(log.default.with-name "lb-device"):
     // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
     name_ = name
     strobe_ = strobe
     logger_ = logger
+    open_ = open
     i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
     i2c-reader_ = Reader i2c-device_ --logger=logger_
     i2c-writer_ = Writer i2c-device_ --logger=logger_
@@ -64,6 +71,12 @@ abstract class LightbugDevice implements Device:
     return name_
   strobe -> Strobe:
     return strobe_
+  comms -> comms_service.Comms:
+    if not comms_:
+      comms_ = comms_service.Comms 
+          --device=this
+          --open=open_
+    return comms_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

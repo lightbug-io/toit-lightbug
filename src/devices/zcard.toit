@@ -32,12 +32,14 @@ ZCARD-MESSAGES := [
 
 // The latest revision of the ZCard device
 class ZCard extends ZCardRev2:
+  constructor --open/bool=true:
+    super --open=open
 
 // The second of the ZCard devices
 // Introduced Mid 2025
 class ZCardRev2 extends LightbugDevice:
-  constructor:
-    super "ZCard" --strobe=(StandardStrobe --initial-value=1)
+  constructor --open/bool=true:
+    super "ZCard" --strobe=(StandardStrobe --initial-value=1) --open=open
   messages-supported -> List:
     return ZCARD-MESSAGES
   messages-not-supported -> List:
@@ -51,8 +53,8 @@ class ZCardRev2 extends LightbugDevice:
 // The first ZCard devices
 // Introduced Feb 2025
 class ZCardRev1 extends LightbugDevice:
-  constructor:
-    super "ZCard" --strobe=(StandardStrobe --initial-value=1)
+  constructor --open/bool=true:
+    super "ZCard" --strobe=(StandardStrobe --initial-value=1) --open=open
   messages-supported -> List:
     return ZCARD-MESSAGES
   messages-not-supported -> List:

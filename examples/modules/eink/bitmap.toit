@@ -11,13 +11,9 @@ main:
   // This example is setup to work with the RH2 device
   device := devices.RtkHandheld2
 
-  // Setup the comms service, which allows communication with the Lightbug device
-  comms := services.Comms --device=device
-  
   print "💬 Sending bitmap logo to device screen"
-  
   print "📷 Drawing 40x40 logo at (0,0)"
-  comms.send (messages.DrawBitmap.msg
+  device.comms.send (messages.DrawBitmap.msg
     --data=(messages.DrawBitmap.data
       --redraw-type=messages.DrawBitmap.REDRAW-TYPE_FULLREDRAW
       --x=0

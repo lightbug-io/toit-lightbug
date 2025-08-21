@@ -1,5 +1,4 @@
 import lightbug.devices as devices
-import lightbug.services as services
 import lightbug.messages.messages_gen as messages
 import lightbug.protocol as protocol
 import log
@@ -12,12 +11,10 @@ main:
   // This example is setup to work with the RH2 device
   device := devices.RtkHandheld2
 
-  // Setup the comms service, which allows communication with the Lightbug device
-  comms := services.Comms --device=device
   // Write a message to the device in a loop, every 5 seconds
   // While running `jag monitor` on the device, you should see the messages being sent, and a response being received
   while true:
-    response := comms.send 
+    response := device.comms.send 
       (messages.DeviceIDs.get-msg)
       --preSend=(:: print "Sending message to device")
       --postSend=(:: print "Message sent to device")

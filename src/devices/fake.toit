@@ -3,13 +3,26 @@ import io
 import .base
 import .i2c
 import .strobe
+import ..services.comms.comms as comms_service
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
+  comms_ /comms_service.Comms? := null
+  open_ /bool
+
+  constructor --open/bool=true:
+    open_ = open
+
   name -> string:
     return "Fake"
   strobe -> Strobe:
     return NoStrobe
+  comms -> comms_service.Comms:
+    if not comms_:
+      comms_ = comms_service.Comms 
+          --device=this
+          --open=open_
+    return comms_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

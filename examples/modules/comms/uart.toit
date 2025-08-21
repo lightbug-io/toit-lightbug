@@ -16,7 +16,8 @@ main:
     --baud_rate=115200
 
   // Create a generic UART device using the port we just created
-  device := devices.GenericUart --port=port
+  // Do not send an open or heartbeat messages
+  device := devices.GenericUart --port=port --open=false
 
   // Write some bytes to the device
   log.info "Writing to device"

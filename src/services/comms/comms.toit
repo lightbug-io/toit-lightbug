@@ -12,6 +12,7 @@ import log
 import io
 import monitor
 import monitor show Channel
+import .heartbeats show Heartbeats CommsHeartbeats
 
 class Comms:
   logger_/log.Logger
@@ -19,6 +20,9 @@ class Comms:
   msgIdGenerator /IdGenerator
 
   outbox_ /Channel
+  outboxTaskStarted_ /bool := false
+  inboxesEnabled_ /bool := false
+  heartbeats_ /Heartbeats? := null
 
   LBSyncBytes_ /ByteArray
 
@@ -36,9 +40,7 @@ class Comms:
   constructor
       --device/devices.Device? = null
       --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
-      --startOutbox/bool = true // Start the outbox (waiting for outbox messages to send over I2C)
-      --sendOpen/bool = true // An Open is required to start comms and get responses ot messages. Only set to false if you will control the Open in your own code.
-      --sendHeartbeat/bool = true // Send a heartbeat message every now and again to keep the connection open. Only set to false if you will control the heartbeat in your own code.
+      --open/bool = true // Send Open message and heartbeats to keep connection alive
       --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
       --idGenerator/IdGenerator? = null
       --logger=(log.default.with-name "lb-comms"):
@@ -58,10 +60,15 @@ class Comms:
     // Start with randomish numbers for msg and page id, incase we restarted but the STM didn't
     // TODO allow optional injection of an outbox?!
     outbox_ = Channel 15
-    
-    start_ sendOpen sendHeartbeat startInbound startOutbox reinitOnStart
 
-  start_ sendOpen/bool sendHeartbeat/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
+    heartbeats_ = CommsHeartbeats this logger_
+    
+    start_ open startInbound false reinitOnStart
+
+  heartbeats -> Heartbeats:
+    return heartbeats_
+
+  start_ sendOpen/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
     logger_.info "Comms starting"
 
     if reinitOnStart:
@@ -79,8 +86,8 @@ class Comms:
     // and keep it open with heartbeats
     if sendOpen:
       catch-and-restart "sendOpen_" (:: sendOpen_ ) --limit=5 --restart-always=false --logger=logger_
-    if sendHeartbeat:
-      task:: catch-and-restart "sendHeartbeats_" (:: sendHeartbeats_) --logger=logger_
+      // Start heartbeats after successful open
+      heartbeats_.start
     
     logger_.info "Comms started"
 
@@ -89,18 +96,14 @@ class Comms:
       throw "Failed to open device link"
     logger_.info "Opened device link"
 
-  sendHeartbeats_:
-    while true:
-      // Send a heartbeat message every 10 seconds (via outbox)
-      if not (send (messages.Heartbeat.msg --data=null) --withLatch=true).get:
-        logger_.error "Failed to send heartbeat"
-      else:
-        logger_.debug "Sent heartbeat"
-      sleep (Duration --s=15)
-
   // Creates or gets an inbox by name
   // A single inbox will only deliver messages once
   inbox name/string --size/int? = 15 -> Channel:
+    // Enable inboxes on first use
+    if not inboxesEnabled_:
+      inboxesEnabled_ = true
+      logger_.info "Inboxes enabled on first use"
+      
     if not inboxesByName.contains name:
       logger_.info "Created new inbox $(name)"
       inboxesByName[name] = Channel size
@@ -181,13 +184,14 @@ class Comms:
     logger_.with-level log.DEBUG-LEVEL:
       logger_.debug "RCV: $(msg)"
 
-    // Add to any registered inboxes
-    inboxesByName.do --values=true: | inbox |
-      if inbox.size >= inbox.capacity:
-        dropped := inbox.receive
-        logger_.warn "Inbox full, Dropped message of type: $(dropped.type) in favour of new message of type: $(msg.type)"
-      logger_.debug "Adding message to inbox: $(msg.type)"
-      inbox.send msg
+    // Add to any registered inboxes (only if inboxes are enabled)
+    if inboxesEnabled_:
+      inboxesByName.do --values=true: | inbox |
+        if inbox.size >= inbox.capacity:
+          dropped := inbox.receive
+          logger_.warn "Inbox full, Dropped message of type: $(dropped.type) in favour of new message of type: $(msg.type)"
+        logger_.debug "Adding message to inbox: $(msg.type)"
+        inbox.send msg
 
     // Find waiting lambdas, based on the response
     if msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
@@ -308,6 +312,11 @@ class Comms:
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:
+    // Start the outbox task if it hasn't been started yet
+    if not outboxTaskStarted_:
+      outboxTaskStarted_ = true
+      task:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+      
     // If the outbox is full, remove the oldest message, and add the new one
     if outbox_.size == outbox_.capacity:
       // TODO should cleanup the lambdas for the removed message, or wait for them to timeout?
