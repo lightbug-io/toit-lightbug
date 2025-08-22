@@ -18,7 +18,7 @@ class Fake implements Device:
   name -> string:
     return "Fake"
   strobe -> Strobe:
-    return NoStrobe
+    return FakeStrobe
   comms -> Comms:
     if not comms_:
       comms_ = Comms 
