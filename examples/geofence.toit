@@ -2,6 +2,7 @@ import lightbug.protocol as protocol
 import lightbug.devices as devices
 import lightbug.messages as messages
 import lightbug.services as services
+import lightbug.modules as modules
 import lightbug.util.docs show message-to-docs-url
 import lightbug.util.resilience show catch-and-restart
 import lightbug show Coordinate
@@ -24,18 +25,30 @@ import net.modules.dns
 // From an RH1 survey of the LB office (carpark), and slightly altered
 // Open https://www.keene.edu/campus/maps/tool/?coordinates=-2.5419470%2C%2051.4700650%0A-2.5418540%2C%2051.4696260%0A-2.5415100%2C%2051.4695860%0A-2.5414360%2C%2051.4700180
 // And zoom out once to see sat view
-LB_OFFICE_FENCE := [
+LB_OFFICE_OUTER := [
   Coordinate 51.4700650 -2.5419470,
   Coordinate 51.4696260 -2.5418540,
   Coordinate 51.4695867 -2.5415191,
   Coordinate 51.4700144 -2.5414521,
 ]
 
-USED_FENCE := LB_OFFICE_FENCE
+// And an actual office one dragged by hand on the map
+// Open https://www.keene.edu/campus/maps/tool/?coordinates=-2.5421521%2C%2051.4700178%0A-2.5422138%2C%2051.4697588%0A-2.5415996%2C%2051.4696836%0A-2.5415593%2C%2051.4698891%0A-2.5416210%2C%2051.4698941%0A-2.5416076%2C%2051.4699727
+// And zoom out once to see sat view
+LB_OFFICE_INNER:= [
+  Coordinate 51.4700178 -2.5421521,
+  Coordinate 51.4697588 -2.5422138,
+  Coordinate 51.4696836 -2.5415996,
+  Coordinate 51.4698891 -2.5415593,
+  Coordinate 51.4698941 -2.5416210,
+  Coordinate 51.4699727 -2.5416076,
+]
+
+USED_FENCE := LB_OFFICE_OUTER
 
 // Global state
 device /devices.RtkHandheld2:= ?
-io /services.Comms := ?
+io /modules.Comms := ?
 logLevel := log.INFO-LEVEL
 logger := (log.default.with-level logLevel).with-name "fences"
 
@@ -43,7 +56,7 @@ main:
   log.set-default (log.default.with-level logLevel) // Set any other loggers to the same level
 
   device = devices.RtkHandheld2
-  io = services.Comms --device=device
+  io = device.comms
 
   logger.info "App initialized, loop starting"
   task:: catch-and-restart "mainLoop" (:: mainLoop)
@@ -74,7 +87,7 @@ mainLoop:
       throw "📟❌ Failed to subscribe to button presses"
 
   // Request that the device turns on RTK
-  if not (io.send (messages.GPSControl.set-msg --data=(messages.GPSControl.data --corrections-enabled=1)) --now=true
+  if not (io.send (messages.GPSControl.set-msg --corrections-enabled=1) --now=true
               --preSend=(:: logger.info "📟💬 Sending RTK on")
               --onAck=(:: logger.info "📟✅ RTK on")
               --onNack=(:: if it.msg-status != null: logger.warn "RTK not yet on, state: $(it.msg-status)" else: logger.warn "RTK not yet on" )
@@ -116,12 +129,22 @@ mainLoop:
         // field 1 is the button id (wrong in autogen)
         pressed := data.get-data-uint 1
         logger.info "📟💬 Button pressed: $pressed"
+        // We want to redraw the menu right away as state is changing
+        nextScreenDraw = Time.now
         if pressed == 1: // left
+          if muted:
+            // we will be unmuting
+            nextAlarmEmit = Time.now // allow immediate alarm if in zone
+          else:
+            // We will be muting
+            io.send (messages.Alarm.msg --data=(create-alarm-data 0)) --now=true // stop any alarm
+            isAlarmOff = true
+            nextAlarmEmit = Time.now // allow immediate alarm if unmuted again
           muted = not muted // toggle muted
-        if pressed == 0: // middle
+        if pressed == 2: // right
           if isPreset:
-            // Yellow LEDs indicate that the device is starting up, and not processing locations yet
-            device.strobe.set true true false
+            device.strobe.yellow // yellow indicates startup...
+            io.send (messages.Alarm.msg --data=(create-alarm-data 0)) --now=true
             // Display an initial page
             io.send (messages.TextPage.msg --data=(messages.TextPage.data
               --page-id=2001
@@ -130,11 +153,10 @@ mainLoop:
               --redraw-type=2 // FullRedraw
             )) --now=true
           else:
-            // Yellow LEDs indicate that the device is starting up, and not processing locations yet
-            device.strobe.set false false false
+            device.strobe.off // off once started up
             drawPresetNow
           isPreset = not isPreset // toggle preset record
-        if pressed == 2: // right
+        if pressed == 0: // middle
         continue
       if msg.type == messages.DeviceStatus.MT:
         data := messages.DeviceStatus.from-data msg.data
@@ -164,8 +186,11 @@ drawPresetNow:
       throw "📟❌ Failed to request preset page"
 
 nextScreenDraw := Time.now
+nextAlarmEmit := Time.now
 muted := true
 isPreset := true
+isAlarmOff := true
+wasLastInZone := false
 
 processLastPosition msg/protocol.Message:
   data := messages.Position.from-data msg.data
@@ -176,45 +201,65 @@ processLastPosition msg/protocol.Message:
   if inZone:
     logger.debug "🌐📍 Inside of the known fence"
     if not isPreset:
-      device.strobe.set true false false // red
+      device.strobe.red
+      device.strobe.sequence --speed-ms=100 --colors=[device.strobe.RED, device.strobe.OFF]
   else:
     logger.debug "🌐📍 Outside of the known fence"
     if not isPreset:
-      device.strobe.set false true false // green
+      device.strobe.green
+  if inZone != wasLastInZone:
+    wasLastInZone = inZone
+    nextScreenDraw = Time.now
 
-  // Update the screen with the current location, onces every 10 seconds
-  if Time.now > nextScreenDraw:
-    nextScreenDraw = Time.now + (Duration --s=1)
+  // Update the screen with the current location
+  if Time.now >= nextScreenDraw:
+    nextScreenDraw = Time.now + (Duration --ms=1000) // Update every 1s when only updating precision / menu
 
     bottomLine := ""
     // TODO, really home, actually needs to be disarm...
     if muted:
-      bottomLine = " unmute        home"
+      bottomLine = " unmute     $(data.accuracy-raw.stringify.pad --left 4)cm/$(data.type)        home"
     else:
-      bottomLine = "  mute         home"
+      bottomLine = "  mute       $(data.accuracy-raw.stringify.pad --left 4)cm/$(data.type)        home"
 
     // logger.info "🌐🖼️ Drawing screen update"
     if inZone:
       if not isPreset:
+        if not muted:
+          if Time.now >= nextAlarmEmit:
+            nextAlarmEmit = Time.now + (Duration --ms=3000) // Emit every 3s
+            isAlarmOff = false
+            io.send (messages.Alarm.msg --data=(create-alarm-data 3 4 1)) --now=true //3s siren
         io.send (messages.TextPage.msg --data=(messages.TextPage.data
           --page-id=2001
-          --page-title="Coworkers Ahead!"
-          --line-1="Approach with coffee in hand,"
-          --line-2="enter at your own risk!"
-          --line-3=""
-          --line-4="$(data.accuracy-raw)cm ($(messages.Position.type-from-int data.type))"
+          --page-title="Coworkers Ahead!!!"
+          --line-1=" Approach with coffee in hand,"
+          --line-2=" lookout for paperwork,"
+          --line-3=" enter at your own risk!"
+          --line-4=""
           --line-5=bottomLine
         )) --now=true
-      if not muted:
-        io.send (messages.BuzzerControl.do-msg --data=(messages.BuzzerControl.data --duration=2000 --frequency=4.0)) --now=true
     else:
       if not isPreset:
+        if not muted and not isAlarmOff:
+          nextAlarmEmit = Time.now
+          isAlarmOff = true
+          io.send (messages.Alarm.msg --data=(create-alarm-data 0)) --now=true //alarm off
         io.send (messages.TextPage.msg --data=(messages.TextPage.data
           --page-id=2001
-          --page-title=""
-          --line-1=""
-          --line-2=""
-          --line-3=""
-          --line-4="$(data.accuracy-raw)cm ($(messages.Position.type-from-int data.type))"
+          --page-title="Workplace detection"
+          --line-1=" Final moments of freedom,"
+          --line-2=" breathe deeply,"
+          --line-3=" workplace ahead!"
+          --line-4=""
           --line-5=bottomLine
         )) --now=true
+
+create-alarm-data duration/int buzzer-pattern/int?=null buzzer-intensity/int?=null -> protocol.Data:
+  data := protocol.Data
+  data.add-data-uint32 messages.Alarm.DURATION duration
+  if buzzer-pattern != null:
+    data.add-data-uint8 messages.Alarm.BUZZER-PATTERN buzzer-pattern
+  if buzzer-intensity != null:
+    data.add-data-uint8 messages.Alarm.BUZZER-INTENSITY buzzer-intensity
+  return data
