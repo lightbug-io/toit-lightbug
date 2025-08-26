@@ -21,6 +21,12 @@ import net.modules.dns
 // A WORK IN PROGRESS example that demonstrates how to use a Lightbug RTK device
 // to detect when you are in a geofence, and display a message on the screen,
 // changing the strobe colour to indicate if you are inside or outside of the fence, and making a noise.
+//
+// DEMO MODE:
+// - Triple-click the middle button to enter/exit DEMO mode
+// - In DEMO mode, the device ignores real GPS locations and uses simulated zone state
+// - Single-click the middle button in DEMO mode to toggle between "in zone" and "out of zone"
+// - The screen will show "[DEMO]" indicator when in demo mode
 
 // From an RH1 survey of the LB office (carpark), and slightly altered
 // Open https://www.keene.edu/campus/maps/tool/?coordinates=-2.5419470%2C%2051.4700650%0A-2.5418540%2C%2051.4696260%0A-2.5415100%2C%2051.4695860%0A-2.5414360%2C%2051.4700180
@@ -51,6 +57,14 @@ device /devices.RtkHandheld2:= ?
 io /modules.Comms := ?
 logLevel := log.INFO-LEVEL
 logger := (log.default.with-level logLevel).with-name "fences"
+
+// Demo mode state
+demoMode := false
+demoInZone := false
+middleButtonClickCount := 0
+lastMiddleButtonPress := Time.epoch
+tripleClickTimeout := Time.epoch
+TRIPLE_CLICK_WINDOW ::= Duration --ms=2000 // 2 second timeout for triple click detection
 
 main:
   log.set-default (log.default.with-level logLevel) // Set any other loggers to the same level
@@ -114,6 +128,13 @@ mainLoop:
         --timeout=(Duration --ms=15000)
       sleep --ms=15000
 
+  // Task to reset middle button click count after timeout
+  task::
+    while true:
+      if middleButtonClickCount > 0 and Time.now > tripleClickTimeout:
+        middleButtonClickCount = 0
+      sleep --ms=100
+
   // Main loop processing inbound messages
   while loopOK:
     msg := inbox.receive
@@ -157,6 +178,37 @@ mainLoop:
             drawPresetNow
           isPreset = not isPreset // toggle preset record
         if pressed == 0: // middle
+          now := Time.now
+          
+          // Check if this is part of a potential triple-click sequence
+          if now <= tripleClickTimeout:
+            middleButtonClickCount++
+          else:
+            middleButtonClickCount = 1 // Reset count if timeout exceeded
+          
+          lastMiddleButtonPress = now
+          tripleClickTimeout = now + TRIPLE_CLICK_WINDOW
+          
+          if middleButtonClickCount == 3:
+            // Triple click detected - toggle demo mode
+            demoMode = not demoMode
+            middleButtonClickCount = 0 // Reset counter
+            if demoMode:
+              logger.info "🎭 Entering DEMO mode"
+              device.strobe.blue
+              sleep --ms=500
+              device.strobe.off
+            else:
+              logger.info "🎭 Exiting DEMO mode"
+              device.strobe.yellow
+              sleep --ms=500
+              device.strobe.off
+            nextScreenDraw = Time.now // Force screen redraw
+          else if demoMode and middleButtonClickCount == 1:
+            // Single click in demo mode - toggle demo zone state
+            demoInZone = not demoInZone
+            logger.info "🎭 Demo mode: toggling zone state to $(demoInZone ? "IN" : "OUT")"
+            nextScreenDraw = Time.now // Force screen redraw
         continue
       if msg.type == messages.DeviceStatus.MT:
         data := messages.DeviceStatus.from-data msg.data
@@ -196,8 +248,10 @@ processLastPosition msg/protocol.Message:
   data := messages.Position.from-data msg.data
   coordinate := Coordinate data.latitude data.longitude
 
+  // Determine if we're in zone - use demo state if in demo mode, otherwise use real GPS
+  inZone := demoMode ? demoInZone : coordinate.in-polygon USED_FENCE
+  
   // Process geofences
-  inZone := coordinate.in-polygon USED_FENCE
   if inZone:
     logger.debug "🌐📍 Inside of the known fence"
     if not isPreset:
@@ -215,12 +269,18 @@ processLastPosition msg/protocol.Message:
   if Time.now >= nextScreenDraw:
     nextScreenDraw = Time.now + (Duration --ms=1000) // Update every 1s when only updating precision / menu
 
+    acc := data.accuracy-raw
+    accType := data.type
+    if demoMode:
+      acc = 1 // Simulate perfect accuracy in demo mode
+      accType = 10
+
     bottomLine := ""
     // TODO, really home, actually needs to be disarm...
     if muted:
-      bottomLine = " unmute     $(data.accuracy-raw.stringify.pad --left 4)cm/$(data.type)        home"
+      bottomLine = " unmute     $(acc.stringify.pad --left 4)cm/$(accType)        home"
     else:
-      bottomLine = "  mute       $(data.accuracy-raw.stringify.pad --left 4)cm/$(data.type)        home"
+      bottomLine = "  mute       $(acc.stringify.pad --left 4)cm/$(accType)        home"
 
     // logger.info "🌐🖼️ Drawing screen update"
     if inZone:
