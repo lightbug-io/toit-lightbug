@@ -12,9 +12,12 @@ abstract class Strobe:
   abstract set r/bool g/bool b/bool
 
   /**
-  Start a sequence of colours, changing at the specified interval
+  Start a sequence of colors, changing at the specified interval
+    If colors is not specified, a rainbow sequence is used
+    --colors is a list of color values, see RED, GREEN, BLUE etc.
+    For example, flashing red, [device.strobe.RED, device.strobe.OFF]
   */
-  abstract sequence --speed-ms/int=100 --colors/List?=null
+  abstract sequence --speed-ms/int=100 --colors/List?=RAINBOW-SEQUENCE
 
   // Color constants for RGB LED control.
   RED := [true, false, false]
