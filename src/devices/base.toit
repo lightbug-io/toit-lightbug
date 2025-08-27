@@ -8,6 +8,7 @@ import .devices
 import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
+import ..modules.ble
 
 /*
 An interface representing a Lightbug device
@@ -21,6 +22,8 @@ interface Device extends HasInOut:
   comms -> Comms
   // Button press handling service for this device
   buttons -> Buttons
+  // BLE scanning service for this device
+  ble -> BLE
   // Reinit the device and communications
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
@@ -56,6 +59,7 @@ abstract class LightbugDevice implements Device:
   logger_ /log.Logger
   comms_ /Comms? := null
   buttons_ /Buttons? := null
+  ble_ /BLE? := null
   open_ /bool
 
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
@@ -85,6 +89,10 @@ abstract class LightbugDevice implements Device:
     if not buttons_:
       buttons_ = Buttons comms
     return buttons_
+  ble -> BLE:
+    if not ble_:
+      ble_ = BLE
+    return ble_
   messages-supported -> List:
     return []
   messages-not-supported -> List:
