@@ -9,6 +9,7 @@ import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
+import ..modules.ble.handler show BLEHandler
 
 /*
 An interface representing a Lightbug device
@@ -84,6 +85,8 @@ abstract class LightbugDevice implements Device:
       comms_ = Comms 
           --device=this
           --open=open_
+      // Auto-register BLE handler for all devices with BLE support
+      auto-register-ble-handler_
     return comms_
   buttons -> Buttons:
     if not buttons_:
@@ -109,3 +112,15 @@ abstract class LightbugDevice implements Device:
     return i2c-reader_
   out -> io.Writer:
     return i2c-writer_
+
+  /**
+   * Automatically register the BLE handler if the device supports BLE.
+   * This is called when comms is first created.
+   */
+  auto-register-ble-handler_:
+    e := catch:
+      ble-handler := BLEHandler this comms_
+      comms_.register-handler ble-handler
+      logger_.debug "Auto-registered BLE message handler"
+    if e:
+      logger_.warn "Failed to register BLE handler: $e"

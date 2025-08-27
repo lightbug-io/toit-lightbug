@@ -5,6 +5,7 @@ import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
 import ...util.bytes show stringify-all-bytes byte-array-to-list
+import .message-handler show MessageHandler
 import io.reader show Reader
 import io.writer show Writer
 import encoding.url
@@ -23,6 +24,7 @@ class Comms:
   outboxTaskStarted_ /bool := false
   inboxesEnabled_ /bool := false
   heartbeats_ /Heartbeats? := null
+  messageHandlers_ /List/*<MessageHandler>*/ := []  // List of message handlers
 
   LBSyncBytes_ /ByteArray
 
@@ -68,6 +70,21 @@ class Comms:
 
   heartbeats -> Heartbeats:
     return heartbeats_
+
+  /**
+   * Register a message handler.
+   * Handlers should implement the MessageHandler interface.
+   */
+  register-handler handler/MessageHandler -> none:
+    messageHandlers_.add handler
+    logger_.info "Registered message handler"
+
+  /**
+   * Unregister a message handler.
+   */
+  unregister-handler handler/MessageHandler -> none:
+    messageHandlers_.remove handler
+    logger_.info "Unregistered message handler"
 
   start_ sendOpen/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
     logger_.info "Comms starting"
@@ -184,6 +201,13 @@ class Comms:
   processReceivedMessage_ msg/protocol.Message:
     logger_.with-level log.DEBUG-LEVEL:
       logger_.debug "RCV: $(msg)"
+
+    // Let any registered message handlers try and handle the message
+    messageHandlers_.do: | handler |
+      if handler.handle-message msg:
+        logger_.debug "Message $(msg.type) handled by message handler"
+      else :
+        logger_.debug "Message $(msg.type) not handled by message handler"
 
     // Add to any registered inboxes (only if inboxes are enabled)
     if inboxesEnabled_:
