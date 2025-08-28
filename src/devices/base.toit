@@ -10,6 +10,7 @@ import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
 import ..modules.ble.handler show BLEHandler
+import ..util.backoff as backoff
 
 /*
 An interface representing a Lightbug device
@@ -104,7 +105,22 @@ abstract class LightbugDevice implements Device:
     return i2c-device_
   reinit -> bool:
     logger_.info "Lightbug I2C: Reinitializing device"
-    i2c-device_.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
+    
+    e := catch:
+      backoff.do-with-backoff
+        --onSuccess=(:: logger_.info "Lightbug I2C: Device reinitialized successfully")
+        --onError=(:: |error|
+          logger_.warn "Lightbug I2C: Reinitialization attempt failed: $error"
+        )
+        --initial-delay=(Duration --ms=50)
+        --max-retries=5
+        --backoff-factor=2.0:
+        i2c-device_.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
+    
+    if e:
+      logger_.error "Lightbug I2C: Failed to reinitialize device after retries: $e"
+      return false
+    
     return true
   prefix -> bool:
     return false
