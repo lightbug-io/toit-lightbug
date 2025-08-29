@@ -109,7 +109,7 @@ class BLEHandler implements MessageHandler:
   send-device-response result request-msg-id/int:
     mac-ba := result.device-address  // ByteArray
     rssi := result.rssi
-    advertising := result.manufacturer-data or #[]
+    advertising := result.raw or #[]
 
     response-data := messages.BLEScan.data
       --advertising-data=advertising

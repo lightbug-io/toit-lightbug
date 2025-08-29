@@ -96,6 +96,7 @@ Represents information about a single discovered BLE device.
 */
 class BLEScanResult:
   duration_/int
+  raw_/ByteArray
   device-address_/ByteArray
   device-name_/string
   rssi_/int
@@ -103,8 +104,9 @@ class BLEScanResult:
   manufacturer-data_/ByteArray
   service-classes_/List
 
-  constructor --duration/int --device-address/ByteArray --device-name/string --rssi/int --connectable/bool --manufacturer-data/ByteArray --service-classes/List:
+  constructor --duration/int --raw/ByteArray --device-address/ByteArray --device-name/string --rssi/int --connectable/bool --manufacturer-data/ByteArray --service-classes/List:
     duration_ = duration
+    raw_ = raw
     device-address_ = device-address
     device-name_ = device-name
     rssi_ = rssi
@@ -144,6 +146,7 @@ class BLEScanResult:
 
     return BLEScanResult
         --duration=0  // Not applicable for this constructor
+        --raw=device.data.to-raw or #[]
         --device-address=device.address-bytes or #[]
         --device-name=device-name
         --rssi=device.rssi
@@ -152,6 +155,7 @@ class BLEScanResult:
         --service-classes=service-uuids or []
 
   duration -> int: return duration_
+  raw -> ByteArray: return raw_
   device-address -> ByteArray: return device-address_
   device-name -> string: return device-name_
   rssi -> int: return rssi_
