@@ -14,9 +14,6 @@ import log
  * 3. Sending back BLE device seen responses for each discovered device
  */
 class BLEHandler implements MessageHandler:
-  static MESSAGE-TYPE := 56
-  static DURATION-HEADER-FIELD := 7
-  
   logger_/log.Logger
   device_/devices.Device
   comms_/any  // Reference to the comms instance for sending responses
@@ -33,7 +30,7 @@ class BLEHandler implements MessageHandler:
    */
   handle-message msg/protocol.Message -> bool:
     // Only handle BLE messages
-    if msg.type != MESSAGE-TYPE:
+    if msg.type != messages.BLEScan.MT:
       return false
     
     // Check if this is a GET request (scan request)
@@ -42,8 +39,8 @@ class BLEHandler implements MessageHandler:
       return false
     
     method := msg.header.data.get-data-uint protocol.Header.TYPE-MESSAGE-METHOD
-    if method != protocol.Header.METHOD-GET:
-      logger_.debug "BLE message with non-GET method: $method"
+    if method != protocol.Header.METHOD_SUBSCRIBE:
+      logger_.debug "BLE message with non-SUBSCRUBE method: $method"
       return false
     
     logger_.info "Handling BLE scan request"
@@ -68,8 +65,8 @@ class BLEHandler implements MessageHandler:
    * Returns default duration if not specified.
    */
   extract-scan-duration msg/protocol.Message -> int:
-    if msg.header.data.has-data DURATION-HEADER-FIELD:
-      duration := msg.header.data.get-data-uint DURATION-HEADER-FIELD
+    if msg.header.data.has-data protocol.Header.TYPE-SUBSCRIPTION-DURATION:
+      duration := msg.header.data.get-data-uint protocol.Header.TYPE-SUBSCRIPTION-DURATION
       logger_.debug "BLE scan duration from header: $(duration)ms"
       return duration
     else:
@@ -91,52 +88,39 @@ class BLEHandler implements MessageHandler:
       // Send a response for each device found
       scan-results.do: | result |
         send-device-response result request-msg-id
+
+      expired-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
+      expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
+      expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+      comms_.send expired-msg
       
       logger_.debug "All BLE device responses sent"
     
     if e:
+      error-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
+      error-msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
+      error-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+      comms_.send error-msg
       logger_.error "Error during BLE scan: $e"
   
   /**
    * Send a BLE device seen response for a discovered device.
    */
   send-device-response result request-msg-id/int:
-    // Extract device information
-    mac := result.formatted-address
+    mac-ba := result.device-address  // ByteArray
     rssi := result.rssi
-    device-name := result.device-name or ""
-    is-ibeacon := result.ibeacon-info != null
-    
-    // iBeacon specific data
-    major := 0
-    minor := 0
-    tx-power := 0
-    if is-ibeacon:
-      ibeacon := result.ibeacon-info
-      major = ibeacon["major"]
-      minor = ibeacon["minor"] 
-      tx-power = ibeacon["tx-power"]
-    
-    // Count services as sensor count
-    sensor-count := result.service-classes ? result.service-classes.size : 0
-    
-    // Create the response data
-    response-data := messages.BLEDevice.data 
-        --mac-address=mac
-        --rssi=rssi
-        --is-ibeacon=is-ibeacon
-        --device-name=device-name
-        --ibeacon-major=major
-        --ibeacon-minor=minor
-        --ibeacon-tx-power=tx-power
-        --sensor-count=sensor-count
-    
-    // Create response message
-    response-msg := messages.BLEDevice.response-msg 
-        --response-to-id=request-msg-id
-        --base-data=response-data
-    
+    advertising := result.manufacturer-data or #[]
+
+    response-data := messages.BLEScan.data
+      --advertising-data=advertising
+      --mac=mac-ba
+      --rssi=rssi
+
+    // Construct a protocol message and set response-to header so it ties back to the request.
+    response-msg := protocol.Message.with-data messages.BLEScan.MT response-data
+    response-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+
     // Send the response
-    comms_.send response-msg --now=true
-    
-    logger_.debug "Sent BLE device response for $(mac) (RSSI: $(rssi)dBm)"
+    comms_.send response-msg
+
+    logger_.debug "Sent BLE scan response for $(bytes.format-mac mac-ba) (RSSI: $(rssi)dBm)"
