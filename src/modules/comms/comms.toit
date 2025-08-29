@@ -62,7 +62,7 @@ class Comms:
 
     // Start with randomish numbers for msg and page id, incase we restarted but the STM didn't
     // TODO allow optional injection of an outbox?!
-    outbox_ = Channel 15
+    outbox_ = Channel 100
 
     heartbeats_ = CommsHeartbeats this logger_
     
@@ -400,6 +400,7 @@ class Comms:
       task --background=true:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
       
     // If the outbox is full, remove the oldest message, and add the new one
+    // XXX TODO or do we want to actually force send a bunch of them in this case?!
     if outbox_.size == outbox_.capacity:
       // TODO should cleanup the lambdas for the removed message, or wait for them to timeout?
       droppedMsg := outbox_.receive
