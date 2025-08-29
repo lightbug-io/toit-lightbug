@@ -90,7 +90,7 @@ class BLEHandler implements MessageHandler:
         send-device-response result request-msg-id
 
       expired-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
-      expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
+      expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
       expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
       comms_.send expired-msg
       
@@ -98,7 +98,7 @@ class BLEHandler implements MessageHandler:
     
     if e:
       error-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
-      error-msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
+      error-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
       error-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
       comms_.send error-msg
       logger_.error "Error during BLE scan: $e"
