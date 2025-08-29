@@ -2,6 +2,7 @@ import ...protocol as protocol
 import ...messages as messages
 import ...devices as devices
 import ..comms.message-handler show MessageHandler
+import ...util.bytes as bytes
 import log
 
 /**

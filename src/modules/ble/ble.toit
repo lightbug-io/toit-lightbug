@@ -1,6 +1,7 @@
 import ble
 import monitor
 import log
+import ...util.bytes as bytes
 
 /**
 BLE module for handling Bluetooth Low Energy scan operations.
@@ -162,16 +163,7 @@ class BLEScanResult:
   Formats the device address as a human-readable MAC address string.
   */
   formatted-address -> string:
-    // Handle the case where address might be 7 bytes long
-    start-index := device-address_.size > 6 ? 1 : 0
-    result := ""
-    
-    for i := start-index; i < device-address_.size and i < start-index + 6; i++:
-      if i > start-index:
-        result += ":"
-      result += "$(%02x device-address_[i])"
-    
-    return result
+    return bytes.format-mac device-address_
 
   /**
   Checks if this device has a specific service UUID.
