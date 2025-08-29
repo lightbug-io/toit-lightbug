@@ -55,6 +55,7 @@ abstract class LightbugDevice implements Device:
   static I2C-SDA := 6
   static I2C-SCL := 7
 
+  i2c-bus /i2c.Bus
   i2c-device_ /i2c.Device
   i2c-reader_ /Reader
   i2c-writer_ /Writer
@@ -77,7 +78,8 @@ abstract class LightbugDevice implements Device:
     strobe_ = strobe
     logger_ = logger
     open_ = open
-    i2c-device_ = LBI2CDevice --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
+    i2c-bus = LBI2CBus --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
+    i2c-device_ = LBI2CDevice i2c-bus
     i2c-reader_ = Reader i2c-device_ --logger=logger_
     i2c-writer_ = Writer i2c-device_ --logger=logger_
 

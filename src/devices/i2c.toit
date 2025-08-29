@@ -18,15 +18,18 @@ I2C-MAX-WRITABLE-BYTES := 2000
 
 I2C-WAIT-SLEEP := (Duration --ms=75)
 
-LBI2CDevice --sda/int --scl/int --frequency/int=100_000 -> i2c.Device:
-  bus := i2c.Bus
-    --sda=gpio.Pin sda
-    --scl=gpio.Pin scl
-    --frequency=frequency
-    --pull-up=true
+LBI2CBus --sda/int --scl/int --frequency/int=100_000 -> i2c.Bus:
+  b := i2c.Bus
+      --sda=gpio.Pin sda
+      --scl=gpio.Pin scl
+      --frequency=frequency
+      --pull-up=true
   // Space out bus init from any start of comms / usage
   // This could be done in a fancier way just making sure we don't send in the first 10ms or so instead..
   sleep --ms=10
+  return b
+
+LBI2CDevice bus/i2c.Bus-> i2c.Device:
   return bus.device I2C-ADDRESS-LIGHTBUG
 
 class Reader extends io.Reader:

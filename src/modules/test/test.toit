@@ -81,6 +81,18 @@ class TestModule:
       pinCS.set 1
       sleep --ms=250
 
+    // Enumerate I2C devices... (On RH2 only)
+    if device_ is devices.RtkHandheld2 and device_ is devices.LightbugDevice:
+      print "Enumerating I2C devices..."
+      device-with-i2c := device_ as devices.LightbugDevice
+      i2c-bus := device-with-i2c.i2c-bus
+      found-devices := i2c-bus.scan
+      if found-devices.size < 3:
+        print "❌ Not enough I2C devices found, got: $(found-devices.size), expected at least 3"
+        failed = true
+      else:
+        print "✅ Found $(found-devices.size) I2C devices"
+
     if failed:
       print "❌❌❌"
       print "Some tests failed."
