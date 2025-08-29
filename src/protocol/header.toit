@@ -8,6 +8,8 @@ class Header:
   static TYPE_MESSAGE_STATUS := 4         // Status of the message. If omitted, assume OK?
   static TYPE_MESSAGE_METHOD := 5         // Request a service to be perform an action
   static TYPE_SUBSCRIPTION_INTERVAL := 6  // Interval in ms for a subscription to be sent
+  static TYPE_SUBSCRIPTION_DURATION := 7
+  static TYPE_SUBSCRIPTION_TIMEOUT := 8
   static TYPE_FORWARDED_FOR_TYPE := 9
   static TYPE_FORWARDED_FOR := 10         // ID of the client sending the original message that is being forwarded
   static TYPE_FORWARDED_RSSI := 11        // RSSI of forwarded message

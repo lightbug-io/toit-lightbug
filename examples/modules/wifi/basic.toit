@@ -18,17 +18,12 @@ main:
 
   print "WiFi scan example completed"
 
-// Use shared MAC formatting helper.
-
 print-scan-result ap:
-  // Safely attempt to read SSID, MAC and RSSI from the access-point object.
   ssid := "<unknown>"
   mac := "<unknown>"
   rssi := "<unknown>"
 
   e := catch:
-    // Use the canonical AccessPoint fields from net/wifi.AccessPoint.
-    // According to net/wifi.toit, AccessPoint has: ssid/string, bssid/ByteArray, rssi/int
     ssid = ap.ssid
     mac = bytes.format-mac ap.bssid
     rssi = ap.rssi

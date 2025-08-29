@@ -84,6 +84,9 @@ class Data:
     LITTLE-ENDIAN.put-uint32 b 0 data
     add-data dataType b
 
+  add-data-int8 dataType/int data/int -> none:
+    add-data dataType #[data]
+
   add-data-int32 dataType/int data/int -> none:
     b := #[0,0,0,0]
     LITTLE-ENDIAN.put-int32 b 0 data

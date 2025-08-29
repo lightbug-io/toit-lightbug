@@ -1,5 +1,5 @@
 import lightbug.modules.wifi.handler show WiFiHandler
-import lightbug.messages show WiFiAP
+import lightbug.messages show WiFiScan
 import lightbug.protocol as protocol
 import log
 
@@ -37,7 +37,7 @@ main:
   comms := FakeComms
   handler := WiFiHandler device comms
 
-  req := WiFiAP.get-msg --duration=1500
+  req := WiFiScan.subscribe-msg --duration=1500
   req.with-random-msg-id
   print "Request: $(req.stringify)"
   handler.handle-message req

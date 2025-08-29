@@ -14,8 +14,8 @@ import ...util.bytes as bytes
  * responses for each discovered access point.
  */
 class WiFiHandler implements MessageHandler:
-  static MESSAGE-TYPE := 57
-  static DURATION-HEADER-FIELD := 7
+  static MESSAGE-TYPE := messages.WiFiScan.MT
+  static DURATION-HEADER-FIELD := protocol.Header.TYPE-SUBSCRIPTION-DURATION
 
   logger_/log.Logger
   device_/any
@@ -35,11 +35,11 @@ class WiFiHandler implements MessageHandler:
       return false
 
     method := msg.header.data.get-data-uint protocol.Header.TYPE-MESSAGE-METHOD
-    if method != protocol.Header.METHOD-GET:
-      logger_.debug "WiFi message with non-GET method: $method"
+    if method != protocol.Header.METHOD-SUBSCRIBE:
+      logger_.debug "WiFi message with non-SUBSCRIBE method: $method"
       return false
 
-    logger_.info "Handling WiFi scan request"
+    logger_.info "Handling WiFi scan subscription"
 
     duration := extract-scan-duration msg
 
@@ -80,7 +80,6 @@ class WiFiHandler implements MessageHandler:
       logger_.error "Error during WiFi scan: $e"
 
   send-ap-response ap request-msg-id/int:
-    // AccessPoint according to net/wifi: ssid/string, bssid/ByteArray, rssi/int, channel/int
     ssid := ap.ssid
     if not ssid: ssid = ""
 
@@ -93,16 +92,16 @@ class WiFiHandler implements MessageHandler:
     channel := 0
     if ap.channel: channel = ap.channel
 
-    mac := bytes.format-mac bssid
-
-    response-data := messages.WiFiAP.data
+    response-data := messages.WiFiScan.data
         --ssid=ssid
-        --bssid=mac
+        --mac=bssid
         --rssi=rssi
         --channel=channel
 
-    response-msg := messages.WiFiAP.response-msg --response-to-id=request-msg-id --base-data=response-data
+    response-msg := protocol.Message.with-data messages.WiFiScan.MT response-data
+    response-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
 
     comms_.send response-msg --now=true
 
+    mac := bytes.format-mac bssid
     logger_.debug "Sent WiFi AP response for $(ssid) (BSSID: $(mac) RSSI: $(rssi)dBm)"
