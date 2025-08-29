@@ -6,6 +6,7 @@ import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
+import ..modules.wifi
 
 // ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
 // UART0 GPIO17 (RX) GPIO16 (TX) Defaults
@@ -25,6 +26,7 @@ class GenericUart implements Device:
   comms_ /Comms? := null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
+  wifi_ /WiFi? := null
   open_ /bool
 
   constructor --port/uart.Port --open/bool=true:
@@ -49,6 +51,10 @@ class GenericUart implements Device:
     if not ble_:
       ble_ = BLE
     return ble_
+  wifi -> WiFi:
+    if not wifi_:
+      wifi_ = WiFi
+    return wifi_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

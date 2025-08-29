@@ -10,6 +10,7 @@ import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
 import ..modules.ble.handler show BLEHandler
+import ..modules.wifi
 import ..util.backoff as backoff
 
 /*
@@ -26,6 +27,8 @@ interface Device extends HasInOut:
   buttons -> Buttons
   // BLE scanning service for this device
   ble -> BLE
+  // WiFi scanning service for this device
+  wifi -> WiFi
   // Reinit the device and communications
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
@@ -62,6 +65,7 @@ abstract class LightbugDevice implements Device:
   comms_ /Comms? := null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
+  wifi_ /WiFi? := null
   open_ /bool
 
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
@@ -97,6 +101,10 @@ abstract class LightbugDevice implements Device:
     if not ble_:
       ble_ = BLE
     return ble_
+  wifi -> WiFi:
+    if not wifi_:
+      wifi_ = WiFi
+    return wifi_
   messages-supported -> List:
     return []
   messages-not-supported -> List:

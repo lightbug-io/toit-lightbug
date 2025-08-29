@@ -6,12 +6,14 @@ import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
+import ..modules.wifi
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
   comms_ /Comms? := null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
+  wifi_ /WiFi? := null
   open_ /bool
 
   constructor --open/bool=true:
@@ -35,6 +37,10 @@ class Fake implements Device:
     if not ble_:
       ble_ = BLE
     return ble_
+  wifi -> WiFi:
+    if not wifi_:
+      wifi_ = WiFi
+    return wifi_
   messages-supported -> List:
     return []
   messages-not-supported -> List:
