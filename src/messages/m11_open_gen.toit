@@ -6,6 +6,8 @@ class Open extends protocol.Data:
   static MT := 11
   static MT_NAME := "Open"
 
+  static DEVICE-TYPE := 10
+
   constructor:
     super
 
@@ -20,7 +22,10 @@ class Open extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
+  static data --device-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
+    if device-type != null: data.add-data-uint DEVICE-TYPE device-type
+    return data
 
   /**
   Creates a Open message without a specific method.
@@ -36,6 +41,13 @@ class Open extends protocol.Data:
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+    Type of device, relates to the SN prefix
+  */
+  device-type -> int:
+    return get-data-uint DEVICE-TYPE
+
   stringify -> string:
     return {
+      "Device Type": device-type,
     }.stringify

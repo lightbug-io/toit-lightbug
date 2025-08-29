@@ -39,6 +39,7 @@ class DeviceStatus extends protocol.Data:
   static NETWORK-MNC := 5
   static NETWORK-MCC := 6
   static FIRMWARE-VERSION := 7
+  static DEVICE-TYPE := 10
 
   constructor:
     super
@@ -54,7 +55,7 @@ class DeviceStatus extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --battery/int?=null --signal-strength/int?=null --mode/int?=null --network-type/int?=null --network-mnc/int?=null --network-mcc/int?=null --firmware-version/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --battery/int?=null --signal-strength/int?=null --mode/int?=null --network-type/int?=null --network-mnc/int?=null --network-mcc/int?=null --firmware-version/int?=null --device-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if battery != null: data.add-data-uint BATTERY battery
     if signal-strength != null: data.add-data-uint SIGNAL-STRENGTH signal-strength
@@ -63,6 +64,7 @@ class DeviceStatus extends protocol.Data:
     if network-mnc != null: data.add-data-uint NETWORK-MNC network-mnc
     if network-mcc != null: data.add-data-uint NETWORK-MCC network-mcc
     if firmware-version != null: data.add-data-uint FIRMWARE-VERSION firmware-version
+    if device-type != null: data.add-data-uint DEVICE-TYPE device-type
     return data
 
   /**
@@ -129,6 +131,12 @@ class DeviceStatus extends protocol.Data:
   firmware-version -> int:
     return get-data-uint FIRMWARE-VERSION
 
+  /**
+    Type of device, relates to the SN prefix
+  */
+  device-type -> int:
+    return get-data-uint DEVICE-TYPE
+
   stringify -> string:
     return {
       "Battery": battery,
@@ -138,4 +146,5 @@ class DeviceStatus extends protocol.Data:
       "Network MNC": network-mnc,
       "Network MCC": network-mcc,
       "Firmware Version": firmware-version,
+      "Device Type": device-type,
     }.stringify
