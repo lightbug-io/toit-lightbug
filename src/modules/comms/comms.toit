@@ -219,9 +219,20 @@ class Comms:
         inbox.send msg
 
     // Find waiting lambdas, based on the response
-    if msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID:
+    isResponse := msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
+    isAck := msg.header.message-type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
+
+    // Ack messages that are not a response or an ack
+    // In the future, we likely want to push some of the ack decisions, and types of ack to the message handlers (when defined?!)
+    if not isResponse and not isAck:
+      // ACK these messages...
+      ack-msg := messages.ACK.msg --data=null
+      ack-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID msg.msgId
+      ack-msg.header.data.add-data-uint32 protocol.Header.TYPE_MESSAGE_STATUS protocol.Header.STATUS_OK
+      send-via-outbox ack-msg
+
+    if isResponse:
       respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
-      isAck := msg.header.message-type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
       isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
       lambda := null
       if isAck:
