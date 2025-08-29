@@ -10,6 +10,7 @@ import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
 import ..modules.ble.handler show BLEHandler
+import ..modules.wifi.handler show WiFiHandler
 import ..modules.wifi
 import ..util.backoff as backoff
 
@@ -94,6 +95,8 @@ abstract class LightbugDevice implements Device:
           --open=open_
       // Auto-register BLE handler for all devices with BLE support
       auto-register-ble-handler_
+      // Auto-register WiFi handler for all devices with WiFi support
+      auto-register-wifi-handler_
     return comms_
   buttons -> Buttons:
     if not buttons_:
@@ -150,3 +153,11 @@ abstract class LightbugDevice implements Device:
       logger_.debug "Auto-registered BLE message handler"
     if e:
       logger_.warn "Failed to register BLE handler: $e"
+
+  auto-register-wifi-handler_:
+    e := catch:
+      wifi-handler := WiFiHandler this comms_
+      comms_.register-handler wifi-handler
+      logger_.debug "Auto-registered WiFi message handler"
+    if e:
+      logger_.warn "Failed to register WiFi handler: $e"
