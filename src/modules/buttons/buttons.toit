@@ -145,7 +145,7 @@ class Buttons:
 
     // Send subscription message.
     // TODO XXX: Is --ms actually needed for button subscriptions?
-    comms_.send (messages.ButtonPress.subscribe-msg --ms=1000) --now=true
+    comms_.send (messages.ButtonPress.subscribe-msg --duration=1000) --now=true
         --onAck=(:: 
           subscribed_ = true
           // TODO XXX: Should we always start listening even if no ACK?

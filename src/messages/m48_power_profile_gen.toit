@@ -30,11 +30,16 @@ class PowerProfile extends protocol.Data:
     return data
 
   // Subscribe to a message with an optional interval in milliseconds
-  static subscribe-msg --ms/int -> protocol.Message:
+  static subscribe-msg --interval/int?=null --duration/int?=null --timeout/int?=null -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
+    // Subscription header options - only add when provided
+    if interval != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL interval
+    if duration != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-DURATION duration
+    if timeout != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-TIMEOUT timeout
     return msg
 
   /**

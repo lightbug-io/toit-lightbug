@@ -51,12 +51,25 @@ class SatelliteData extends protocol.Data:
     if galileo-lx != null: data.add-data GALILEO-LX galileo-lx
     return data
 
+  /**
+  Creates a GET Request message for Satellite Data.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
+
   // Subscribe to a message with an optional interval in milliseconds
-  static subscribe-msg --ms/int -> protocol.Message:
+  static subscribe-msg --interval/int?=null --duration/int?=null --timeout/int?=null -> protocol.Message:
     msg := protocol.Message MT
     msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
-    if ms != null:
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL ms
+    // Subscription header options - only add when provided
+    if interval != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL interval
+    if duration != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-DURATION duration
+    if timeout != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-TIMEOUT timeout
     return msg
 
   /**
@@ -66,14 +79,6 @@ class SatelliteData extends protocol.Data:
   */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
-
-  /**
-  Creates a GET Request message for Satellite Data.
-  
-  Returns: A Message ready to be sent
-  */
-  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     Average signal-to-noise ratio across all satellites
