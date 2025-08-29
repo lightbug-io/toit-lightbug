@@ -39,8 +39,8 @@ class TestModule:
 
     // Test the WiFi...
     print "Testing WiFi"
-    print "Performing WiFi scan for 2s..."
-    wifi-results := device_.wifi.scan --duration=2000
+    print "Performing WiFi scan for 3s..."
+    wifi-results := device_.wifi.scan --duration=3000
     if wifi-results.size <= 0:
       print "❌ No WiFi networks found."
       failed = true
