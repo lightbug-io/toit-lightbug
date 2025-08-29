@@ -126,7 +126,8 @@ abstract class LightbugDevice implements Device:
           logger_.warn "Lightbug I2C: Reinitialization attempt failed: $error"
         )
         --initial-delay=(Duration --ms=50)
-        --backoff-factor=2.0:
+        --backoff-factor=2.0
+        --max-delay=(Duration --s=1):
         i2c-device_.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
     
     if e:
