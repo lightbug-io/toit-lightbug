@@ -33,6 +33,16 @@ class TestModule:
     else:
       print "✅ Found $(scan-results.size) BLE devices"
 
+    // Test the WiFi...
+    print "Testing WiFi"
+    print "Performing WiFi scan for 2s..."
+    wifi-results := device_.wifi.scan --duration=2000
+    if wifi-results.size <= 0:
+      print "❌ No WiFi networks found."
+      failed = true
+    else:
+      print "✅ Found $(wifi-results.size) WiFi networks"
+
     if failed:
       print "❌❌❌"
       print "Some tests failed."
