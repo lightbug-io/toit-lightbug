@@ -28,7 +28,8 @@ class Header:
   static STATUS_NOT_SUPPORTED /int ::= 7
   static STATUS_FAILED_WILL_RETRY /int ::= 8
   static STATUS_FAILED_PERMANENTLY /int ::= 9
-  static STATUS_UNKNOWN_MESSAGE /int ::= 10
+  static STATUS_ABANDONED /int ::= 10
+  static STATUS_EXPIRED /int ::= 11
 
   static STATUS_MAP /Map := {
     // null: "null", // TODO ask toit to fix this, as null cannot be .geted
@@ -42,7 +43,8 @@ class Header:
     STATUS_NOT_SUPPORTED: "Not supported",
     STATUS_FAILED_WILL_RETRY: "Failed, will retry",
     STATUS_FAILED_PERMANENTLY: "Failed permanently",
-    STATUS_UNKNOWN_MESSAGE: "Unknown message",
+    STATUS_ABANDONED: "Abandoned",
+    STATUS_EXPIRED: "Expired"
   }
 
   // For use with TYPE_MESSAGE_METHOD
