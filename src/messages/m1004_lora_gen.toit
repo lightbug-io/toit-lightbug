@@ -59,20 +59,12 @@ class LORA extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-  Creates a UNSUBSCRIBE Request message for LORA.
+  Creates a DO Request message for LORA.
   
   Returns: A Message ready to be sent
   */
-  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
-
-  /**
-  Creates a SET Request message for LORA.
-  
-  Returns: A Message ready to be sent
-  */
-  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
+  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
 
   /**
   Creates a GET Request message for LORA.
@@ -83,12 +75,12 @@ class LORA extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-  Creates a DO Request message for LORA.
+  Creates a SET Request message for LORA.
   
   Returns: A Message ready to be sent
   */
-  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   // Subscribe to a message with an optional interval in milliseconds
   static subscribe-msg --interval/int?=null --duration/int?=null --timeout/int?=null -> protocol.Message:
@@ -102,6 +94,14 @@ class LORA extends protocol.Data:
     if timeout != null:
       msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-TIMEOUT timeout
     return msg
+
+  /**
+  Creates a UNSUBSCRIBE Request message for LORA.
+  
+  Returns: A Message ready to be sent
+  */
+  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
     Payload
