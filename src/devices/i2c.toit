@@ -3,6 +3,7 @@ import i2c
 import io
 import log
 import io.byte-order show LITTLE-ENDIAN
+import ..util.backoff as backoff
 
 I2C-ADDRESS-LIGHTBUG := 0x1b
 
@@ -44,12 +45,20 @@ class Reader extends io.Reader:
   */
   read_ -> ByteArray?:
     b := #[]
+    data := b
     e := catch:
-      return read-inner_ b
+      backoff.do-with-backoff
+        --onError=(:: |error|
+          logger_.error "Error reading from device: $error, got $b.size bytes, will retry"
+        )
+        --initial-delay=I2C-WAIT-SLEEP
+        --backoff-factor=2.0
+        --max-delay=(Duration --s=4):
+        data = read-inner_ b
     if e:
-      logger_.error "Error reading from device: $e, got $b.size bytes, sleeping for $I2C-WAIT-SLEEP before retrying"
-      sleep I2C-WAIT-SLEEP
-    return b
+      logger_.error "Lightbug I2C: Failed to read after backoff: $e"
+      return b
+    return data
 
   read-inner_ all/ByteArray -> ByteArray?:
     // logger_.debug "calling read_ in LB Reader for i2c"
@@ -115,12 +124,20 @@ class Writer extends io.Writer:
   */
   try-write_ data/io.Data from/int to/int -> int:
     written := 0
+    result /int := 0
     e := catch:
-      return try-write-inner_ data from to written
+      backoff.do-with-backoff
+        --onError=(:: |error|
+          logger_.error "Error writing to device: $error, wrote $written bytes, will retry"
+        )
+        --initial-delay=I2C-WAIT-SLEEP
+        --backoff-factor=2.0
+        --max-delay=(Duration --s=4):
+        result = try-write-inner_ data from to written
     if e:
-      logger_.error "Error writing to device: $e, wrote $written bytes, sleeping for $I2C-WAIT-SLEEP before retrying"
-      sleep I2C-WAIT-SLEEP
-    return written
+      logger_.error "Lightbug I2C: Failed to write after backoff: $e"
+      return written
+    return result
 
   try-write-inner_ data/io.Data from/int to/int written/int -> int:
     bytes/ByteArray := ?
