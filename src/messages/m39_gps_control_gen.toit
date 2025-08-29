@@ -57,6 +57,30 @@ class GPSControl extends protocol.Data:
     return data
 
   /**
+  Creates a SET Request message for GPS Control.
+  
+  Parameters:
+  - start-mode: Start mode of the GPS module. (valid values: Normal, Cold, Warm, Hot)
+  - corrections-enabled: Request and apply correction data to the GPS, such as RTK. (valid values: Disabled, Full RTCM stream)
+  
+  Returns: A Message ready to be sent
+  */
+  static set-msg -> protocol.Message
+      --start-mode/int?=null
+      --corrections-enabled/int?=null
+      --base-data/protocol.Data?=protocol.Data:
+    data-obj := data --start-mode=start-mode --corrections-enabled=corrections-enabled --base-data=base-data
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET data-obj
+
+  /**
+  Creates a SET Response message for GPS Control.
+  
+  Returns: A Message ready to be sent
+  */
+  static set-msg-response --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
+
+  /**
   Creates a GET Request message for GPS Control.
   
   Returns: A Message ready to be sent
@@ -77,30 +101,6 @@ class GPSControl extends protocol.Data:
       --base-data/protocol.Data?=protocol.Data:
     data-obj := data --corrections-enabled=corrections-enabled --base-data=base-data
     return protocol.Message.with-method MT protocol.Header.METHOD-GET data-obj
-
-  /**
-  Creates a SET Request message for GPS Control.
-  
-  Parameters:
-  - corrections-enabled: Request and apply correction data to the GPS, such as RTK. (valid values: Disabled, Full RTCM stream)
-  - start-mode: Start mode of the GPS module. (valid values: Cold, Warm, Hot, Normal)
-  
-  Returns: A Message ready to be sent
-  */
-  static set-msg -> protocol.Message
-      --corrections-enabled/int?=null
-      --start-mode/int?=null
-      --base-data/protocol.Data?=protocol.Data:
-    data-obj := data --corrections-enabled=corrections-enabled --start-mode=start-mode --base-data=base-data
-    return protocol.Message.with-method MT protocol.Header.METHOD-SET data-obj
-
-  /**
-  Creates a SET Response message for GPS Control.
-  
-  Returns: A Message ready to be sent
-  */
-  static set-msg-response --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
     Status of the GPS, is it on?

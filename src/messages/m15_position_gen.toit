@@ -65,14 +65,6 @@ class Position extends protocol.Data:
   */
   static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
 
-  /**
-  Creates a GET Request message for Position.
-  
-  Returns: A Message ready to be sent
-  */
-  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
-
   // Subscribe to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
     msg := protocol.Message MT
@@ -88,6 +80,14 @@ class Position extends protocol.Data:
   */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
+
+  /**
+  Creates a GET Request message for Position.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   // [parser: timestamp]
   timestamp -> Time:

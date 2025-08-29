@@ -30,20 +30,20 @@ class GSMRequestOwnership extends protocol.Data:
     return data
 
   /**
-  Creates a GET Request message for GSM Request Ownership.
-  
-  Returns: A Message ready to be sent
-  */
-  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
-
-  /**
   Creates a SET Request message for GSM Request Ownership.
   
   Returns: A Message ready to be sent
   */
   static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
+
+  /**
+  Creates a GET Request message for GSM Request Ownership.
+  
+  Returns: A Message ready to be sent
+  */
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
     in mins

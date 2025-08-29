@@ -59,12 +59,12 @@ class LORA extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-  Creates a DO Request message for LORA.
+  Creates a SET Request message for LORA.
   
   Returns: A Message ready to be sent
   */
-  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
   Creates a GET Request message for LORA.
@@ -75,12 +75,12 @@ class LORA extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-  Creates a SET Request message for LORA.
+  Creates a DO Request message for LORA.
   
   Returns: A Message ready to be sent
   */
-  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
+  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
 
   // Subscribe to a message with an optional interval in milliseconds
   static subscribe-msg --ms/int -> protocol.Message:
