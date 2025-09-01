@@ -53,16 +53,17 @@ create-text-page-data page-id/int page-title/string line1/string line2/string ->
   data.add-data-string messages.TextPage.LINE-2 line2
   return data
 
-// Helper function to create DrawBitmap data
+// Helper function to create DrawElement bitmap data
 create-draw-bitmap-data page-id/int bitmap-data/ByteArray bitmap-height/int bitmap-width/int x/int=0 y/int=0 redraw-type/int=0 -> protocol.Data:
   data := protocol.Data
-  data.add-data-uint messages.DrawBitmap.PAGE-ID page-id
-  data.add-data-uint messages.DrawBitmap.REDRAW-TYPE redraw-type
-  data.add-data-uint messages.DrawBitmap.X x
-  data.add-data-uint messages.DrawBitmap.Y y
-  data.add-data-uint messages.DrawBitmap.WIDTH bitmap-width
-  data.add-data-uint messages.DrawBitmap.HEIGHT bitmap-height
-  data.add-data messages.DrawBitmap.BITMAP bitmap-data
+  data.add-data-uint messages.DrawElement.PAGE-ID page-id
+  data.add-data-uint messages.DrawElement.REDRAW-TYPE redraw-type
+  data.add-data-uint messages.DrawElement.X x
+  data.add-data-uint messages.DrawElement.Y y
+  data.add-data-uint messages.DrawElement.WIDTH bitmap-width
+  data.add-data-uint messages.DrawElement.HEIGHT bitmap-height
+  data.add-data-uint messages.DrawElement.TYPE messages.DrawElement.TYPE_BITMAP
+  data.add-data messages.DrawElement.BITMAP bitmap-data
   return data
 
 // Helper function to create HapticsControl data
@@ -127,10 +128,10 @@ sample-messages := {
       "$(messages.Position.MT) Last Position": (messages.Position.get-msg).bytes-for-protocol,
     },
     "Screen": {
-        "$(messages.PresetPage.MT) Home page": messages.PresetPage.msg.bytes-for-protocol,
+        "$(messages.BasePage.MT) Home page": messages.BasePage.msg.bytes-for-protocol,
         "$(messages.MenuPage.MT) Menu 3 items": (messages.MenuPage.msg --data=(create-menu-page-data 101 ["Option 1", "Option 2", "Option 3"])).bytes-for-protocol,
         "$(messages.TextPage.MT) Text page": (messages.TextPage.msg --data=(create-text-page-data 102 "Page 101" "First Line" "Second Line")).bytes-for-protocol,
-        "$(messages.DrawBitmap.MT) Lightbug Logo": (messages.DrawBitmap.msg --data=(create-draw-bitmap-data 103 lightbug-40-40 40 40 0 0 0)).bytes-for-protocol,
+        "$(messages.DrawElement.MT) Lightbug Logo": (messages.DrawElement.msg --data=(create-draw-bitmap-data 103 lightbug-40-40 40 40 0 0 0)).bytes-for-protocol,
     },
     "$(messages.HapticsControl.MT) Haptics": {
         "Pattern 1 low intensity": (messages.HapticsControl.msg --data=(create-haptics-control-data 1 1)).bytes-for-protocol,

@@ -10,10 +10,13 @@ main:
   print "💬 Sending a menu to the device"
   device.comms.send (messages.MenuPage.msg
     --data=(messages.MenuPage.data
-      // --redraw-type=messages.MenuPage.REDRAW-TYPE_FULLREDRAW
-      --item-count=3
-      --initial-item-selection=3
+      --page-id=(random 10 255)
+      --item-count=4
+      --selected-item=3
       --item-1="Option 1"
       --item-2="Option 2"
-      --item-3="Option 3"))
-    --now=true
+      --item-3="Option 3"
+      --item-4="Option 4"))
+  
+  while true:
+    sleep --ms=10000

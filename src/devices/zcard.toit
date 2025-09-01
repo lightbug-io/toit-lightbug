@@ -23,10 +23,10 @@ ZCARD-MESSAGES := [
     Alarm.MT,
     LinkControl.MT,
     LORA.MT,
-    PresetPage.MT,
+    BasePage.MT,
     TextPage.MT,
     MenuPage.MT,
-    DrawBitmap.MT,
+    DrawElement.MT,
     // TODO change button press
 ]
 

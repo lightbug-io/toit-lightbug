@@ -8,7 +8,7 @@ class TextPage extends protocol.Data:
 
   static PAGE-ID := 3
   static PAGE-TITLE := 4
-  static STATUS-BAR := 5
+  static STATUS-BAR-ENABLE := 5
   static REDRAW-TYPE := 6
   static REDRAW-TYPE_AUTO := 0
   static REDRAW-TYPE_PARTIALREDRAW := 1
@@ -49,11 +49,11 @@ class TextPage extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --page-id/int?=null --page-title/string?=null --status-bar/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --line-5/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --page-id/int?=null --page-title/string?=null --status-bar-enable/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --line-5/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if page-title != null: data.add-data-ascii PAGE-TITLE page-title
-    if status-bar != null: data.add-data-bool STATUS-BAR status-bar
+    if status-bar-enable != null: data.add-data-bool STATUS-BAR-ENABLE status-bar-enable
     if redraw-type != null: data.add-data-uint REDRAW-TYPE redraw-type
     if line-1 != null: data.add-data-ascii LINE-1 line-1
     if line-2 != null: data.add-data-ascii LINE-2 line-2
@@ -91,8 +91,8 @@ class TextPage extends protocol.Data:
   /**
     Show the status bar
   */
-  status-bar -> bool:
-    return get-data-bool STATUS-BAR
+  status-bar-enable -> bool:
+    return get-data-bool STATUS-BAR-ENABLE
 
   /**
     Redraw Type
@@ -142,7 +142,7 @@ class TextPage extends protocol.Data:
     return {
       "Page ID": page-id,
       "Page Title": page-title,
-      "Status bar": status-bar,
+      "Status bar Enable": status-bar-enable,
       "Redraw Type": redraw-type,
       "Line 1": line-1,
       "Line 2": line-2,

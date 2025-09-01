@@ -110,7 +110,7 @@ mainLoop:
       throw "📟❌ Failed to turn on RTK"
   
   // Subscribe to location data
-  if not ( io.send (messages.Position.subscribe-msg --ms=500) --now=true
+  if not ( io.send (messages.Position.subscribe-msg --interval=500) --now=true
               --preSend=(:: logger.info "📟💬 Sending location subscribe")
               --onAck=(:: logger.info "📟✅ Location subscribe")
               --onNack=(:: if it.msg-status != null: logger.warn "Location not yet subscribed, state: $(it.msg-status)" else: logger.warn "Location not yet subscribed" )
@@ -227,8 +227,9 @@ mainLoop:
   throw "Main loop exited unexpectedly"
 
 drawPresetNow:
-  presetPageMsg := messages.PresetPage.msg
-  presetPageMsg.data.add-data-uint8 3 1 // page-id -> home page
+  data := protocol.Data
+  data.add-data-uint8 3 1 // page-id -> home page
+  presetPageMsg := messages.BasePage.msg --data=data
   if not ( io.send presetPageMsg --now=true
               --preSend=(:: logger.info "📟💬 Requesting preset page")
               --onAck=(:: logger.info "📟✅ Preset page")

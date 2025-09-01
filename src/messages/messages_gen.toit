@@ -30,9 +30,9 @@ import .m54_charger_settings_gen show ChargerSettings
 import .m55_wifi_scan_gen show WiFiScan
 import .m56_ble_scan_gen show BLEScan
 import .m1004_lora_gen show LORA
-import .m10008_preset_page_gen show PresetPage
+import .m10008_base_page_gen show BasePage
 import .m10009_text_page_gen show TextPage
 import .m10010_menu_page_gen show MenuPage
-import .m10011_draw_bitmap_gen show DrawBitmap
+import .m10011_draw_element_gen show DrawElement
 
 export *

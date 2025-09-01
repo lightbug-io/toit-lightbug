@@ -388,6 +388,7 @@ class Comms:
       logger_.with-level log.DEBUG-LEVEL:
         logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
+      // TODO: It might be nice to allow the outbox to dedeuplicate messages sometimes?
       send-via-outbox msg
       logger_.with-level log.DEBUG-LEVEL:
         logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"

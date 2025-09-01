@@ -1,12 +1,13 @@
 import ..protocol as protocol
 
 // Auto generated class for protocol message
-class DrawBitmap extends protocol.Data:
+class BasePage extends protocol.Data:
 
-  static MT := 10011
-  static MT_NAME := "DrawBitmap"
+  static MT := 10008
+  static MT_NAME := "BasePage"
 
   static PAGE-ID := 3
+  static STATUS-BAR-ENABLE := 5
   static REDRAW-TYPE := 6
   static REDRAW-TYPE_AUTO := 0
   static REDRAW-TYPE_PARTIALREDRAW := 1
@@ -27,11 +28,6 @@ class DrawBitmap extends protocol.Data:
   static redraw-type-from-int value/int -> string:
     return REDRAW-TYPE_STRINGS.get value --if-absent=(: "unknown")
 
-  static X := 7
-  static Y := 8
-  static WIDTH := 9
-  static HEIGHT := 10
-  static BITMAP := 25
 
   constructor:
     super
@@ -47,19 +43,15 @@ class DrawBitmap extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --page-id/int?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
+    if status-bar-enable != null: data.add-data-bool STATUS-BAR-ENABLE status-bar-enable
     if redraw-type != null: data.add-data-uint REDRAW-TYPE redraw-type
-    if x != null: data.add-data-uint X x
-    if y != null: data.add-data-uint Y y
-    if width != null: data.add-data-uint WIDTH width
-    if height != null: data.add-data-uint HEIGHT height
-    if bitmap != null: data.add-data BITMAP bitmap
     return data
 
   /**
-  Creates a Draw Bitmap message without a specific method.
+  Creates a Base Page message without a specific method.
   
   This is used for messages that don't require a specific method type
   (like GET, SET, SUBSCRIBE) but still need to carry data.
@@ -79,6 +71,12 @@ class DrawBitmap extends protocol.Data:
     return get-data-uint PAGE-ID
 
   /**
+    Show the status bar
+  */
+  status-bar-enable -> bool:
+    return get-data-bool STATUS-BAR-ENABLE
+
+  /**
     Redraw Type
     
     Valid values:
@@ -92,43 +90,9 @@ class DrawBitmap extends protocol.Data:
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE
 
-  /**
-    X coordinate for the start of the bitmap
-  */
-  x -> int:
-    return get-data-uint X
-
-  /**
-    Y coordinate for the start of the bitmap
-  */
-  y -> int:
-    return get-data-uint Y
-
-  /**
-    Width of the bitmap
-  */
-  width -> int:
-    return get-data-uint WIDTH
-
-  /**
-    Height of the bitmap
-  */
-  height -> int:
-    return get-data-uint HEIGHT
-
-  /**
-    Bitmap
-  */
-  bitmap -> ByteArray:
-    return get-data BITMAP
-
   stringify -> string:
     return {
       "Page ID": page-id,
+      "Status bar Enable": status-bar-enable,
       "Redraw Type": redraw-type,
-      "X": x,
-      "Y": y,
-      "Width": width,
-      "Height": height,
-      "Bitmap": bitmap,
     }.stringify

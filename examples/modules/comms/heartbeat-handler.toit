@@ -5,6 +5,19 @@ import lightbug.modules.strobe.strobe show Strobe
 import lightbug.protocol as protocol
 import log
 
+main:
+  device := devices.RtkHandheld2
+
+  heartbeat-handler := HeartbeatHandler --strobe=device.strobe
+  device.comms.register-handler heartbeat-handler
+
+  print "Heartbeat handler registered - will show 💓 for each heartbeat"
+  print "Device will send heartbeats automatically..."
+
+  while true:
+    sleep --ms=11000
+    print "Still listening for heartbeats... (💓 count: $(heartbeat-handler.heartbeat-count))"
+
 /**
  * Example message handler that prints a heart emoji when heartbeat messages are received.
  * Demonstrates how to create and register a custom message handler.
@@ -19,13 +32,12 @@ class HeartbeatHandler implements MessageHandler:
     strobe_ = strobe
 
   /**
-   * Handle incoming messages - look for heartbeats (message type 13).
+   * Handle incoming messages - look for heartbeats
    */
   handle-message msg/protocol.Message -> bool:
-    if msg.type == 13:  // Heartbeat message type
+    if msg.type == messages.Heartbeat.MT:
       heartbeat-count_++
       print "💓 Heartbeat #$heartbeat-count_ received!"
-      logger_.debug "Heartbeat message handled"
       strobe_.red
       sleep --ms=50
       strobe_.off
@@ -38,15 +50,4 @@ class HeartbeatHandler implements MessageHandler:
   heartbeat-count -> int:
     return heartbeat-count_
 
-main:
-  device := devices.RtkHandheld2
-
-  heartbeat-handler := HeartbeatHandler --strobe=device.strobe
-  device.comms.register-handler heartbeat-handler
-
-  print "Heartbeat handler registered - will show 💓 for each heartbeat"
-  print "Device will send heartbeats automatically..."
-
-  while true:
-    sleep --ms=11000
-    print "Still listening for heartbeats... (💓 count: $(heartbeat-handler.heartbeat-count))"
+lineMsg:

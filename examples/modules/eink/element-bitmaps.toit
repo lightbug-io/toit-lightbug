@@ -12,27 +12,34 @@ main:
   device := devices.RtkHandheld2
   
   print "💬 Sending bitmap logo to device screen"
+  page := (random 10 255)
   
   print "📷 Drawing 40x40 logo at (0,0) top left"
-  device.comms.send (messages.DrawBitmap.msg
-    --data=(messages.DrawBitmap.data
-      --page-id=1234
-      --redraw-type=messages.DrawBitmap.REDRAW-TYPE_FULLREDRAW
+  device.comms.send (messages.DrawElement.msg
+    --data=(messages.DrawElement.data
+      --page-id=page
+      --status-bar-enable=false
+      --redraw-type=messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW
       --x=0
       --y=0
       --width=40
       --height=40
+      --type=messages.DrawElement.TYPE_BITMAP
       --bitmap=lightbug-40-40))
-    --now=true
 
   print "📷 Drawing a second 40x40 logo at (210,0) top right"
-  device.comms.send (messages.DrawBitmap.msg
-    --data=(messages.DrawBitmap.data
-      --page-id=1234
-      --redraw-type=messages.DrawBitmap.REDRAW-TYPE_PARTIALREDRAW
+  device.comms.send (messages.DrawElement.msg
+    --data=(messages.DrawElement.data
+      --page-id=page
+      --status-bar-enable=false
+      --redraw-type=messages.DrawElement.REDRAW-TYPE_FULLREDRAW
       --x=209
       --y=0
       --width=40
       --height=40
+      --type=messages.DrawElement.TYPE_BITMAP
       --bitmap=lightbug-40-40))
-    --now=true
+  
+  // Continue running to keep the app alive
+  while true:
+    sleep --ms=10000

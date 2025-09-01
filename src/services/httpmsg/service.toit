@@ -124,7 +124,7 @@ class HttpMsg:
       inbox = Channel 1
 
     if subscribe-lora:
-      device.comms.send (messages.LORA.subscribe-msg --ms=1000)
+      device.comms.send (messages.LORA.subscribe-msg --interval=1000)
 
     if serve:
       service-http-catch-and-restart

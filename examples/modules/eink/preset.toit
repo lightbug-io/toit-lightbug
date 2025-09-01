@@ -8,5 +8,7 @@ main:
   device := devices.RtkHandheld2
   
   print "💬 Sending request for home page to device"
-  device.comms.send (messages.PresetPage.msg)
-    --now=true
+  device.comms.send (messages.BasePage.msg
+    --data=(messages.BasePage.data
+      --page-id=1
+      --status-bar-enable=true))
