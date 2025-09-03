@@ -15,8 +15,8 @@ main:
       --type=messages.DrawElement.TYPE_LINE
       --x=0
       --y=(122/2)
-      --width=250
-      --height=0
+      --x2=(250 - 1)
+      --y2=(122/2)
       ))
   
   while true:

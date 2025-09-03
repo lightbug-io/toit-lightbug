@@ -15,7 +15,7 @@ main:
       --type=messages.DrawElement.TYPE_BOX
       --x=0
       --y=0
-      --text="Lightbug"))
+      --text="Lightbug..."))
   
   while true:
     sleep --ms=10000

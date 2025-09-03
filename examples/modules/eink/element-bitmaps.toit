@@ -11,34 +11,30 @@ main:
   // This example is setup to work with the RH2 device
   device := devices.RtkHandheld2
   
-  print "💬 Sending bitmap logo to device screen"
   page := (random 10 255)
-  
-  print "📷 Drawing 40x40 logo at (0,0) top left"
-  device.comms.send (messages.DrawElement.msg
-    --data=(messages.DrawElement.data
-      --page-id=page
-      --status-bar-enable=false
-      --redraw-type=messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW
-      --x=0
-      --y=0
-      --width=40
-      --height=40
-      --type=messages.DrawElement.TYPE_BITMAP
-      --bitmap=lightbug-40-40))
+  screen-width := 250
+  screen-height := 122
+  bitmap-dimension := 40
+  positions := [
+    [messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW, 0, 0], // Top left
+    [messages.DrawElement.REDRAW-TYPE_BUFFERONLY, (screen-width - 1 - bitmap-dimension), 0], // Top right
+    [messages.DrawElement.REDRAW-TYPE_BUFFERONLY, 0, (screen-height - 1 - bitmap-dimension)], // Bottom left
+    [messages.DrawElement.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR, (screen-width - 1 - bitmap-dimension), (screen-height - 1 - bitmap-dimension)], // Bottom right
+  ]
 
-  print "📷 Drawing a second 40x40 logo at (210,0) top right"
-  device.comms.send (messages.DrawElement.msg
-    --data=(messages.DrawElement.data
-      --page-id=page
-      --status-bar-enable=false
-      --redraw-type=messages.DrawElement.REDRAW-TYPE_FULLREDRAW
-      --x=209
-      --y=0
-      --width=40
-      --height=40
-      --type=messages.DrawElement.TYPE_BITMAP
-      --bitmap=lightbug-40-40))
+  print "💬 Sending bitmap logos to device screen"
+  positions.do: | p |
+    device.comms.send (messages.DrawElement.msg
+      --data=(messages.DrawElement.data
+        --page-id=page
+        --status-bar-enable=false
+        --redraw-type=p[0]
+        --x=p[1]
+        --y=p[2]
+        --width=bitmap-dimension
+        --height=bitmap-dimension
+        --type=messages.DrawElement.TYPE_BITMAP
+        --bitmap=lightbug-40-40))
   
   // Continue running to keep the app alive
   while true:

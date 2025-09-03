@@ -3,16 +3,11 @@ import lightbug.services as services
 import lightbug.messages.messages_gen as messages
 import lightbug.util.bitmaps show lightbug-20-20 lightbug-30-30 lightbug-40-40
 
-/**
-A simple application that demonstrates drawing bitmaps on the E-ink display.
-This example shows how to display a Lightbug logo.
-*/
 main:
   // This example is setup to work with the RH2 device
   device := devices.RtkHandheld2
 
   print "💬 Sending bitmap logo to device screen"
-  print "📷 Drawing 40x40 logo at (0,0)"
   device.comms.send (messages.DrawElement.msg
     --data=(messages.DrawElement.data
       --page-id=(random 10 255)

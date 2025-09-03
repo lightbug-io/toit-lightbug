@@ -107,6 +107,8 @@ class DrawElement extends protocol.Data:
   static linetype-from-int value/int -> string:
     return LINETYPE_STRINGS.get value --if-absent=(: "unknown")
 
+  static X2 := 19
+  static Y2 := 20
   static BITMAP := 25
   static TEXT := 100
 
@@ -124,7 +126,7 @@ class DrawElement extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --bitmap/ByteArray?=null --text/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if status-bar-enable != null: data.add-data-bool STATUS-BAR-ENABLE status-bar-enable
@@ -141,6 +143,8 @@ class DrawElement extends protocol.Data:
     if padding != null: data.add-data-uint PADDING padding
     if radius != null: data.add-data-uint RADIUS radius
     if linetype != null: data.add-data-uint LINETYPE linetype
+    if x2 != null: data.add-data-uint X2 x2
+    if y2 != null: data.add-data-uint Y2 y2
     if bitmap != null: data.add-data BITMAP bitmap
     if text != null: data.add-data-ascii TEXT text
     return data
@@ -298,6 +302,18 @@ Requires x, y (top left corner), width, height and bitmap data.
     return get-data-uint LINETYPE
 
   /**
+    Second X coordinate, primarily for lines.
+  */
+  x2 -> int:
+    return get-data-uint X2
+
+  /**
+    Second Y coordinate, primarily for lines.
+  */
+  y2 -> int:
+    return get-data-uint Y2
+
+  /**
     Bitmap
   */
   bitmap -> ByteArray:
@@ -326,6 +342,8 @@ Requires x, y (top left corner), width, height and bitmap data.
       "Padding": padding,
       "Radius": radius,
       "LineType": linetype,
+      "X2": x2,
+      "Y2": y2,
       "Bitmap": bitmap,
       "Text": text,
     }.stringify

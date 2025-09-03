@@ -12,7 +12,7 @@ main:
     --data=(messages.MenuPage.data
       --page-id=(random 10 255)
       --item-count=4
-      --selected-item=3
+      --selected-item=1
       --item-1="Option 1"
       --item-2="Option 2"
       --item-3="Option 3"
