@@ -82,9 +82,9 @@ class TestModule:
       sleep --ms=250
 
     // Enumerate I2C devices... (On RH2 only)
-    if device_ is devices.RtkHandheld2 and device_ is devices.LightbugDevice:
+    if device_ is devices.RtkHandheld2 and device_ is devices.LightbugI2CDevice:
       print "Enumerating I2C devices..."
-      device-with-i2c := device_ as devices.LightbugDevice
+      device-with-i2c := device_ as devices.LightbugI2CDevice
       i2c-bus := device-with-i2c.i2c-bus
       found-devices := i2c-bus.scan
       if found-devices.size < 3:

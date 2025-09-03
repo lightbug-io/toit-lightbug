@@ -18,7 +18,7 @@ class BLEHandler implements MessageHandler:
   device_/devices.Device
   comms_/any  // Reference to the comms instance for sending responses
   
-  constructor device/devices.Device comms/any --logger/log.Logger=(log.default.with-name "lb-ble-handler"):
+  constructor device/devices.Device comms/any --logger/log.Logger:
     logger_ = logger
     device_ = device
     comms_ = comms

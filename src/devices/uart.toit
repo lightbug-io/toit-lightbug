@@ -1,6 +1,7 @@
 import uart
 import gpio
 import io
+import log
 import .base
 import ..modules.strobe
 import ..modules.comms
@@ -49,11 +50,11 @@ class GenericUart implements Device:
     return buttons_
   ble -> BLE:
     if not ble_:
-      ble_ = BLE
+      ble_ = BLE --logger=(log.default.with-name "lb.ble")
     return ble_
   wifi -> WiFi:
     if not wifi_:
-      wifi_ = WiFi
+      wifi_ = WiFi --logger=(log.default.with-name "lb.wifi")
     return wifi_
   messages-supported -> List:
     return []

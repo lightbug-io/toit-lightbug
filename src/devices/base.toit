@@ -49,10 +49,10 @@ interface HasInOut:
   out -> io.Writer
 
 /*
-A base class for Lightbug devices
+A base class for Lightbug I2C devices
 Containing the common I2C implementation
 */
-abstract class LightbugDevice implements Device:
+abstract class LightbugI2CDevice implements Device:
   static I2C-SDA := 6
   static I2C-SCL := 7
 
@@ -73,7 +73,8 @@ abstract class LightbugDevice implements Device:
   constructor name/string i2c-sda/int=I2C-SDA i2c-scl/int=I2C-SCL --i2c-frequency/int=100_000
       --strobe/Strobe=NoStrobe
       --open/bool=true
-      --logger/log.Logger=(log.default.with-name "lb-device"):
+      // Default to a logger named "lb" with ERROR level
+      --logger/log.Logger=((log.default.with-name "lb").with-level log.ERROR-LEVEL):
     // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
     name_ = name
     strobe_ = strobe
@@ -81,8 +82,8 @@ abstract class LightbugDevice implements Device:
     open_ = open
     i2c-bus = LBI2CBus --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
     i2c-device_ = LBI2CDevice i2c-bus
-    i2c-reader_ = Reader i2c-device_ --logger=logger_
-    i2c-writer_ = Writer i2c-device_ --logger=logger_
+    i2c-reader_ = Reader i2c-device_ --logger=(logger_.with-name "i2c.read")
+    i2c-writer_ = Writer i2c-device_ --logger=(logger_.with-name "i2c.write")
 
   name -> string:
     return name_
@@ -93,6 +94,7 @@ abstract class LightbugDevice implements Device:
       comms_ = Comms 
           --device=this
           --open=open_
+          --logger=(logger_.with-name "comms")
       // Auto-register BLE handler for all devices with BLE support
       auto-register-ble-handler_
       // Auto-register WiFi handler for all devices with WiFi support
@@ -104,11 +106,11 @@ abstract class LightbugDevice implements Device:
     return buttons_
   ble -> BLE:
     if not ble_:
-      ble_ = BLE
+      ble_ = BLE --logger=(logger_.with-name "ble")
     return ble_
   wifi -> WiFi:
     if not wifi_:
-      wifi_ = WiFi
+      wifi_ = WiFi --logger=(logger_.with-name "wifi")
     return wifi_
   messages-supported -> List:
     return []
@@ -148,7 +150,7 @@ abstract class LightbugDevice implements Device:
    */
   auto-register-ble-handler_:
     e := catch:
-      ble-handler := BLEHandler this comms_
+      ble-handler := BLEHandler this comms_ --logger=(logger_.with-name "h.ble")
       comms_.register-handler ble-handler
       logger_.debug "Auto-registered BLE message handler"
     if e:
@@ -156,7 +158,7 @@ abstract class LightbugDevice implements Device:
 
   auto-register-wifi-handler_:
     e := catch:
-      wifi-handler := WiFiHandler this comms_
+      wifi-handler := WiFiHandler this comms_ --logger=(logger_.with-name "h.wifi")
       comms_.register-handler wifi-handler
       logger_.debug "Auto-registered WiFi message handler"
     if e:

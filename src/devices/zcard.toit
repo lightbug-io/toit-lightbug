@@ -37,7 +37,7 @@ class ZCard extends ZCardRev2:
 
 // The second of the ZCard devices
 // Introduced Mid 2025
-class ZCardRev2 extends LightbugDevice:
+class ZCardRev2 extends LightbugI2CDevice:
   constructor --open/bool=true:
     super "ZCard" --strobe=(StandardStrobe --initial-value=1) --open=open
   messages-supported -> List:
@@ -52,7 +52,7 @@ class ZCardRev2 extends LightbugDevice:
 
 // The first ZCard devices
 // Introduced Feb 2025
-class ZCardRev1 extends LightbugDevice:
+class ZCardRev1 extends LightbugI2CDevice:
   constructor --open/bool=true:
     super "ZCard" --strobe=(StandardStrobe --initial-value=1) --open=open
   messages-supported -> List:

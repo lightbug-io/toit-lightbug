@@ -7,8 +7,8 @@ ALL-CHANNELS := #[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 class WiFi:
   logger_/log.Logger
 
-  constructor --logger/log.Logger?=null:
-    logger_ = logger ? log.default.with-name "lb-wifi" : log.default.with-name "lb-wifi"
+  constructor --logger/log.Logger:
+    logger_ = logger
 
   scan --duration/int --channels/ByteArray=ALL-CHANNELS --passive/bool=false --filter/Lambda?=null -> List:
     if duration <= 0:

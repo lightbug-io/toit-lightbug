@@ -1,4 +1,4 @@
-import .base show Device LightbugDevice
+import .base show Device LightbugI2CDevice
 import .fake show Fake
 import .rh2 show RtkHandheld2 RtkHandheld2Rev2
 import .zcard show ZCard

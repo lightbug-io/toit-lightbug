@@ -13,8 +13,8 @@ class BLE:
   logger_/log.Logger
   adapter_/ble.Adapter
 
-  constructor --logger/log.Logger?=null:
-    logger_ = logger ? log.default.with-name "lb-ble" : log.default.with-name "lb-ble"
+  constructor --logger/log.Logger:
+    logger_ = logger
     adapter_ = ble.Adapter
 
   /**

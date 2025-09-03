@@ -21,7 +21,7 @@ class WiFiHandler implements MessageHandler:
   device_/any
   comms_/any
 
-  constructor device/any comms/any --logger/log.Logger=(log.default.with-name "lb-wifi-handler"):
+  constructor device/any comms/any --logger/log.Logger:
     logger_ = logger
     device_ = device
     comms_ = comms
