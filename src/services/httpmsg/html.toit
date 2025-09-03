@@ -138,18 +138,12 @@ html-page device/devices.Device docsUrl/string default-messags/Map hide-screen_/
 generate-msg-buttons device/devices.Device default-messages/Map custom-actions/Map -> string:
   dynamicHtml := ""
   default-messages.keys.map: |key|
-    unsupported := false
-    device.messages-not-supported.map: |id|
-        if key.contains "$id":
-          unsupported = true
+    unsupported := false // XXX: Devices used to know what messages they supported, but not anymore
     if not unsupported:
       sectionHtml := """$key<br>"""
       hasEntries := false
       default-messages[key].keys.map: |action|
-        unsupported = false
-        device.messages-not-supported.map: |id|
-            if action.contains "$id":
-              unsupported = true
+        unsupported = false // XXX: Devices used to know what messages they supported, but not anymore
         if not unsupported:
           hasEntries = true
           sectionHtml = sectionHtml + """<input type="button" value="$action" onclick="submit('$(stringify-all-bytes default-messages[key][action] --short=true --commas=false --hex=false)')">\n"""

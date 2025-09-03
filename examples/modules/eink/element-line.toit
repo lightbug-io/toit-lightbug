@@ -4,8 +4,7 @@ import lightbug.messages.messages_gen as messages
 
 // A simple application that draws a simple bit of text on the E-ink display
 main:
-  // This example is setup to work with the RH2 device
-  device := devices.RtkHandheld2
+  device := devices.I2C
   
   print "💬 Sending line to device"
   device.comms.send (messages.DrawElement.msg

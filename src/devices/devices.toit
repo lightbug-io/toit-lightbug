@@ -1,7 +1,7 @@
-import .base show Device LightbugI2CDevice
-import .fake show Fake
-import .rh2 show RtkHandheld2 RtkHandheld2Rev2
-import .zcard show ZCard
-import .uart show GenericUart
+import .base show Device
+import .types show *
+import .i2c-device show I2C
+import .uart-device show UART
+import .fake-device show Fake
 
 export *

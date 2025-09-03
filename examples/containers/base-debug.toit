@@ -6,6 +6,6 @@ import lightbug.protocol as protocol
 import log
 
 main:
-  device := (devices.RtkHandheld2 --open=false --logger=((log.default.with-name "lb").with-level log.DEBUG-LEVEL) ).comms
+  device := (devices.I2C --open=false --logger=((log.default.with-name "lb").with-level log.DEBUG-LEVEL) ).comms
   while true:
     sleep --ms=10000

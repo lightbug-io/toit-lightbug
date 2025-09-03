@@ -3,8 +3,7 @@ import log
 
 // A simple application that loops through all of the strobe colors.
 main:
-  // This example is setup to work with the RH2 device.
-  device := devices.RtkHandheld2
+  device := devices.I2C
 
   // Loop through all of the strobe colours forever, changing every second.
   c := 0

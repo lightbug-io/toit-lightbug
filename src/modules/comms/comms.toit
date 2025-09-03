@@ -42,31 +42,32 @@ class Comms:
 
   constructor
       --device/devices.Device? = null
+      // Allow passing in handlers to register on creation
+      --handlers/List?/*<MessageHandler>*/ = []
+      // Customizable id generator for message ids
+      // Defaults to a random uint32 generator
+      --idGenerator/IdGenerator = (RandomIdGenerator --lowerBound=1 --upperBound=4_294_967_295)
       --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
       --open/bool = true // Send Open message and heartbeats to keep connection alive
       --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
-      --idGenerator/IdGenerator? = null
+      
       --logger=(log.default.with-name "lb-comms"):
 
     logger_ = logger
     device_ = device
-    if idGenerator == null:
-      msgIdGenerator = RandomIdGenerator --lowerBound=1 --upperBound=4_294_967_295 // uint32 max
-    else:
-      msgIdGenerator = idGenerator
+    messageHandlers_ = handlers
+    msgIdGenerator = idGenerator
 
     if device_.prefix:
       LBSyncBytes_ = #[0x4c, 0x42] // LB
     else:
       LBSyncBytes_ = #[]
 
-    // Start with randomish numbers for msg and page id, incase we restarted but the STM didn't
     // TODO allow optional injection of an outbox?!
     outbox_ = Channel 100
 
     heartbeats_ = CommsHeartbeats this logger_
-    
-    start_ open startInbound false reinitOnStart
+    start open startInbound false reinitOnStart
 
   heartbeats -> Heartbeats:
     return heartbeats_
@@ -86,7 +87,7 @@ class Comms:
     messageHandlers_.remove handler
     logger_.info "Unregistered message handler"
 
-  start_ sendOpen/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
+  start sendOpen/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
     logger_.info "Comms starting"
 
     if reinitOnStart:
@@ -103,13 +104,13 @@ class Comms:
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
     if sendOpen:
-      catch-and-restart "sendOpen_" (:: sendOpen_ ) --limit=5 --restart-always=false --logger=logger_
+      catch-and-restart "sendOpen" (:: sendOpen ) --limit=5 --restart-always=false --logger=logger_
       // Start heartbeats after successful open
       heartbeats_.start
     
     logger_.info "Comms started"
 
-  sendOpen_:
+  sendOpen:
     if not (send (messages.Open.msg --data=null) --now=true --withLatch=true --timeout=(Duration --s=10)).get:
       throw "Failed to open device link"
     logger_.info "Opened device link"
@@ -204,10 +205,7 @@ class Comms:
 
     // Let any registered message handlers try and handle the message
     messageHandlers_.do: | handler |
-      if handler.handle-message msg:
-        logger_.debug "Message $(msg.type) handled by message handler"
-      else :
-        logger_.debug "Message $(msg.type) not handled by message handler"
+      handler.handle-message msg
 
     // Add to any registered inboxes (only if inboxes are enabled)
     if inboxesEnabled_:

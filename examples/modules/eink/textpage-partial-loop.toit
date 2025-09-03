@@ -5,8 +5,7 @@ import lightbug.messages.messages_gen as messages
 // A simple application that draws a simple text page on the E-ink display
 // Then loops to update the page counter every second
 main:
-  // This example is setup to work with the RH2 device
-  device := devices.RtkHandheld2
+  device := devices.I2C
   
   print "💬 Sending hello world page to device"
   device.comms.send (messages.TextPage.msg

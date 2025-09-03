@@ -1,29 +1,43 @@
-import i2c
+import uart
+import gpio
 import io
 import log
 import .base
-import .i2c
 import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
 import ..modules.wifi
 
-// A fake device, that might be useful sometimes while testing
-class Fake implements Device:
+// ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
+// UART0 GPIO17 (RX) GPIO16 (TX) Defaults
+ESP32C6-UART-RX-PIN := 17
+ESP32C6-UART-TX-PIN := 16
+
+ESP32C6UartPort -> uart.Port:
+  return uart.Port
+    --rx=gpio.Pin ESP32C6-UART-RX-PIN
+    --tx=gpio.Pin ESP32C6-UART-TX-PIN
+    --baud_rate=115200
+
+// TODO GenericUart devices may want to have the LB prefix set for messages...
+
+class UART implements Device:
+  _port/ uart.Port
   comms_ /Comms? := null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
   wifi_ /WiFi? := null
   open_ /bool
 
-  constructor --open/bool=true:
+  constructor --port/uart.Port --open/bool=true:
+    _port = port
     open_ = open
 
   name -> string:
-    return "Fake"
+    return "Uart"
   strobe -> Strobe:
-    return FakeStrobe
+    return NoStrobe
   comms -> Comms:
     if not comms_:
       comms_ = Comms 
@@ -42,31 +56,12 @@ class Fake implements Device:
     if not wifi_:
       wifi_ = WiFi --logger=(log.default.with-name "lb.wifi")
     return wifi_
-  messages-supported -> List:
-    return []
-  messages-not-supported -> List:
-    return []
+  // XXX: Does reinit really make sense for a generic UART device? Possibly not?
   reinit -> bool:
     return true
   prefix -> bool:
-    return false
+    return true
   in -> io.Reader:
-    return FakeReader
+    return _port.in
   out -> io.Writer:
-    return FakeWriter
-
-class FakeReader extends io.Reader with io.InMixin:
-  constructor:
-
-  read_ -> ByteArray?:
-      return #[]
-
-class FakeWriter extends io.Writer with io.OutMixin:
-  try-write_ data/io.Data from/int to/int -> int:
-    bytes/ByteArray := ?
-    if data is ByteArray:
-      bytes = data as ByteArray
-    else:
-      bytes = ByteArray.from data
-    print "FakeWriter: Simulating write: $bytes"
-    return bytes.size
+    return _port.out

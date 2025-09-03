@@ -8,8 +8,7 @@ A simple example demonstrating the new buttons module with error handling.
 This example shows the synchronous subscription pattern with proper error handling.
 */
 main:
-  // This example is setup to work with the RH2 device.
-  device := devices.RtkHandheld2
+  device := devices.I2C
 
   // Subscribe to button presses with error handling.
   e := catch:

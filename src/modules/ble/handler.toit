@@ -16,12 +16,10 @@ import log
 class BLEHandler implements MessageHandler:
   logger_/log.Logger
   device_/devices.Device
-  comms_/any  // Reference to the comms instance for sending responses
   
-  constructor device/devices.Device comms/any --logger/log.Logger:
+  constructor device/devices.Device --logger/log.Logger:
     logger_ = logger
     device_ = device
-    comms_ = comms
   
   /**
    * Handle a BLE scan request message.
@@ -92,7 +90,7 @@ class BLEHandler implements MessageHandler:
       expired-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
       expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
       expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
-      comms_.send expired-msg
+      device_.comms.send expired-msg
       
       logger_.debug "All BLE device responses sent"
     
@@ -100,7 +98,7 @@ class BLEHandler implements MessageHandler:
       error-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
       error-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
       error-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
-      comms_.send error-msg
+      device_.comms.send error-msg
       logger_.error "Error during BLE scan: $e"
   
   /**
@@ -121,6 +119,6 @@ class BLEHandler implements MessageHandler:
     response-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
 
     // Send the response
-    comms_.send response-msg
+    device_.comms.send response-msg
 
     logger_.debug "Sent BLE scan response for $(bytes.format-mac mac-ba) (RSSI: $(rssi)dBm)"

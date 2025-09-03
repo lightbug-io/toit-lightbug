@@ -19,12 +19,10 @@ class WiFiHandler implements MessageHandler:
 
   logger_/log.Logger
   device_/any
-  comms_/any
 
-  constructor device/any comms/any --logger/log.Logger:
+  constructor device/any --logger/log.Logger:
     logger_ = logger
     device_ = device
-    comms_ = comms
 
   handle-message msg/protocol.Message -> bool:
     if msg.type != MESSAGE-TYPE:
@@ -77,7 +75,7 @@ class WiFiHandler implements MessageHandler:
       expired-msg := protocol.Message.with-data messages.WiFiScan.MT messages.WiFiScan.data
       expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
       expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
-      comms_.send expired-msg
+      device_.comms.send expired-msg
 
       logger_.debug "All WiFi AP responses sent"
 
@@ -85,7 +83,7 @@ class WiFiHandler implements MessageHandler:
       error-msg := protocol.Message.with-data messages.WiFiScan.MT messages.WiFiScan.data
       error-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
       error-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
-      comms_.send error-msg
+      device_.comms.send error-msg
       logger_.error "Error during WiFi scan: $e"
 
   send-ap-response ap request-msg-id/int:
@@ -110,7 +108,7 @@ class WiFiHandler implements MessageHandler:
     response-msg := protocol.Message.with-data messages.WiFiScan.MT response-data
     response-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
 
-    comms_.send response-msg
+    device_.comms.send response-msg
 
     mac := bytes.format-mac bssid
     logger_.debug "Sent WiFi AP response for $(ssid) (BSSID: $(mac) RSSI: $(rssi)dBm)"

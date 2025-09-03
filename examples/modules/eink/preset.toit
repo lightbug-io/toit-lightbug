@@ -4,8 +4,7 @@ import lightbug.messages.messages_gen as messages
 
 // A simple application that requests the device to display its home page
 main:
-  // This example is setup to work with the RH2 device
-  device := devices.RtkHandheld2
+  device := devices.I2C
   
   print "💬 Sending request for home page to device"
   device.comms.send (messages.BasePage.msg

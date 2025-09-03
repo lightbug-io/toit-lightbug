@@ -2,8 +2,7 @@ import lightbug.devices as devices
 import lightbug.modules.ble as ble
 
 main:
-  // This example is setup to work with the RH2 device.
-  device := devices.RtkHandheld2
+  device := devices.I2C
   
   print "Starting continuous BLE scan - showing only new devices..."
   print "Press Ctrl+C to stop\n"

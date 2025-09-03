@@ -6,7 +6,7 @@ import lightbug.protocol as protocol
 import log
 
 main:
-  device := devices.RtkHandheld2
+  device := devices.I2C
 
   heartbeat-handler := HeartbeatHandler --strobe=device.strobe
   device.comms.register-handler heartbeat-handler

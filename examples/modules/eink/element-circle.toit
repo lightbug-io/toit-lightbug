@@ -1,11 +1,11 @@
 import lightbug.devices as devices
 import lightbug.services as services
 import lightbug.messages.messages_gen as messages
+import log
 
 // A simple application that draws a simple bit of text on the E-ink display
 main:
-  // This example is setup to work with the RH2 device
-  device := devices.RtkHandheld2
+  device := devices.I2C
   
   print "💬 Sending circle to device"
   device.comms.send (messages.DrawElement.msg

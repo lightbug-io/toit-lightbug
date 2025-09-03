@@ -8,8 +8,7 @@ A simple application that demonstrates drawing bitmaps on the E-ink display.
 This example shows how to display a Lightbug logo.
 */
 main:
-  // This example is setup to work with the RH2 device
-  device := devices.RtkHandheld2
+  device := devices.I2C
   
   page := (random 10 255)
   screen-width := 250

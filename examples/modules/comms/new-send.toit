@@ -8,9 +8,8 @@ import log
 main:
   log.set-default (log.default.with-level log.INFO-LEVEL)
 
-  // RtkHandheld2 is a Lightbug device that uses I2C, and is pre-configured
   // Do not send an open or heartbeat messages
-  device := devices.RtkHandheld2 --open=false
+  device := devices.I2C --open=false
 
   while true:
     /**

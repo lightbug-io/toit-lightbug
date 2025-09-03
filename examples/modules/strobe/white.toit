@@ -2,6 +2,6 @@ import lightbug.devices as devices
 import log
 
 main:
-  (devices.RtkHandheld2).strobe.white
+  (devices.I2C).strobe.white
   while true:
     sleep --ms=1000

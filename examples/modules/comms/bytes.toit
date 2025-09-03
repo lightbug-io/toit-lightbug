@@ -4,9 +4,8 @@ import log
 
 // A simple application that sets up a Lightbug device and starts sending raw bytes to it
 main:
-  // RtkHandheld2 is a Lightbug device that uses I2C, and is pre-configured
   // Do not send an open or heartbeat messages
-  device := devices.RtkHandheld2 --open=false
+  device := devices.I2C --open=false
 
   // Send a currently valid, but unused message to the device
   // The device will ignore it, but it will ACK the message

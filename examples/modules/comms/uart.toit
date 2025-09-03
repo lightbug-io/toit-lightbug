@@ -17,7 +17,7 @@ main:
 
   // Create a generic UART device using the port we just created
   // Do not send an open or heartbeat messages
-  device := devices.GenericUart --port=port --open=false
+  device := devices.UART --port=port --open=false
 
   // Write some bytes to the device
   log.info "Writing to device"

@@ -4,8 +4,7 @@ import lightbug.messages.messages_gen as messages
 import lightbug.util.bitmaps show lightbug-20-20 lightbug-30-30 lightbug-40-40
 
 main:
-  // This example is setup to work with the RH2 device
-  device := devices.RtkHandheld2
+  device := devices.I2C
 
   print "💬 Sending bitmap logo to device screen"
   device.comms.send (messages.DrawElement.msg
