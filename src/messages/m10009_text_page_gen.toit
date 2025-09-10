@@ -33,7 +33,6 @@ class TextPage extends protocol.Data:
   static LINE-2 := 101
   static LINE-3 := 102
   static LINE-4 := 103
-  static LINE-5 := 104
 
   constructor:
     super
@@ -49,7 +48,7 @@ class TextPage extends protocol.Data:
   
   Returns: A protocol.Data object with the specified field values
   */
-  static data --page-id/int?=null --page-title/string?=null --status-bar-enable/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --line-5/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --page-id/int?=null --page-title/string?=null --status-bar-enable/bool?=null --redraw-type/int?=null --line-1/string?=null --line-2/string?=null --line-3/string?=null --line-4/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
     if page-title != null: data.add-data-ascii PAGE-TITLE page-title
@@ -59,7 +58,6 @@ class TextPage extends protocol.Data:
     if line-2 != null: data.add-data-ascii LINE-2 line-2
     if line-3 != null: data.add-data-ascii LINE-3 line-3
     if line-4 != null: data.add-data-ascii LINE-4 line-4
-    if line-5 != null: data.add-data-ascii LINE-5 line-5
     return data
 
   /**
@@ -135,12 +133,6 @@ If no page id is provided, page id 11 will be assumed.
   line-4 -> string:
     return get-data-ascii LINE-4
 
-  /**
-    Line 5
-  */
-  line-5 -> string:
-    return get-data-ascii LINE-5
-
   stringify -> string:
     return {
       "Page ID": page-id,
@@ -151,5 +143,4 @@ If no page id is provided, page id 11 will be assumed.
       "Line 2": line-2,
       "Line 3": line-3,
       "Line 4": line-4,
-      "Line 5": line-5,
     }.stringify

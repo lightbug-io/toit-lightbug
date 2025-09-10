@@ -8,16 +8,7 @@ main:
   device := devices.I2C
   
   print "💬 Sending circle to device"
-  device.comms.send (messages.DrawElement.msg
-    --data=(messages.DrawElement.data
-      --page-id=(random 10 255)
-      --status-bar-enable=false
-      --type=messages.DrawElement.TYPE_CIRCLE
-      --x=(250/2) - 10
-      --y=(122/2) - 10
-      --width=20
-      --height=20
-      ))
+  device.eink.draw-circle  --status-bar-enable=false --x=(250/2) - 10 --y=(122/2) - 10 --width=20 --height=20
   
   while true:
     sleep --ms=10000

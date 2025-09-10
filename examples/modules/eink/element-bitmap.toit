@@ -7,16 +7,7 @@ main:
   device := devices.I2C
 
   print "💬 Sending bitmap logo to device screen"
-  device.comms.send (messages.DrawElement.msg
-    --data=(messages.DrawElement.data
-      --page-id=(random 10 255)
-      --status-bar-enable=false
-      --type=messages.DrawElement.TYPE_BITMAP
-      --x=0
-      --y=0
-      --width=40
-      --height=40
-      --bitmap=lightbug-40-40))
+  device.eink.draw-bitmap --status-bar-enable=false --x=0 --y=0 --width=40 --height=40 --bitmap=lightbug-40-40
   
   // Continue running to keep the app alive
   while true:

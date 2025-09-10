@@ -1,6 +1,8 @@
 import lightbug.devices as devices
 import lightbug.services as services
 import lightbug.messages.messages_gen as messages
+import lightbug.modules as modules
+import log
 
 // A simple application that draws a simple text page on the E-ink display
 // Then loops to update the page counter every second
@@ -8,20 +10,14 @@ main:
   device := devices.I2C
   
   print "💬 Sending hello world page to device"
-  device.comms.send (messages.TextPage.msg
-    --data=(messages.TextPage.data
-      --redraw-type=messages.TextPage.REDRAW-TYPE_FULLREDRAW
-      --page-title="Hello world"
-      --line-1="Welcome to your Lightbug device"
-      --line-2="running Toit!"))
-  
+  // Buffer the text page and clear previous content
+  device.eink.text-page --page-title="Hello world" --lines=["Welcome to your Lightbug device", "running Toit!"] --status-bar-enable
+
   print "Looping to update the page counter every second"
-  i := 0
+  startTime := Time.now
+  sleep --ms=1000
   while true:
+    i := (Time.now.s-since-epoch - startTime.s-since-epoch)
+    print "💬 Sending counter update $i"
+    device.eink.text-page --lines=[null, null, null, ("$i")]
     sleep --ms=1000
-    i = i + 1
-    print "💬 Updating page counter to $i"
-    device.comms.send (messages.TextPage.msg
-      --data=(messages.TextPage.data
-        --redraw-type=messages.TextPage.REDRAW-TYPE_PARTIALREDRAW
-        --line-4="$i"))

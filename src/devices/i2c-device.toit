@@ -10,6 +10,7 @@ import ..modules.ble show BLE
 import ..modules.wifi show WiFi
 import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
+import ..modules.eink show Eink
 import ..messages show *
 import ..protocol as protocol
 import ..modules.comms show Comms
@@ -40,6 +41,7 @@ class I2C implements Device:
   strobe_ /Strobe?:= null
   piezo_ /Piezo?:= null
   haptics_ /Haptics?:= null
+  eink_ /Eink? := null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
   wifi_ /WiFi? := null
@@ -56,7 +58,8 @@ class I2C implements Device:
 
       // Default to a logger named "lb" with ERROR level
       // This means we will only see critical stuff
-      --logger/log.Logger=((log.default.with-name "lb").with-level log.ERROR-LEVEL)
+      --logger/log.Logger=(log.default.with-name "lb")
+      --log-level/int=log.ERROR-LEVEL
 
       // INTERNAL USE
       // We allow overriding I2C for easy internal development
@@ -66,7 +69,7 @@ class I2C implements Device:
       --i2c-frequency/int=100_000:
 
     name_ = "I2C Device" // TODO look this up from a map eventually, so it could be used..
-    logger_ = logger
+    logger_ = logger.with-level log-level
     open_ = open
 
     // Initialize I2C
@@ -162,6 +165,11 @@ class I2C implements Device:
     if not piezo_:
       piezo_ = Piezo --device=this --logger=(logger_.with-name "piezo")
     return piezo_
+
+  eink -> Eink:
+    if not eink_:
+      eink_ = Eink --device=this --logger=(logger_.with-name "eink")
+    return eink_
 
   haptics -> Haptics:
     if not haptics_:

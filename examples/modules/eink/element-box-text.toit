@@ -7,14 +7,8 @@ main:
   device := devices.I2C
   
   print "💬 Sending text to device"
-  device.comms.send (messages.DrawElement.msg
-    --data=(messages.DrawElement.data
-      --page-id=(random 10 255)
-      --status-bar-enable=false
-      --type=messages.DrawElement.TYPE_BOX
-      --x=0
-      --y=0
-      --text="Lightbug..."))
+  page := (random 10 255)
+  device.eink.draw-element --page-id=page --status-bar-enable=false --type=messages.DrawElement.TYPE_BOX --x=0 --y=0 --text="Lightbug..."
   
   while true:
     sleep --ms=10000

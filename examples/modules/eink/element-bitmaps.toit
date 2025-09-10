@@ -10,7 +10,6 @@ This example shows how to display a Lightbug logo.
 main:
   device := devices.I2C
   
-  page := (random 10 255)
   screen-width := 250
   screen-height := 122
   bitmap-dimension := 40
@@ -23,17 +22,7 @@ main:
 
   print "💬 Sending bitmap logos to device screen"
   positions.do: | p |
-    device.comms.send (messages.DrawElement.msg
-      --data=(messages.DrawElement.data
-        --page-id=page
-        --status-bar-enable=false
-        --redraw-type=p[0]
-        --x=p[1]
-        --y=p[2]
-        --width=bitmap-dimension
-        --height=bitmap-dimension
-        --type=messages.DrawElement.TYPE_BITMAP
-        --bitmap=lightbug-40-40))
+    device.eink.draw-bitmap --status-bar-enable=false --redraw-type=p[0] --x=p[1] --y=p[2] --width=bitmap-dimension --height=bitmap-dimension --bitmap=lightbug-40-40
   
   // Continue running to keep the app alive
   while true:
