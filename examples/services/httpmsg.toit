@@ -7,7 +7,7 @@ import lightbug.services as services
 main:
   // This example is setup to work with the RH2 device
   // Don't send an initial open message, allowing you full message control
-  device := devices.RtkHandheld2 --open=false
+  device := devices.I2C --open=false
 
   // Start heartbeats to keep connection alive once opened (even though we don't open it)
   // The user can click OPEN in the UI, and heartbeats will maintain the connection
