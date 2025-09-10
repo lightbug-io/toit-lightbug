@@ -10,6 +10,7 @@ import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
 import ..modules.piezo
+import ..modules.haptics
 import ..modules.comms.message-handler show MessageHandler
 import ..modules.ble.handler show BLEHandler
 import ..modules.wifi.handler show WiFiHandler
@@ -26,6 +27,8 @@ interface Device extends HasInOut:
   strobe -> Strobe
   // Piezo buzzer controller. Use to send buzzer messages to the device.
   piezo -> Piezo
+  // Haptics vibration controller. Use to send haptics messages to the device.
+  haptics -> Haptics
   // Communications service for this device
   comms -> Comms
   // Button press handling service for this device

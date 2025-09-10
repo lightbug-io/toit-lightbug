@@ -9,6 +9,7 @@ import ..modules.buttons
 import ..modules.ble
 import ..modules.wifi
 import ..modules.piezo show Piezo
+import ..modules.haptics show Haptics
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
@@ -17,6 +18,7 @@ class Fake implements Device:
   ble_ /BLE? := null
   wifi_ /WiFi? := null
   piezo_ /Piezo? := null
+  haptics_ /Haptics? := null
   open_ /bool
   in_/io.Reader? := ?
   out_/io.Writer? := ?
@@ -52,6 +54,10 @@ class Fake implements Device:
     if not piezo_:
       piezo_ = Piezo --device=this --logger=(log.default.with-name "lb.piezo")
     return piezo_
+  haptics -> Haptics:
+    if not haptics_:
+      haptics_ = Haptics --device=this --logger=(log.default.with-name "lb.haptics")
+    return haptics_
   reinit -> bool:
     return true
   prefix -> bool:

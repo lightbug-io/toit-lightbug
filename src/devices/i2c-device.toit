@@ -9,6 +9,7 @@ import ..modules.buttons show Buttons
 import ..modules.ble show BLE
 import ..modules.wifi show WiFi
 import ..modules.piezo show Piezo
+import ..modules.haptics show Haptics
 import ..messages show *
 import ..protocol as protocol
 import ..modules.comms show Comms
@@ -38,6 +39,7 @@ class I2C implements Device:
   comms_ /Comms? := null
   strobe_ /Strobe?:= null
   piezo_ /Piezo?:= null
+  haptics_ /Haptics?:= null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
   wifi_ /WiFi? := null
@@ -160,6 +162,11 @@ class I2C implements Device:
     if not piezo_:
       piezo_ = Piezo --device=this --logger=(logger_.with-name "piezo")
     return piezo_
+
+  haptics -> Haptics:
+    if not haptics_:
+      haptics_ = Haptics --device=this --logger=(logger_.with-name "haptics")
+    return haptics_
 
   buttons -> Buttons:
     if not buttons_:
