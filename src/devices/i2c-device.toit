@@ -8,6 +8,7 @@ import ..modules.strobe show Strobe StandardStrobe NoStrobe
 import ..modules.buttons show Buttons
 import ..modules.ble show BLE
 import ..modules.wifi show WiFi
+import ..modules.piezo show Piezo
 import ..messages show *
 import ..protocol as protocol
 import ..modules.comms show Comms
@@ -36,6 +37,7 @@ class I2C implements Device:
 
   comms_ /Comms? := null
   strobe_ /Strobe?:= null
+  piezo_ /Piezo?:= null
   buttons_ /Buttons? := null
   ble_ /BLE? := null
   wifi_ /WiFi? := null
@@ -153,6 +155,11 @@ class I2C implements Device:
       else:
         strobe_ = NoStrobe
     return strobe_
+
+  piezo -> Piezo:
+    if not piezo_:
+      piezo_ = Piezo --device=this --logger=(logger_.with-name "piezo")
+    return piezo_
 
   buttons -> Buttons:
     if not buttons_:

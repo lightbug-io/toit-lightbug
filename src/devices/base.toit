@@ -9,6 +9,7 @@ import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
+import ..modules.piezo
 import ..modules.comms.message-handler show MessageHandler
 import ..modules.ble.handler show BLEHandler
 import ..modules.wifi.handler show WiFiHandler
@@ -23,6 +24,8 @@ interface Device extends HasInOut:
   name -> string
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
+  // Piezo buzzer controller. Use to send buzzer messages to the device.
+  piezo -> Piezo
   // Communications service for this device
   comms -> Comms
   // Button press handling service for this device

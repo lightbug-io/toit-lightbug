@@ -8,6 +8,7 @@ import ..modules.comms
 import ..modules.buttons
 import ..modules.ble
 import ..modules.wifi
+import ..modules.piezo show Piezo
 
 // ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
 // UART0 GPIO17 (RX) GPIO16 (TX) Defaults
@@ -28,6 +29,7 @@ class UART implements Device:
   buttons_ /Buttons? := null
   ble_ /BLE? := null
   wifi_ /WiFi? := null
+  piezo_ /Piezo? := null
   open_ /bool
 
   constructor --port/uart.Port --open/bool=true:
@@ -56,6 +58,10 @@ class UART implements Device:
     if not wifi_:
       wifi_ = WiFi --logger=(log.default.with-name "lb.wifi")
     return wifi_
+  piezo -> Piezo:
+    if not piezo_:
+      piezo_ = Piezo --device=this --logger=(log.default.with-name "lb.piezo")
+    return piezo_
   // XXX: Does reinit really make sense for a generic UART device? Possibly not?
   reinit -> bool:
     return true
