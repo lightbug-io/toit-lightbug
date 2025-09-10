@@ -209,7 +209,7 @@ class HttpMsg:
           lines.do: |line|
             l := []
             ((line.split " ").do: |s| l.add (int.parse s))
-            msg := protocol.Message.from-list l // TODO account for if the bytes are not a msg....
+            msg := protocol.Message.from-bytes (list-to-byte-array l) // TODO account for if the bytes are not a msg....
             writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
             if not listen-and-log-all_:
               // TODO listen to the responses and output them? (wait max 5s?)
@@ -223,7 +223,7 @@ class HttpMsg:
           lines.do: |line|
             l := []
             ((line.split " ").do: |s| l.add (int.parse s))
-            msg := protocol.Message.from-list l
+            msg := protocol.Message.from-bytes (list-to-byte-array l)
             wait-for-response := 5000
             msgLatch := device_.comms.send msg
               --withLatch=true

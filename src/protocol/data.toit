@@ -14,29 +14,6 @@ class Data:
   constructor.from-data data/Data:
     dataTypes_ = data.dataTypes_
     data_ = data.data_
-
-  constructor.from-list bytes/List:
-    if bytes.size < 2:
-      throw "V3 OOB: For fields, expected 2 got $(bytes.size)"
-    fields := (bytes[1] << 8) + bytes[0]
-    if bytes.size < 2 + fields:
-      throw "V3 OOB: For data types, expected $(2 + fields) got $bytes.size"
-    // read data types
-    for i := 0; i < fields; i++:
-      dataType := bytes[2 + i]
-      dataTypes_.add dataType
-    // read data (each is a uint8 length, then that number of bytes)
-    index := 2 + fields
-    for i := 0; i < fields; i++:
-      if index >= bytes.size:
-        throw "V3 OOB: For data length, expected $index got $bytes.size"
-      length := bytes[index]
-      index += 1
-      if index + length > bytes.size:
-        throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
-      index += length
-      dataField := DataField (list-to-byte-array bytes[index - length..index])
-      data_.add dataField
   
   constructor.from-bytes bytes/ByteArray:
     if bytes.size < 2:
@@ -122,10 +99,6 @@ class Data:
   add-data dataType/int data/ByteArray -> none:
     data_.add (DataField data)
     dataTypes_.add dataType
-
-  // TODO kill this method
-  add-data-list dataType/int data/List -> none:
-    add-data dataType (list-to-byte-array data)
 
   add-data-bool dataType/int data/bool -> none:
     if data:

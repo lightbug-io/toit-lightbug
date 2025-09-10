@@ -1,5 +1,6 @@
 import crypto.crc
 import io
+import io.byte-order show LITTLE-ENDIAN
 import log
 import .header show *
 import .data show *
@@ -20,27 +21,24 @@ class Message:
     data = Data
   data_ = data
 
-//  constructor.with-method messageType/int method/int data/Data?:
-//   header_.messageType_ = messageType
-//   header_.data.add-data-uint8 Header.TYPE_MESSAGE_METHOD method
-//   if data == null:
-//     data = Data
-//   data_ = data
-
- constructor.from-list bytes/List:
-  header_ = Header.from-list bytes[1..] // skip protocol version
-  data_ = Data.from-list bytes[1 + header_.size..]
-  checksum_ = (bytes[bytes.size - 1] << 8) + bytes[bytes.size - 2]
+ static from-bytes bytes/ByteArray -> Message:
+  // Create a message using with-data so constructors are satisfied.
+  m := Message.with-data 0 (Data)
+  // header starts at offset 1
+  m.header_ = Header.from-bytes bytes[1..]
+  m.data_ = Data.from-bytes bytes[1 + m.header_.size..]
+  m.checksum_ = (bytes[bytes.size - 1] << 8) + bytes[bytes.size - 2]
+  return m
 
  constructor.from-message msg/Message:
-    header_ = Header.fromHeader msg.header
-    data_ = Data.from-data msg.data
-    checksum_ = msg.checksum_
+  header_ = Header.fromHeader msg.header
+  data_ = Data.from-data msg.data
+  checksum_ = msg.checksum_
 
  static with-method messageType/int method/int data/Data?=Data -> Message:
-    msg := Message.with-data messageType data
-    msg.header.data.add-data-uint8 Header.TYPE-MESSAGE-METHOD method
-    return msg
+  msg := Message.with-data messageType data
+  msg.header.data.add-data-uint8 Header.TYPE-MESSAGE-METHOD method
+  return msg
 
  with-random-msg-id -> Message:
   randomUint32 := ( random 4_294_967_295) +1

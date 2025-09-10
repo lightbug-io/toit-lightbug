@@ -170,8 +170,8 @@ class Comms:
       // Extract the expected checksum from the last 2 bytes of the message (LE)
       expectedChecksumBytes := [messageBytes[messageLength - 2], messageBytes[messageLength - 1]]
 
-      // And parse it as a protocol.Message
-      v3 := protocol.Message.from-list ( byte-array-to-list messageBytes )
+      // And parse it as a protocol.Message directly from the ByteArray
+      v3 := protocol.Message.from-bytes messageBytes
 
       // Calculate the checksum of the message data
       calculatedChecksum := v3.checksum-calc

@@ -1,10 +1,10 @@
 import lightbug.protocol show *
 
 main:
-  addAndget-data
-  from-bytes
-  from-list
-  toBytes
+    addAndget-data
+    from-bytes
+    from-bytes-list-equivalents
+    toBytes
 
 from-bytes:
     // no data fileds
@@ -28,27 +28,46 @@ from-bytes:
     else:
         print "✅ Passed getting data-field-count of 2 data fields"
   
-from-list:
-  // no data fileds
-  d := Data.from-list [0x00, 0x00]
+from-bytes-list-equivalents:
+  // no data fields
+  b0 := ByteArray 2
+  b0[0] = 0x00
+  b0[1] = 0x00
+  d := Data.from-bytes b0
   if d.data-field-count != 0:
-      print "❌ LIST Failed getting data-field-count of empty data, got: " + d.data-field-count.stringify
+      print "❌ Failed getting data-field-count of empty data (from-bytes), got: " + d.data-field-count.stringify
   else:
-      print "✅ LIST Passed getting data-field-count of empty data"
-  
+      print "✅ Passed getting data-field-count of empty data (from-bytes)"
+
   // a single uint8 of type 1 value 2
-  d = Data.from-list [0x01, 0x00, 0x01, 0x01, 0x02]
+  b1 := ByteArray 5
+  b1[0] = 0x01
+  b1[1] = 0x00
+  b1[2] = 0x01
+  b1[3] = 0x01
+  b1[4] = 0x02
+  d = Data.from-bytes b1
   if d.data-field-count != 1:
-      print "❌ LIST Failed getting data-field-count of single data field, got: " + d.data-field-count.stringify
+      print "❌ Failed getting data-field-count of single data field (from-bytes), got: " + d.data-field-count.stringify
   else:
-      print "✅ LIST Passed getting data-field-count of single data field"
-  
+      print "✅ Passed getting data-field-count of single data field (from-bytes)"
+
   // uint8 of type 1 value 2, and 2 bytes of type 5, value 8 8
-  d = Data.from-list [0x02, 0x00, 0x01, 0x05, 0x01, 0x02, 0x02, 0x08, 0x08]
+  b2 := ByteArray 9
+  b2[0] = 0x02
+  b2[1] = 0x00
+  b2[2] = 0x01
+  b2[3] = 0x05
+  b2[4] = 0x01
+  b2[5] = 0x02
+  b2[6] = 0x02
+  b2[7] = 0x08
+  b2[8] = 0x08
+  d = Data.from-bytes b2
   if d.data-field-count != 2:
-      print "❌ LIST Failed getting data-field-count of 2 data fields, got: " + d.data-field-count.stringify
+      print "❌ Failed getting data-field-count of 2 data fields (from-bytes), got: " + d.data-field-count.stringify
   else:
-      print "✅ LIST Passed getting data-field-count of 2 data fields"
+      print "✅ Passed getting data-field-count of 2 data fields (from-bytes)"
 
 toBytes:
   d := Data

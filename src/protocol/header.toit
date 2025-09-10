@@ -1,3 +1,4 @@
+import io.byte-order show LITTLE-ENDIAN
 import .data show *
 
 class Header:
@@ -68,13 +69,13 @@ class Header:
     messageType_ = header.messageType_
     data_ = header.data_
 
-  constructor.from-list bytes/List:
+  constructor.from-bytes bytes/ByteArray:
     // First is uint16 LE message length
-    messageLength_ = bytes[0] + (bytes[1] << 8)
+    messageLength_ = LITTLE-ENDIAN.uint16 bytes 0
     // Second is uint16 LE message type
-    messageType_ = bytes[2] + (bytes[3] << 8)
-    // Third is data
-    data_ = Data.from-list bytes[4..]
+    messageType_ = LITTLE-ENDIAN.uint16 bytes 2
+    // Third is data (use the bytes slice directly)
+    data_ = Data.from-bytes bytes[4..]
 
   stringify -> string:
     return "messageLength: " + messageLength_.stringify + ", messageType: " + messageType_.stringify + ", header data: " + data_.stringify
