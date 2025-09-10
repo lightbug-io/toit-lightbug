@@ -21,23 +21,29 @@ class Haptics:
 
   // Send a haptics control with explicit pattern and intensity.
   send --pattern/int --intensity/int:
+    // Build payload using generated helper to ensure field numbers/constants are correct.
     msg := messages.HapticsControl.msg --data=(messages.HapticsControl.data --pattern=pattern --intensity=intensity)
     device_.comms.send msg --now=true
 
-  // Convenience presets for patterns 1..3 and intensities 0..2
-  pattern1 --intensity/int=1:
-    send --pattern=1 --intensity=intensity
-  pattern2 --intensity/int=1:
-    send --pattern=2 --intensity=intensity
-  pattern3 --intensity/int=1:
-    send --pattern=3 --intensity=intensity
+  // Convenience named presets for patterns and intensities using generated constants.
+  fade --intensity/int=(messages.HapticsControl.INTENSITY_MEDIUM):
+    send --pattern=messages.HapticsControl.PATTERN_FADE --intensity=intensity
 
-  low --pattern/int=1:
-    send --pattern=pattern --intensity=0
-  med --pattern/int=1:
-    send --pattern=pattern --intensity=1
-  high --pattern/int=1:
-    send --pattern=pattern --intensity=2
+  pulse --intensity/int=(messages.HapticsControl.INTENSITY_MEDIUM):
+    send --pattern=messages.HapticsControl.PATTERN_PULSE --intensity=intensity
+
+  drop --intensity/int=(messages.HapticsControl.INTENSITY_MEDIUM):
+    send --pattern=messages.HapticsControl.PATTERN_DROP --intensity=intensity
+
+  // Intensity helpers that allow specifying which pattern to use (default: FADE).
+  low --pattern/int=messages.HapticsControl.PATTERN_FADE:
+    send --pattern=pattern --intensity=messages.HapticsControl.INTENSITY_LOW
+
+  med --pattern/int=messages.HapticsControl.PATTERN_FADE:
+    send --pattern=pattern --intensity=messages.HapticsControl.INTENSITY_MEDIUM
+
+  high --pattern/int=messages.HapticsControl.PATTERN_FADE:
+    send --pattern=pattern --intensity=messages.HapticsControl.INTENSITY_HIGH
 
   stringify -> string:
     return "Haptics controller"

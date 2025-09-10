@@ -3,7 +3,6 @@ import log
 
 main:
   device := devices.I2C
-  // play a medium pattern repeatedly
-  device.haptics.pattern1
+  device.haptics.fade
   while true:
     sleep --ms=1000
