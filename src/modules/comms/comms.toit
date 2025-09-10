@@ -130,74 +130,83 @@ class Comms:
       logger_.warn "Tried to get already created inbox, now with different size"
     return inboxesByName[name]
 
+  // Perform a single pass of inbound processing and return a parsed message if available.
+  processInboundOnce_ -> protocol.Message?:
+    // Look for the next byte that is 3, which could indicate our protocol version
+    if device_.in.peek-byte != 3:
+      // if we don't find a 3, we can skip this byte
+      device_.in.read-byte
+      return null
+
+    // Wait for a total of 3 bytes, which would also give us the length
+    while not device_.in.try-ensure-buffered 3:
+      logger_.debug "Inbound reader waiting for 3 bytes"
+      yield
+    // Peek all 3 bytes, which is protocol + message length
+    b3 := device_.in.peek-bytes 3
+
+    // last to bytes of b3 are the uint16 LE message length
+    messageLength := (b3[2] << 8) + b3[1]
+    // If the msgLength looks too long (over 1000, just advance, as its probably garbage)
+    if messageLength > 1000:
+        logger_.error "Message length probably too long, skipping: $(messageLength)"
+        device_.in.read-byte
+        return null
+
+    // Try and make sure that we have enough bytes buffered to read the full potential message
+    while not device_.in.try-ensure-buffered messageLength:
+      logger_.debug "Inbound reader waiting for message length: $(messageLength)"
+      yield
+
+    messageBytes := device_.in.peek-bytes messageLength
+    // TODO remove once we are sure its good?
+    if messageBytes.size != messageLength: // Fail safe, but shouldn't happen due to the try-enure-buffered above
+      logger_.error "Message length mismatch, no more bytes available? skipping message"
+      device_.in.read-byte
+      throw "Message length mismatch, no more bytes available? skipping message"
+      return null
+
+    e := catch --trace:
+      // Extract the expected checksum from the last 2 bytes of the message (LE)
+      expectedChecksumBytes := [messageBytes[messageLength - 2], messageBytes[messageLength - 1]]
+
+      // And parse it as a protocol.Message
+      v3 := protocol.Message.from-list ( byte-array-to-list messageBytes )
+
+      // Calculate the checksum of the message data
+      calculatedChecksum := v3.checksum-calc
+      // calculatedChecksumBytes is LE uint16 of calculatedChecksum
+      calculatedChecksumBytes := [calculatedChecksum & 0xFF, calculatedChecksum >> 8]
+
+      // if they match, we have a message, return it
+      if expectedChecksumBytes == calculatedChecksumBytes:
+          // read the bytes we peeked
+          device_.in.read-bytes messageLength
+          return v3
+      else:
+        logger_.error "Checksum mismatch, skipping message"
+
+        // Read a byte, and continue looking for a message
+        device_.in.read-byte
+        return null
+    if e:
+      // output a row of red cross emojis
+      logger_.error " ❌ " * 20
+      logger_.error "Error parsing message (probably garbled): $(e) $(stringify-all-bytes messageBytes)"
+      logger_.error " ❌ " * 20
+      // Read a byte, and continue looking for a message
+      device_.in.read-byte
+      return null
+    // Fallback return if nothing matched
+    return null
+
   processInbound_:
     // Keep going until we find a message
     while true:
       yield
-      
-      // Look for the next byte that is 3, which could indicate our protocol version
-      if device_.in.peek-byte != 3:
-        // if we don't find a 3, we can skip this byte
-        device_.in.read-byte
-        continue
-
-      // Wait for a total of 3 bytes, which would also give us the length
-      while not device_.in.try-ensure-buffered 3:
-        logger_.debug "Inbound reader waiting for 3 bytes"
-        yield
-      // Peek all 3 bytes, which is protocol + message length
-      b3 := device_.in.peek-bytes 3
-
-      // last to bytes of b3 are the uint16 LE message length
-      messageLength := (b3[2] << 8) + b3[1]
-      // If the msgLength looks too long (over 1000, just advance, as its probably garbage)
-      if messageLength > 1000:
-          logger_.error "Message length probably too long, skipping: $(messageLength)"
-          device_.in.read-byte
-          continue
-
-      // Try and make sure that we have enough bytes buffered to read the full potential message
-      while not device_.in.try-ensure-buffered messageLength:
-        logger_.debug "Inbound reader waiting for message length: $(messageLength)"
-        yield
-
-      messageBytes := device_.in.peek-bytes messageLength
-      // TODO remove once we are sure its good?
-      if messageBytes.size != messageLength: // Fail safe, but shouldn't happen due to the try-enure-buffered above
-        logger_.error "Message length mismatch, no more bytes available? skipping message"
-        device_.in.read-byte
-        throw "Message length mismatch, no more bytes available? skipping message"
-        continue
-
-      e := catch --trace:
-        // Extract the expected checksum from the last 2 bytes of the message (LE)
-        expectedChecksumBytes := [messageBytes[messageLength - 2], messageBytes[messageLength - 1]]
-
-        // And parse it as a protocol.Message
-        v3 := protocol.Message.from-list ( byte-array-to-list messageBytes )
-
-        // Calculate the checksum of the message data
-        calculatedChecksum := v3.checksum-calc
-        // calculatedChecksumBytes is LE uint16 of calculatedChecksum
-        calculatedChecksumBytes := [calculatedChecksum & 0xFF, calculatedChecksum >> 8]
-
-        // if they match, we have a message, return it
-        if expectedChecksumBytes == calculatedChecksumBytes:
-            // read the bytes we peeked
-            device_.in.read-bytes messageLength
-            processReceivedMessage_ v3
-        else:
-          logger_.error "Checksum mismatch, skipping message"
-
-          // Read a byte, and continue looking for a message
-          device_.in.read-byte
-      if e:
-        // output a row of red cross emojis
-        logger_.error " ❌ " * 20
-        logger_.error "Error parsing message (probably garbled): $(e) $(stringify-all-bytes messageBytes)"
-        logger_.error " ❌ " * 20
-        // Read a byte, and continue looking for a message
-        device_.in.read-byte
+      m := processInboundOnce_
+      if m:
+        processReceivedMessage_ m
 
   processReceivedMessage_ msg/protocol.Message:
     logger_.with-level log.DEBUG-LEVEL:

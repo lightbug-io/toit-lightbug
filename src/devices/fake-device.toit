@@ -16,9 +16,13 @@ class Fake implements Device:
   ble_ /BLE? := null
   wifi_ /WiFi? := null
   open_ /bool
+  in_/io.Reader? := ?
+  out_/io.Writer? := ?
 
-  constructor --open/bool=true:
+  constructor --open/bool=true --in/io.Reader? = null --out/io.Writer? = null:
     open_ = open
+    in_ = in
+    out_ = out
 
   name -> string:
     return "Fake"
@@ -47,15 +51,36 @@ class Fake implements Device:
   prefix -> bool:
     return false
   in -> io.Reader:
+    if in_:
+      return in_
     return FakeReader
   out -> io.Writer:
+    if out_:
+      return out_
     return FakeWriter
 
 class FakeReader extends io.Reader with io.InMixin:
-  constructor:
+  buffer_/ByteArray := #[]
+
+  constructor --bytes/ByteArray? = #[]:
+    buffer_ = bytes
+
+  push-bytes bytes/ByteArray -> none:
+    // append bytes to the internal buffer
+    if buffer_.size == 0:
+      buffer_ = bytes
+    else:
+      b := ByteArray buffer_.size + bytes.size
+      b.replace 0 buffer_ 0 buffer_.size
+      b.replace buffer_.size bytes 0 bytes.size
+      buffer_ = b
 
   read_ -> ByteArray?:
-      return #[]
+    if buffer_.size == 0:
+      return null
+    b := buffer_
+    buffer_ = #[]
+    return b
 
 class FakeWriter extends io.Writer with io.OutMixin:
   try-write_ data/io.Data from/int to/int -> int:
