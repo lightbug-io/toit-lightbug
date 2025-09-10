@@ -164,7 +164,10 @@ class DrawElement extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-    Page ID
+    The page to draw or update.
+Page ids 0-10 are reserved for system use.
+If no page id is provided, page id 11 will be assumed.
+
   */
   page-id -> int:
     return get-data-uint PAGE-ID
@@ -302,13 +305,13 @@ Requires x, y (top left corner), width, height and bitmap data.
     return get-data-uint LINETYPE
 
   /**
-    Second X coordinate, primarily for lines.
+    Second X coordinate, primarily for lines. Min 0, Max WIDTH -1.
   */
   x2 -> int:
     return get-data-uint X2
 
   /**
-    Second Y coordinate, primarily for lines.
+    Second Y coordinate, primarily for lines. Min 0, Max HEIGHT -1.
   */
   y2 -> int:
     return get-data-uint Y2

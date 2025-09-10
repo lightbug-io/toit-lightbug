@@ -77,7 +77,10 @@ class TextPage extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-    ID of page to display or update
+    The page to draw or update.
+Page ids 0-10 are reserved for system use.
+If no page id is provided, page id 11 will be assumed.
+
   */
   page-id -> int:
     return get-data-uint PAGE-ID

@@ -94,7 +94,10 @@ class MenuPage extends protocol.Data:
     return get-data-uint ITEM-COUNT
 
   /**
-    Page ID
+    The page to draw or update.
+Page ids 0-10 are reserved for system use.
+If no page id is provided, page id 11 will be assumed.
+
   */
   page-id -> int:
     return get-data-uint PAGE-ID

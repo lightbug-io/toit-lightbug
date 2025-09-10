@@ -65,7 +65,10 @@ class BasePage extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-    Page ID
+    The page to draw or update.
+Page ids 0-10 are reserved for system use.
+If no page id is provided, page id 11 will be assumed.
+
   */
   page-id -> int:
     return get-data-uint PAGE-ID
@@ -80,12 +83,25 @@ class BasePage extends protocol.Data:
     Redraw Type
     
     Valid values:
-    - REDRAW-TYPE_AUTO (0): Automatically choose the redraw type
-    - REDRAW-TYPE_PARTIALREDRAW (1): Only redraw the parts of the screen changed in this message
+    - REDRAW-TYPE_AUTO (0): Automatically choose the redraw type, based on page id.
+No page id provided will assume the same page id as last set.
+Same page id as last set will do a partial redraw, and leave the buffer intact.
+Changed page id will clear the buffer and do a full redraw.
+
+    - REDRAW-TYPE_PARTIALREDRAW (1): Only redraw the parts of the screen changed in this message.
+Leaves the buffer intact.
+Will occasionally do a full redraw if the firmware thinks it is needed.
+
     - REDRAW-TYPE_FULLREDRAW (2): Clear the screen buffer, and redraw the entire screen
-    - REDRAW-TYPE_BUFFERONLY (3): Update the buffer only, do not redraw
+
+    - REDRAW-TYPE_BUFFERONLY (3): Do not redraw the screen, only update the buffer.
+Will clear the buffer if the page id has changed.
+Similar to Auto, but will not redraw the screen.
+Similar to ClearDontDraw, but only clears the buffer if the page id has changed.
+
     - REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR (4): Redraw the entire screen, without clearing the buffer
-    - REDRAW-TYPE_CLEARDONTDRAW (5): Clear the screen buffer, but don't redraw
+
+    - REDRAW-TYPE_CLEARDONTDRAW (5): Clear the screen buffer (always), but don't redraw. Similar to BufferOnly, but always clears the buffer.
   */
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE
