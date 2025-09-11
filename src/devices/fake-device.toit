@@ -10,6 +10,7 @@ import ..modules.ble
 import ..modules.wifi
 import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
+import ..modules.gnss show GNSS
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
@@ -19,6 +20,7 @@ class Fake implements Device:
   wifi_ /WiFi? := null
   piezo_ /Piezo? := null
   haptics_ /Haptics? := null
+  gnss_ /GNSS? := null
   open_ /bool
   in_/io.Reader? := ?
   out_/io.Writer? := ?
@@ -58,6 +60,10 @@ class Fake implements Device:
     if not haptics_:
       haptics_ = Haptics --device=this --logger=(log.default.with-name "lb.haptics")
     return haptics_
+  gnss -> GNSS:
+    if not gnss_:
+      gnss_ = GNSS --device=this --logger=(log.default.with-name "lb.gnss")
+    return gnss_
   reinit -> bool:
     return true
   prefix -> bool:

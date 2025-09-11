@@ -11,6 +11,7 @@ import ..modules.wifi show WiFi
 import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
 import ..modules.eink show Eink
+import ..modules.gnss show GNSS
 import ..messages show *
 import ..protocol as protocol
 import ..modules.comms show Comms
@@ -45,6 +46,7 @@ class I2C implements Device:
   buttons_ /Buttons? := null
   ble_ /BLE? := null
   wifi_ /WiFi? := null
+  gnss_ /GNSS? := null
 
   constructor
       // Default to sending an open on start
@@ -190,6 +192,11 @@ class I2C implements Device:
     if not wifi_:
       wifi_ = WiFi --logger=(logger_.with-name "wifi")
     return wifi_
+
+  gnss -> GNSS:
+    if not gnss_:
+      gnss_ = GNSS --device=this --logger=(logger_.with-name "gnss")
+    return gnss_
 
 class DeviceDetectionHandler implements MessageHandler:
   device_ /I2C
