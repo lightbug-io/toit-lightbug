@@ -238,9 +238,21 @@ class Comms:
       ack-msg.header.data.add-data-uint32 protocol.Header.TYPE_MESSAGE_STATUS protocol.Header.STATUS_OK
       send-via-outbox ack-msg
 
+    isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
+
+    // If the device returned a non-OKish message status, emit a concise warning.
+    logger_.with-level log.WARN-LEVEL:
+      if isBad:
+        statusNumStr := "n/a"
+        statusName := "unknown"
+        if msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS:
+          statusNum := msg.msg-status
+          statusNumStr = "$(statusNum)"
+          statusName = protocol.Header.STATUS_MAP.get statusNum --if-absent=(: "unknown")
+        logger_.warn "Received non-OKish message: status=$(statusNumStr) ($(statusName)) $(msg)"
+
     if isResponse:
       respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
-      isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
       lambda := null
       if isAck:
         if isBad:
