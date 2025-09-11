@@ -35,12 +35,7 @@ print-scan-result result:
     print "     Major: $(ibeacon["major"]), Minor: $(ibeacon["minor"])"
     print "     TX Power: $(ibeacon["tx-power"])"
   
-  // Show manufacturer data if present
-  manufacturer-data := result.manufacturer-data
-  if manufacturer-data and manufacturer-data.size > 0:
-    print "   Manufacturer: $manufacturer-data"
-  
-  // Show services if present  
-  services := result.service-classes
-  if services and services.size > 0:
-    print "   Services ($(services.size)): $services"
+  // Show raw advertisement bytes if present
+  advertising := result.raw
+  if advertising and advertising.size > 0:
+    print "   Advertising: $advertising"

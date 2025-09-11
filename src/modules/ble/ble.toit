@@ -1,4 +1,5 @@
 import ble
+import io
 import monitor
 import log
 import ...util.bytes as bytes
@@ -95,116 +96,70 @@ Container class for BLE scan results.
 Represents information about a single discovered BLE device.
 */
 class BLEScanResult:
-  duration_/int
   raw_/ByteArray
   device-address_/ByteArray
   device-name_/string
   rssi_/int
   connectable_/bool
-  manufacturer-data_/ByteArray
-  service-classes_/List
 
-  constructor --duration/int --raw/ByteArray --device-address/ByteArray --device-name/string --rssi/int --connectable/bool --manufacturer-data/ByteArray --service-classes/List:
-    duration_ = duration
+  constructor --raw/ByteArray --device-address/ByteArray --device-name/string --rssi/int --connectable/bool:
     raw_ = raw
     device-address_ = device-address
     device-name_ = device-name
     rssi_ = rssi
     connectable_ = connectable
-    manufacturer-data_ = manufacturer-data
-    service-classes_ = service-classes
 
   /**
   Creates a BLEScanResult from a ble.RemoteScannedDevice.
   */
   static from-device device/ble.RemoteScannedDevice -> BLEScanResult:
-    // Extract manufacturer data for iBeacon detection
-    manufacturer-data := device.data.manufacturer-data
-    ibeacon-info := null
-    service-uuids := device.data.service-classes
     device-name := device.data.name or ""
-    device-address := device.address
-
-    // Check if manufacturer data contains iBeacon info
-    if manufacturer-data and manufacturer-data.size >= 25:
-      manufacturer-id := manufacturer-data[0] + (manufacturer-data[1] << 8)
-      if manufacturer-id == 0x004c:  // Apple manufacturer ID
-        beacon-type := manufacturer-data[2]
-        beacon-length := manufacturer-data[3]
-        if beacon-type == 0x02 and beacon-length == 0x15:  // iBeacon
-          // Extract iBeacon data
-          uuid := manufacturer-data[4..20]
-          major := (manufacturer-data[20] << 8) + manufacturer-data[21]
-          minor := (manufacturer-data[22] << 8) + manufacturer-data[23]
-          tx-power := manufacturer-data[24]
-          ibeacon-info = {
-            "uuid": uuid,
-            "major": major,
-            "minor": minor,
-            "tx-power": tx-power
-          }
-
     return BLEScanResult
-        --duration=0  // Not applicable for this constructor
         --raw=device.data.to-raw or #[]
         --device-address=device.address-bytes or #[]
         --device-name=device-name
         --rssi=device.rssi
         --connectable=device.is-connectable
-        --manufacturer-data=manufacturer-data or #[]
-        --service-classes=service-uuids or []
 
-  duration -> int: return duration_
   raw -> ByteArray: return raw_
   device-address -> ByteArray: return device-address_
   device-name -> string: return device-name_
   rssi -> int: return rssi_
   connectable -> bool: return connectable_
-  manufacturer-data -> ByteArray: return manufacturer-data_
-  service-classes -> List: return service-classes_
 
-  /**
-  Formats the device address as a human-readable MAC address string.
-  */
   formatted-address -> string:
     return bytes.format-mac device-address_
 
   /**
-  Checks if this device has a specific service UUID.
-  */
-  has-service service-uuid/ble.BleUuid -> bool:
-    return service-classes_.contains service-uuid
-
-  /**
-  Extracts iBeacon information if this device is an Apple iBeacon.
-  
+  Extract iBeacon information if present in the advertisement.
   Returns a Map with keys: uuid, major, minor, tx-power, or null if not an iBeacon.
   */
   ibeacon-info -> Map?:
-    if manufacturer-data_.size < 25:
-      return null
-    
-    manufacturer-id := manufacturer-data_[0] + (manufacturer-data_[1] << 8)
-    if manufacturer-id != 0x004c:  // Apple manufacturer ID
-      return null
-      
-    sub-type := manufacturer-data_[2]
-    if sub-type != 0x02:  // iBeacon type
-      return null
-    
-    proximity-uuid := manufacturer-data_[4..20]
-    major := (manufacturer-data_[20] << 8) + manufacturer-data_[21]
-    minor := (manufacturer-data_[22] << 8) + manufacturer-data_[23]
-    tx-power := manufacturer-data_[24]
-    if tx-power > 127:
-      tx-power = tx-power - 256
-    
-    return {
-      "uuid": proximity-uuid,
-      "major": major,
-      "minor": minor,
-      "tx-power": tx-power
-    }
+    // If there's no raw advertisement, nothing to parse
+    if not raw_ or raw_.size == 0: return null
+
+    // Parse the raw advertisement into an Advertisement to access manufacturer-specific block
+    adv := ble.Advertisement.raw raw_
+    // The SDK's manufacturer-specific API calls the block with (company_id, manufacturer_data)
+    result := null
+    adv.manufacturer-specific: | company_id m |
+      // Expect manufacturer_data length of at least 23 (iBeacon payload)
+      if m and m.size >= 23:
+        // iBeacon has type 0x02 and length 0x15 in the first two bytes of manufacturer data
+        if m[0] == 0x02 and m[1] == 0x15:
+          uuid := m[2 .. 17]
+          major := (m[18] << 8) + m[19]
+          minor := (m[20] << 8) + m[21]
+          tx := m[22]
+          if tx > 127: tx = tx - 256
+          result = {
+            "uuid": uuid,
+            "major": major,
+            "minor": minor,
+            "tx-power": tx
+          }
+
+    return result
 
   stringify -> string:
     return "BLE Device: $(formatted-address) '$(device-name_)' RSSI:$(rssi_)dBm connectable:$(connectable_)"
