@@ -18,13 +18,13 @@ class WiFiScan extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --ssid/string?=null --mac/ByteArray?=null --rssi/int?=null --channel/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if ssid != null: data.add-data-ascii SSID ssid
@@ -47,26 +47,26 @@ class WiFiScan extends protocol.Data:
     return msg
 
   /**
-    SSID of the access point
-  */
+   * SSID of the access point
+   */
   ssid -> string:
     return get-data-ascii SSID
 
   /**
-    MAC Address of the access point, as 6 bytes
-  */
+   * MAC Address of the access point, as 6 bytes
+   */
   mac -> ByteArray:
     return get-data MAC
 
   /**
-    Signal strength of the access point
-  */
+   * Signal strength of the access point
+   */
   rssi -> int:
     return get-data-int RSSI
 
   /**
-    WiFi channel of the access point
-  */
+   * WiFi channel of the access point
+   */
   channel -> int:
     return get-data-uint CHANNEL
 

@@ -30,13 +30,13 @@ class ChangeSIMsettings extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --active-sim/int?=null --sim2-apn/string?=null --sim2-apn-username/string?=null --sim2-apn-password/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if active-sim != null: data.add-data-uint ACTIVE-SIM active-sim
@@ -46,52 +46,52 @@ class ChangeSIMsettings extends protocol.Data:
     return data
 
   /**
-  Creates a GET Request message for Change SIM settings.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a GET Request message for Change SIM settings.
+   *
+   * Returns: A Message ready to be sent
+   */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-  Creates a SET Request message for Change SIM settings.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a SET Request message for Change SIM settings.
+   *
+   * Returns: A Message ready to be sent
+   */
   static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
-    Activate the specified SIM
-    
-    Valid values:
-    - ACTIVE-SIM_SIM1 (0): SIM1
-    - ACTIVE-SIM_SIM2 (1): SIM2
-  */
+   * Activate the specified SIM
+   *
+   * Valid values:
+   * - ACTIVE-SIM_SIM1 (0): SIM1
+   * - ACTIVE-SIM_SIM2 (1): SIM2
+   */
   active-sim -> int:
     return get-data-uint ACTIVE-SIM
 
   /**
-    SIM2 APN
-  */
+   * SIM2 APN
+   */
   sim2-apn -> string:
     return get-data-ascii SIM2-APN
 
   /**
-    SIM2 APN Username
-  */
+   * SIM2 APN Username
+   */
   sim2-apn-username -> string:
     return get-data-ascii SIM2-APN-USERNAME
 
   /**
-    SIM2 APN Password
-  */
+   * SIM2 APN Password
+   */
   sim2-apn-password -> string:
     return get-data-ascii SIM2-APN-PASSWORD
 
   /**
-    SIM2 ICCID
-  */
+   * SIM2 ICCID
+   */
   sim2-iccid -> bool:
     return get-data-bool SIM2-ICCID
 

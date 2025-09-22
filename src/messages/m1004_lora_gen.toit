@@ -24,13 +24,13 @@ class LORA extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --payload/ByteArray?=null --spread-factor/int?=null --coding-rate/int?=null --bandwidth/int?=null --center-frequency/int?=null --tx-power/int?=null --preamble-length/int?=null --receive-ms/int?=null --sleep/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if payload != null: data.add-data PAYLOAD payload
@@ -45,40 +45,40 @@ class LORA extends protocol.Data:
     return data
 
   /**
-  Creates a LORA message without a specific method.
-  
-  This is used for messages that don't require a specific method type
-  (like GET, SET, SUBSCRIBE) but still need to carry data.
-  
-  Parameters:
-  - data: Optional protocol.Data object containing message payload
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a LORA message without a specific method.
+   *
+   * This is used for messages that don't require a specific method type
+   * (like GET, SET, SUBSCRIBE) but still need to carry data.
+   *
+   * Parameters:
+   * - data: Optional protocol.Data object containing message payload
+   *
+   * Returns: A Message ready to be sent
+   */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
   /**
-  Creates a DO Request message for LORA.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a DO Request message for LORA.
+   *
+   * Returns: A Message ready to be sent
+   */
   static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
 
   /**
-  Creates a GET Request message for LORA.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a GET Request message for LORA.
+   *
+   * Returns: A Message ready to be sent
+   */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-  Creates a SET Request message for LORA.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a SET Request message for LORA.
+   *
+   * Returns: A Message ready to be sent
+   */
   static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
@@ -96,70 +96,70 @@ class LORA extends protocol.Data:
     return msg
 
   /**
-  Creates a UNSUBSCRIBE Request message for LORA.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a UNSUBSCRIBE Request message for LORA.
+   *
+   * Returns: A Message ready to be sent
+   */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
-    Payload
-  */
+   * Payload
+   */
   payload -> ByteArray:
     return get-data PAYLOAD
 
   /**
-    8-12
-  */
+   * 8-12
+   */
   spread-factor -> int:
     return get-data-uint SPREAD-FACTOR
 
   /**
-    1-4. [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
-  */
+   * 1-4. [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
+   */
   coding-rate -> int:
     return get-data-uint CODING-RATE
 
   /**
-    0-2. [0: 125 kHz, 1: 250 kHz, 2: 500 kHz]
-  */
+   * 0-2. [0: 125 kHz, 1: 250 kHz, 2: 500 kHz]
+   */
   bandwidth -> int:
     return get-data-uint BANDWIDTH
 
   /**
-    860000000-925000000. value in hz
-  */
+   * 860000000-925000000. value in hz
+   */
   center-frequency -> int:
     return get-data-uint CENTER-FREQUENCY
 
   /**
-    0-22
-  */
+   * 0-22
+   */
   tx-power -> int:
     return get-data-uint TX-POWER
 
   /**
-    4-128
-  */
+   * 4-128
+   */
   preamble-length -> int:
     return get-data-uint PREAMBLE-LENGTH
 
   /**
-    How long to listen for after a transmit, in ms
-  */
+   * How long to listen for after a transmit, in ms
+   */
   receive-ms -> int:
     return get-data-uint RECEIVE-MS
 
   /**
-    True will tell the LORA to stop all activity now
-  */
+   * True will tell the LORA to stop all activity now
+   */
   sleep -> bool:
     return get-data-bool SLEEP
 
   /**
-    State
-  */
+   * State
+   */
   state -> int:
     return get-data-uint STATE
 

@@ -17,13 +17,13 @@ class BLEScan extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if advertising-data != null: data.add-data ADVERTISING-DATA advertising-data
@@ -45,20 +45,20 @@ class BLEScan extends protocol.Data:
     return msg
 
   /**
-    Advertising Data
-  */
+   * Advertising Data
+   */
   advertising-data -> ByteArray:
     return get-data ADVERTISING-DATA
 
   /**
-    MAC Address of the access point, as 6 bytes
-  */
+   * MAC Address of the access point, as 6 bytes
+   */
   mac -> ByteArray:
     return get-data MAC
 
   /**
-    Signal strength
-  */
+   * Signal strength
+   */
   rssi -> int:
     return get-data-int RSSI
 

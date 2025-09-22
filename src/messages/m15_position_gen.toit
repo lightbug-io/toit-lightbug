@@ -56,20 +56,20 @@ class Position extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
 
   /**
-  Creates a GET Request message for Position.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a GET Request message for Position.
+   *
+   * Returns: A Message ready to be sent
+   */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
@@ -87,10 +87,10 @@ class Position extends protocol.Data:
     return msg
 
   /**
-  Creates a UNSUBSCRIBE Request message for Position.
-  
-  Returns: A Message ready to be sent
-  */
+   * Creates a UNSUBSCRIBE Request message for Position.
+   *
+   * Returns: A Message ready to be sent
+   */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
@@ -151,42 +151,42 @@ class Position extends protocol.Data:
     return get-data-uint SPEED
 
   /**
-    Satellites
-    
-    Unit: count
-  */
+   * Satellites
+   *
+   * Unit: count
+   */
   satellites -> int:
     return get-data-uint SATELLITES
 
   /**
-    Average CN0. Carrier to noise density. Higher is better.
-    
-    Unit: dB-Hz
-  */
+   * Average CN0. Carrier to noise density. Higher is better.
+   *
+   * Unit: dB-Hz
+   */
   cn0 -> int:
     return get-data-uint CN0
 
   /**
-    Position type
-    
-    Valid values:
-    - TYPE_INVALID (0): invalid
-    - TYPE_FIXED (1): fixed
-    - TYPE_RESERVED (2): Can indicate a 2D fix, low accuracy, should be treated as invalid
-    - TYPE_STANDALONE-3D-FIX (3): standalone 3d fix
-    - TYPE_RTK-FLOAT (4): rtk-float
-    - TYPE_RTK-FIX (5): rtk-fix
-  */
+   * Position type
+   *
+   * Valid values:
+   * - TYPE_INVALID (0): invalid
+   * - TYPE_FIXED (1): fixed
+   * - TYPE_RESERVED (2): Can indicate a 2D fix, low accuracy, should be treated as invalid
+   * - TYPE_STANDALONE-3D-FIX (3): standalone 3d fix
+   * - TYPE_RTK-FLOAT (4): rtk-float
+   * - TYPE_RTK-FIX (5): rtk-fix
+   */
   type -> int:
     return get-data-uint TYPE
 
   /**
-    Position source
-    
-    Valid values:
-    - SOURCE_GPS (0): Position has come from a GPS module.
-    - SOURCE_RTK (1): Position has come from an RTK module. This does not mean the position is RTK corrected.
-  */
+   * Position source
+   *
+   * Valid values:
+   * - SOURCE_GPS (0): Position has come from a GPS module.
+   * - SOURCE_RTK (1): Position has come from an RTK module. This does not mean the position is RTK corrected.
+   */
   source -> int:
     return get-data-uint SOURCE
 
