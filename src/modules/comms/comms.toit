@@ -214,7 +214,7 @@ class Comms:
 
     // Let any registered message handlers try and handle the message
     messageHandlers_.do: | handler |
-      handler.handle-message msg
+      task:: handler.handle-message msg
 
     // Add to any registered inboxes (only if inboxes are enabled)
     if inboxesEnabled_:
