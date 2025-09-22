@@ -13,13 +13,15 @@ class Buttons:
   comms_/comms.Comms
   logger_/log.Logger
   subscribed_/bool := false
-  callback_/Lambda? := null
+  // Support multiple independent subscribers: id -> Lambda
+  subscribers_/Map := {:}
+  next-subscriber-id_/int := 0
   inbox_/monitor.Channel? := null
   task_/Task? := null
 
-  constructor comms/comms.Comms --logger/log.Logger?=null:
+  constructor comms/comms.Comms --logger/log.Logger=(log.default.with-name "lb-buttons"):
     comms_ = comms
-    logger_ = logger ? log.default.with-name "lb-buttons" : log.default.with-name "lb-buttons"
+    logger_ = logger
 
   /**
   Subscribes to button press events synchronously (blocks until response).
@@ -35,17 +37,24 @@ class Buttons:
   
   Returns: true if subscription was successful, false otherwise
   */
-  subscribe --callback/Lambda?=null --timeout/Duration=(Duration --s=5) -> bool:
-    if subscribed_:
-      // TODO XXX: DO we want to allow 2 subs, or overriding previous ones?
-      logger_.warn "Already subscribed to button presses"
-      return false
+  // Synchronous subscribe: returns subscriber id on success, null on failure.
+  subscribe --callback/Lambda?=null --timeout/Duration=(Duration --s=5) -> int?:
+    id := next-subscriber-id_ + 1
+    next-subscriber-id_ = id
+    if callback:
+      subscribers_[id] = callback
+    else:
+      subscribers_[id] = (::)
 
-    // Track success for synchronous behavior
+    // If already subscribed at transport level, we're already receiving messages.
+    if subscribed_:
+      return id
+
+    // Otherwise attempt underlying subscribe and wait for ack.
     success := false
     latch := monitor.Latch
 
-    subscribe_ --callback=callback 
+    subscribe_ --callback=null 
         --onSuccess=(:: 
           success = true
           latch.set true
@@ -58,7 +67,12 @@ class Buttons:
 
     // Wait for response
     latch.get
-    return success
+
+    if not success:
+      subscribers_.remove id
+      return null
+
+    return id
 
   /**
   Subscribes to button press events asynchronously (fire-and-forget).
@@ -72,14 +86,22 @@ class Buttons:
     --onSuccess: Optional lambda to call when subscription is confirmed
     --onError: Optional lambda to call if subscription fails
   */
-  subscribe --async --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null:
-    if subscribed_:
-      logger_.warn "Already subscribed to button presses"
-      if onError:
-        onError.call "Already subscribed"
-      return
+  // Async subscribe: returns subscriber id immediately.
+  subscribe --async --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null -> int:
+    id := next-subscriber-id_ + 1
+    next-subscriber-id_ = id
+    if callback:
+      subscribers_[id] = callback
+    else:
+      subscribers_[id] = (::)
 
-    subscribe_ --callback=callback --onSuccess=onSuccess --onError=onError
+    if not subscribed_:
+      subscribe_ --callback=null --onSuccess=onSuccess --onError=onError
+    else:
+      if onSuccess:
+        onSuccess.call
+
+    return id
 
   /**
   Unsubscribes from button press events synchronously (blocks until response).
@@ -91,12 +113,23 @@ class Buttons:
   
   Returns: true if unsubscription was successful, false otherwise
   */
-  unsubscribe --timeout/Duration=(Duration --s=5) -> bool:
-    if not subscribed_:
-      logger_.warn "Not currently subscribed to button presses"
-      return false
+  // Synchronous unsubscribe. If subscriber-id provided, remove that subscriber.
+  // If no subscriber-id provided, remove all subscribers and perform underlying
+  // unsubscribe. Returns true if underlying unsubscription succeeded or was
+  // not necessary.
+  unsubscribe --subscriber-id/int?=null --timeout/Duration=(Duration --s=5) -> bool:
+    if subscriber-id != null:
+      subscribers_.remove subscriber-id
+    else:
+      subscribers_ = {:}
 
-    // Track success for synchronous behavior
+    // If there are remaining subscribers, nothing to do at transport level.
+    if subscribers_.size > 0:
+      return true
+
+    if not subscribed_:
+      return true
+
     success := false
     latch := monitor.Latch
 
@@ -125,14 +158,22 @@ class Buttons:
     --onSuccess: Optional lambda to call when unsubscription is confirmed
     --onError: Optional lambda to call if unsubscription fails
   */
-  unsubscribe --async --onSuccess/Lambda?=null --onError/Lambda?=null:
-    if not subscribed_:
-      logger_.warn "Not currently subscribed to button presses"
-      if onError:
-        onError.call "Not currently subscribed"
-      return
+  // Async unsubscribe: remove given subscriber id or all if null.
+  unsubscribe --async --subscriber-id/int?=null --onSuccess/Lambda?=null --onError/Lambda?=null:
+    if subscriber-id != null:
+      subscribers_.remove subscriber-id
+    else:
+      subscribers_ = {:}
 
-    unsubscribe_ --onSuccess=onSuccess --onError=onError
+    if subscribers_.size == 0:
+      if not subscribed_:
+        if onSuccess:
+          onSuccess.call
+        return
+      unsubscribe_ --onSuccess=onSuccess --onError=onError
+    else:
+      if onSuccess:
+        onSuccess.call
 
   /**
   Internal method to handle subscription logic.
@@ -140,25 +181,18 @@ class Buttons:
   This contains the shared logic between sync and async subscription methods.
   */
   subscribe_ --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null --timeout/Duration?=null:
-    // Store the callback for later use.
-    callback_ = callback
-
     // Send subscription message.
-    // TODO XXX: Is --ms actually needed for button subscriptions?
-    comms_.send (messages.ButtonPress.subscribe-msg --duration=1000) --now=true
+    comms_.send (messages.ButtonPress.subscribe-msg) --now=true
         --onAck=(:: 
           subscribed_ = true
-          // TODO XXX: Should we always start listening even if no ACK?
-          // Maybe we want the callback to work regardless of subscription confirmation?
-          // Start listening for button press messages if we have a callback.
-          if callback_:
+          // Start listening for button press messages if we have any subscribers.
+          if subscribers_.size > 0:
             start-listening_
           if onSuccess:
             onSuccess.call
         )
         --onNack=(:: |msg|
           // Treat NACK as a failure - don't set subscribed_ or start listening
-          // TODO XXX: Consider actually continuing to listen even if NACKed?
           error-msg := ?
           if msg.msg-status != null:
             error-msg = "Button subscription failed, state: $(msg.msg-status)"
@@ -190,7 +224,7 @@ class Buttons:
     comms_.send (messages.ButtonPress.unsubscribe-msg) --now=true
         --onAck=(:: 
           subscribed_ = false
-          callback_ = null
+          subscribers_ = {:}
           if onSuccess:
             onSuccess.call
         )
@@ -225,15 +259,19 @@ class Buttons:
     callback: Lambda to call when button presses are received, or null to remove callback
   */
   set-callback callback/Lambda?:
-    callback_ = callback
-    
+    // Keep backward-compatible single-callback setter by registering a
+    // dedicated subscriber and clearing previous ones.
+    subscribers_ = {:}
+    if callback:
+      id := next-subscriber-id_ + 1
+      next-subscriber-id_ = id
+      subscribers_[id] = callback
+
     if subscribed_:
-      if callback_:
-        // Start listening if we weren't before.
+      if subscribers_.size > 0:
         if not task_:
           start-listening_
       else:
-        // Stop listening if callback is removed.
         stop-listening_
 
   /**
@@ -252,18 +290,21 @@ class Buttons:
     // Create inbox for button messages.
     inbox_ = comms_.inbox "buttons"
     
-    // Start task to process button messages.
+    // Start task to process button messages and dispatch to all subscribers.
     task_ = task::
       try:
-        while callback_:
+        while subscribers_.size > 0:
           msg := inbox_.receive
           e := catch:
             if msg.type == messages.ButtonPress.MT:
               logger_.debug "Received button press: $msg"
               button-data := messages.ButtonPress.from-data msg.data
-              callback_.call button-data
-            else:
-              logger_.debug "Received other message: $msg"
+              // Dispatch to all subscribers; protect each callback.
+              subscribers_.do: |id cb|
+                se := catch:
+                  cb.call button-data
+                if se:
+                  logger_.error "Subscriber $(id) callback error: $se"
           if e:
             logger_.error "Error processing button message: $e"
       finally:

@@ -180,7 +180,7 @@ class I2C implements Device:
 
   buttons -> Buttons:
     if not buttons_:
-      buttons_ = Buttons comms
+      buttons_ = Buttons comms --logger=(logger_.with-name "buttons")
     return buttons_
 
   ble -> BLE:
