@@ -11,6 +11,7 @@ import ..modules.wifi
 import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
 import ..modules.gnss show GNSS
+import ..modules.eink show Eink
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
@@ -21,6 +22,7 @@ class Fake implements Device:
   piezo_ /Piezo? := null
   haptics_ /Haptics? := null
   gnss_ /GNSS? := null
+  eink_ /Eink? := null
   open_ /bool
   in_/io.Reader? := ?
   out_/io.Writer? := ?
@@ -76,6 +78,10 @@ class Fake implements Device:
     if out_:
       return out_
     return FakeWriter
+  eink -> Eink:
+    if not eink_:
+      eink_ = Eink --device=this --logger=(log.default.with-name "eink")
+    return eink_
 
 class FakeReader extends io.Reader with io.InMixin:
   buffer_/ByteArray := #[]

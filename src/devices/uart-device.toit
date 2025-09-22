@@ -11,6 +11,7 @@ import ..modules.wifi
 import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
 import ..modules.gnss show GNSS
+import ..modules.eink show Eink
 
 // ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
 // UART0 GPIO17 (RX) GPIO16 (TX) Defaults
@@ -34,6 +35,7 @@ class UART implements Device:
   piezo_ /Piezo? := null
   haptics_ /Haptics? := null
   gnss_ /GNSS? := null
+  eink_ /Eink? := null
   open_ /bool
 
   constructor --port/uart.Port --open/bool=true:
@@ -74,6 +76,10 @@ class UART implements Device:
     if not gnss_:
       gnss_ = GNSS --device=this --logger=(log.default.with-name "lb.gnss")
     return gnss_
+  eink -> Eink:
+    if not eink_:
+      eink_ = Eink --device=this --logger=(log.default.with-name "eink")
+    return eink_
   // XXX: Does reinit really make sense for a generic UART device? Possibly not?
   reinit -> bool:
     return true

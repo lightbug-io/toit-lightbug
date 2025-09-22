@@ -5,6 +5,7 @@ import io
 import log
 import .i2c
 import .devices
+import ..modules.eink
 import ..modules.strobe
 import ..modules.comms
 import ..modules.buttons
@@ -24,6 +25,8 @@ An interface representing a Lightbug device
 interface Device extends HasInOut:
   // A name identifying the type of device
   name -> string
+  /// E-ink
+  eink -> Eink
   // Device strobe. You can use strobe.available to see if the device has a strobe
   strobe -> Strobe
   // Piezo buzzer controller. Use to send buzzer messages to the device.
