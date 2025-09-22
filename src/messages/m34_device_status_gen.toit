@@ -48,13 +48,13 @@ class DeviceStatus extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --battery/int?=null --signal-strength/int?=null --mode/int?=null --network-type/int?=null --network-mnc/int?=null --network-mcc/int?=null --firmware-version/int?=null --device-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if battery != null: data.add-data-uint BATTERY battery
@@ -68,72 +68,74 @@ class DeviceStatus extends protocol.Data:
     return data
 
   /**
-  Creates a GET Request message for Device Status.
+   * Creates a GET Request message for Device Status.
+   */
   
-  Returns: A Message ready to be sent
-  */
+  /**
+   * Returns: A Message ready to be sent
+   */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-    Battery level
-    
-    Unit: %
-  */
+   * Battery level
+   *
+   * Unit: %
+   */
   battery -> int:
     return get-data-uint BATTERY
 
   /**
-    Signal strength
-    
-    Unit: %
-  */
+   * Signal strength
+   *
+   * Unit: %
+   */
   signal-strength -> int:
     return get-data-uint SIGNAL-STRENGTH
 
   /**
-    Device mode
-    
-    Valid values:
-    - MODE_SLEEP (0): Sleep
-    - MODE_AWAKE (1): Awake
-  */
+   * Device mode
+   *
+   * Valid values:
+   * - MODE_SLEEP (0): Sleep
+   * - MODE_AWAKE (1): Awake
+   */
   mode -> int:
     return get-data-uint MODE
 
   /**
-    Network type
-    
-    Valid values:
-    - NETWORK-TYPE_NO-NETWORK (0): No network
-    - NETWORK-TYPE_GSM-(2G) (2): GSM (2G)
-    - NETWORK-TYPE_WCDMA-(3G) (3): WCDMA (3G)
-    - NETWORK-TYPE_LTE-(4G) (4): LTE (4G)
-  */
+   * Network type
+   *
+   * Valid values:
+   * - NETWORK-TYPE_NO-NETWORK (0): No network
+   * - NETWORK-TYPE_GSM-(2G) (2): GSM (2G)
+   * - NETWORK-TYPE_WCDMA-(3G) (3): WCDMA (3G)
+   * - NETWORK-TYPE_LTE-(4G) (4): LTE (4G)
+   */
   network-type -> int:
     return get-data-uint NETWORK-TYPE
 
   /**
-    Network MNC
-  */
+   * Network MNC
+   */
   network-mnc -> int:
     return get-data-uint NETWORK-MNC
 
   /**
-    Network MCC
-  */
+   * Network MCC
+   */
   network-mcc -> int:
     return get-data-uint NETWORK-MCC
 
   /**
-    Firmware Version
-  */
+   * Firmware Version
+   */
   firmware-version -> int:
     return get-data-uint FIRMWARE-VERSION
 
   /**
-    Type of device, relates to the SN prefix
-  */
+   * Type of device, relates to the SN prefix
+   */
   device-type -> int:
     return get-data-uint DEVICE-TYPE
 

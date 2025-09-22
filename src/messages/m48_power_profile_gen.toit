@@ -16,13 +16,13 @@ class PowerProfile extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --total-power/float?=null --current/float?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if total-power != null: data.add-data-float TOTAL-POWER total-power
@@ -43,26 +43,28 @@ class PowerProfile extends protocol.Data:
     return msg
 
   /**
-  Creates a UNSUBSCRIBE Request message for Power Profile.
+   * Creates a UNSUBSCRIBE Request message for Power Profile.
+   */
   
-  Returns: A Message ready to be sent
-  */
+  /**
+   * Returns: A Message ready to be sent
+   */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
-    Total power used in mAH since the subscription was started (or the device was turned on, if only using GET)
-    
-    Unit: mAh
-  */
+   * Total power used in mAH since the subscription was started (or the device was turned on, if only using GET)
+   *
+   * Unit: mAh
+   */
   total-power -> float:
     return get-data-float TOTAL-POWER
 
   /**
-    Instantaneous Current power usage
-    
-    Unit: mA
-  */
+   * Instantaneous Current power usage
+   *
+   * Unit: mA
+   */
   current -> float:
     return get-data-float CURRENT
 

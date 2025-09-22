@@ -22,13 +22,13 @@ class DeviceTime extends protocol.Data:
     super.from-data data
 
   /**
-  Creates a protocol.Data object with all available fields for this message type.
-  
-  This is a comprehensive helper that accepts all possible fields.
-  For method-specific usage, consider using the dedicated request/response methods.
-  
-  Returns: A protocol.Data object with the specified field values
-  */
+   * Creates a protocol.Data object with all available fields for this message type.
+   *
+   * This is a comprehensive helper that accepts all possible fields.
+   * For method-specific usage, consider using the dedicated request/response methods.
+   *
+   * Returns: A protocol.Data object with the specified field values
+   */
   static data --unix-time/int?=null --year/int?=null --month/int?=null --date/int?=null --weekday/int?=null --hour/int?=null --minute/int?=null --second/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if unix-time != null: data.add-data-uint UNIX-TIME unix-time
@@ -42,58 +42,60 @@ class DeviceTime extends protocol.Data:
     return data
 
   /**
-  Creates a GET Request message for Device Time.
+   * Creates a GET Request message for Device Time.
+   */
   
-  Returns: A Message ready to be sent
-  */
+  /**
+   * Returns: A Message ready to be sent
+   */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-    Unix time
-  */
+   * Unix time
+   */
   unix-time -> int:
     return get-data-uint UNIX-TIME
 
   /**
-    Year
-  */
+   * Year
+   */
   year -> int:
     return get-data-uint YEAR
 
   /**
-    Month
-  */
+   * Month
+   */
   month -> int:
     return get-data-uint MONTH
 
   /**
-    Date in month
-  */
+   * Date in month
+   */
   date -> int:
     return get-data-uint DATE
 
   /**
-    Weekday (0 = sunday, 1 = monday etc)
-  */
+   * Weekday (0 = sunday, 1 = monday etc)
+   */
   weekday -> int:
     return get-data-uint WEEKDAY
 
   /**
-    Hour
-  */
+   * Hour
+   */
   hour -> int:
     return get-data-uint HOUR
 
   /**
-    Minute
-  */
+   * Minute
+   */
   minute -> int:
     return get-data-uint MINUTE
 
   /**
-    Second
-  */
+   * Second
+   */
   second -> int:
     return get-data-uint SECOND
 
