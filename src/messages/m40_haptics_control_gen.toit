@@ -42,13 +42,13 @@ class HapticsControl extends protocol.Data:
     super.from-data data
 
   /**
-   * Creates a protocol.Data object with all available fields for this message type.
-   *
-   * This is a comprehensive helper that accepts all possible fields.
-   * For method-specific usage, consider using the dedicated request/response methods.
-   *
-   * Returns: A protocol.Data object with the specified field values
-   */
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
   static data --pattern/int?=null --intensity/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if pattern != null: data.add-data-uint PATTERN pattern
@@ -56,38 +56,38 @@ class HapticsControl extends protocol.Data:
     return data
 
   /**
-   * Creates a Haptics Control message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
-   *
-   * Returns: A Message ready to be sent
-   */
+  Creates a Haptics Control message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
   /**
-   * Pattern of haptics [1-3]
-   *
-   * Valid values:
-   * - PATTERN_FADE (1): Default
-   * - PATTERN_PULSE (2): Pulse
-   * - PATTERN_DROP (3): Drop
-   */
+    Pattern of haptics [1-3]
+    
+    Valid values:
+    - PATTERN_FADE (1): Default
+    - PATTERN_PULSE (2): Pulse
+    - PATTERN_DROP (3): Drop
+  */
   pattern -> int:
     return get-data-uint PATTERN
 
   /**
-   * Intensity of haptics [0-2]
-   *
-   * Valid values:
-   * - INTENSITY_LOW (0): Low
-   * - INTENSITY_MEDIUM (1): Medium
-   * - INTENSITY_HIGH (2): High
-   */
+    Intensity of haptics [0-2]
+    
+    Valid values:
+    - INTENSITY_LOW (0): Low
+    - INTENSITY_MEDIUM (1): Medium
+    - INTENSITY_HIGH (2): High
+  */
   intensity -> int:
     return get-data-uint INTENSITY
 

@@ -7,6 +7,7 @@ class MenuPage extends protocol.Data:
   static MT_NAME := "MenuPage"
 
   static PAGE-ID := 3
+  static PAGE-TITLE := 4
   static ITEM-COUNT := 30
   static SELECTED-ITEM := 31
   static ITEM-1 := 100
@@ -37,16 +38,17 @@ class MenuPage extends protocol.Data:
     super.from-data data
 
   /**
-   * Creates a protocol.Data object with all available fields for this message type.
-   *
-   * This is a comprehensive helper that accepts all possible fields.
-   * For method-specific usage, consider using the dedicated request/response methods.
-   *
-   * Returns: A protocol.Data object with the specified field values
-   */
-  static data --page-id/int?=null --item-count/int?=null --selected-item/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
+  static data --page-id/int?=null --page-title/string?=null --item-count/int?=null --selected-item/int?=null --item-1/string?=null --item-2/string?=null --item-3/string?=null --item-4/string?=null --item-5/string?=null --item-6/string?=null --item-7/string?=null --item-8/string?=null --item-9/string?=null --item-10/string?=null --item-11/string?=null --item-12/string?=null --item-13/string?=null --item-14/string?=null --item-15/string?=null --item-16/string?=null --item-17/string?=null --item-18/string?=null --item-19/string?=null --item-20/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
+    if page-title != null: data.add-data-ascii PAGE-TITLE page-title
     if item-count != null: data.add-data-uint ITEM-COUNT item-count
     if selected-item != null: data.add-data-uint SELECTED-ITEM selected-item
     if item-1 != null: data.add-data-ascii ITEM-1 item-1
@@ -72,162 +74,170 @@ class MenuPage extends protocol.Data:
     return data
 
   /**
-   * Creates a Menu Page message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
-   *
-   * Returns: A Message ready to be sent
-   */
+  Creates a Menu Page message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
   /**
-   * The page to draw or update.
-   * Page ids 0-10 are reserved for system use.
-   * If no page id is provided, page id 11 will be assumed.
-   */
+    The page to draw or update.
+Page ids 0-10 are reserved for system use.
+If no page id is provided, page id 11 will be assumed.
+
+  */
   page-id -> int:
     return get-data-uint PAGE-ID
 
   /**
-   * Number of items in the menu. Max 20.
-   */
+    Page Title
+  */
+  page-title -> string:
+    return get-data-ascii PAGE-TITLE
+
+  /**
+    Item count
+  */
   item-count -> int:
     return get-data-uint ITEM-COUNT
 
   /**
-   * Optionally select a specific item, else the first will be used. 0 indexed.
-   */
+    Optionally select a specific item, else the first will be used
+  */
   selected-item -> int:
     return get-data-uint SELECTED-ITEM
 
   /**
-   * Item 1
-   */
+    Item 1
+  */
   item-1 -> string:
     return get-data-ascii ITEM-1
 
   /**
-   * Item 2
-   */
+    Item 2
+  */
   item-2 -> string:
     return get-data-ascii ITEM-2
 
   /**
-   * Item 3
-   */
+    Item 3
+  */
   item-3 -> string:
     return get-data-ascii ITEM-3
 
   /**
-   * Item 4
-   */
+    Item 4
+  */
   item-4 -> string:
     return get-data-ascii ITEM-4
 
   /**
-   * Item 5
-   */
+    Item 5
+  */
   item-5 -> string:
     return get-data-ascii ITEM-5
 
   /**
-   * Item 6
-   */
+    Item 6
+  */
   item-6 -> string:
     return get-data-ascii ITEM-6
 
   /**
-   * Item 7
-   */
+    Item 7
+  */
   item-7 -> string:
     return get-data-ascii ITEM-7
 
   /**
-   * Item 8
-   */
+    Item 8
+  */
   item-8 -> string:
     return get-data-ascii ITEM-8
 
   /**
-   * Item 9
-   */
+    Item 9
+  */
   item-9 -> string:
     return get-data-ascii ITEM-9
 
   /**
-   * Item 10
-   */
+    Item 10
+  */
   item-10 -> string:
     return get-data-ascii ITEM-10
 
   /**
-   * Item 11
-   */
+    Item 11
+  */
   item-11 -> string:
     return get-data-ascii ITEM-11
 
   /**
-   * Item 12
-   */
+    Item 12
+  */
   item-12 -> string:
     return get-data-ascii ITEM-12
 
   /**
-   * Item 13
-   */
+    Item 13
+  */
   item-13 -> string:
     return get-data-ascii ITEM-13
 
   /**
-   * Item 14
-   */
+    Item 14
+  */
   item-14 -> string:
     return get-data-ascii ITEM-14
 
   /**
-   * Item 15
-   */
+    Item 15
+  */
   item-15 -> string:
     return get-data-ascii ITEM-15
 
   /**
-   * Item 16
-   */
+    Item 16
+  */
   item-16 -> string:
     return get-data-ascii ITEM-16
 
   /**
-   * Item 17
-   */
+    Item 17
+  */
   item-17 -> string:
     return get-data-ascii ITEM-17
 
   /**
-   * Item 18
-   */
+    Item 18
+  */
   item-18 -> string:
     return get-data-ascii ITEM-18
 
   /**
-   * Item 19
-   */
+    Item 19
+  */
   item-19 -> string:
     return get-data-ascii ITEM-19
 
   /**
-   * Item 20
-   */
+    Item 20
+  */
   item-20 -> string:
     return get-data-ascii ITEM-20
 
   stringify -> string:
     return {
       "Page ID": page-id,
+      "Page Title": page-title,
       "Item count": item-count,
       "Selected item": selected-item,
       "Item 1": item-1,

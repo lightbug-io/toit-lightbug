@@ -36,13 +36,13 @@ class BasePage extends protocol.Data:
     super.from-data data
 
   /**
-   * Creates a protocol.Data object with all available fields for this message type.
-   *
-   * This is a comprehensive helper that accepts all possible fields.
-   * For method-specific usage, consider using the dedicated request/response methods.
-   *
-   * Returns: A protocol.Data object with the specified field values
-   */
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
   static data --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if page-id != null: data.add-data-uint PAGE-ID page-id
@@ -51,57 +51,58 @@ class BasePage extends protocol.Data:
     return data
 
   /**
-   * Creates a Base Page message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
-   *
-   * Returns: A Message ready to be sent
-   */
+  Creates a Base Page message without a specific method.
+  
+  This is used for messages that don't require a specific method type
+  (like GET, SET, SUBSCRIBE) but still need to carry data.
+  
+  Parameters:
+  - data: Optional protocol.Data object containing message payload
+  
+  Returns: A Message ready to be sent
+  */
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
   /**
-   * The page to draw or update.
-   * Page ids 0-10 are reserved for system use.
-   * If no page id is provided, page id 11 will be assumed.
-   */
+    The page to draw or update.
+Page ids 0-10 are reserved for system use.
+If no page id is provided, page id 11 will be assumed.
+
+  */
   page-id -> int:
     return get-data-uint PAGE-ID
 
   /**
-   * Show the status bar
-   */
+    Show the status bar
+  */
   status-bar-enable -> bool:
     return get-data-bool STATUS-BAR-ENABLE
 
   /**
-   * Redraw Type
-   *
-   * Valid values:
-   * - REDRAW-TYPE_AUTO (0): Automatically choose the redraw type, based on page id.
-   * No page id provided will assume the same page id as last set.
-   * Same page id as last set will do a partial redraw, and leave the buffer intact.
-   * Changed page id will clear the buffer and do a full redraw.
-   *
-   * - REDRAW-TYPE_PARTIALREDRAW (1): Only redraw the parts of the screen changed in this message.
-   * Leaves the buffer intact.
-   * Will occasionally do a full redraw if the firmware thinks it is needed.
-   *
-   * - REDRAW-TYPE_FULLREDRAW (2): Clear the screen buffer, and redraw the entire screen
-   *
-   * - REDRAW-TYPE_BUFFERONLY (3): Do not redraw the screen, only update the buffer.
-   * Will clear the buffer if the page id has changed.
-   * Similar to Auto, but will not redraw the screen.
-   * Similar to ClearDontDraw, but only clears the buffer if the page id has changed.
-   *
-   * - REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR (4): Redraw the entire screen, without clearing the buffer
-   *
-   * - REDRAW-TYPE_CLEARDONTDRAW (5): Clear the screen buffer (always), but don't redraw. Similar to BufferOnly, but always clears the buffer.
-   */
+    Redraw Type
+    
+    Valid values:
+    - REDRAW-TYPE_AUTO (0): Automatically choose the redraw type, based on page id.
+No page id provided will assume the same page id as last set.
+Same page id as last set will do a partial redraw, and leave the buffer intact.
+Changed page id will clear the buffer and do a full redraw.
+
+    - REDRAW-TYPE_PARTIALREDRAW (1): Only redraw the parts of the screen changed in this message.
+Leaves the buffer intact.
+Will occasionally do a full redraw if the firmware thinks it is needed.
+
+    - REDRAW-TYPE_FULLREDRAW (2): Clear the screen buffer, and redraw the entire screen
+
+    - REDRAW-TYPE_BUFFERONLY (3): Do not redraw the screen, only update the buffer.
+Will clear the buffer if the page id has changed.
+Similar to Auto, but will not redraw the screen.
+Similar to ClearDontDraw, but only clears the buffer if the page id has changed.
+
+    - REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR (4): Redraw the entire screen, without clearing the buffer
+
+    - REDRAW-TYPE_CLEARDONTDRAW (5): Clear the screen buffer (always), but don't redraw. Similar to BufferOnly, but always clears the buffer.
+  */
   redraw-type -> int:
     return get-data-uint REDRAW-TYPE
 

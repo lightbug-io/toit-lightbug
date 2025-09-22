@@ -17,13 +17,13 @@ class DeviceIDs extends protocol.Data:
     super.from-data data
 
   /**
-   * Creates a protocol.Data object with all available fields for this message type.
-   *
-   * This is a comprehensive helper that accepts all possible fields.
-   * For method-specific usage, consider using the dedicated request/response methods.
-   *
-   * Returns: A protocol.Data object with the specified field values
-   */
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
   static data --id/int?=null --imei/string?=null --iccid/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if id != null: data.add-data-uint ID id
@@ -32,30 +32,28 @@ class DeviceIDs extends protocol.Data:
     return data
 
   /**
-   * Creates a GET Request message for Device IDs.
-   */
+  Creates a GET Request message for Device IDs.
   
-  /**
-   * Returns: A Message ready to be sent
-   */
+  Returns: A Message ready to be sent
+  */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-   * Unique ID for the device which is used in the cloud API. uint32 or uint64 only
-   */
+    Unique ID for the device which is used in the cloud API. uint32 or uint64 only
+  */
   id -> int:
     return get-data-uint ID
 
   /**
-   * IMEI - 15 characters
-   */
+    IMEI - 15 characters
+  */
   imei -> string:
     return get-data-ascii IMEI
 
   /**
-   * ICCID - 19 to 22 characters
-   */
+    ICCID - 19 to 22 characters
+  */
   iccid -> string:
     return get-data-ascii ICCID
 

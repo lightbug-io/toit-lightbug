@@ -27,13 +27,13 @@ class SatelliteData extends protocol.Data:
     super.from-data data
 
   /**
-   * Creates a protocol.Data object with all available fields for this message type.
-   *
-   * This is a comprehensive helper that accepts all possible fields.
-   * For method-specific usage, consider using the dedicated request/response methods.
-   *
-   * Returns: A protocol.Data object with the specified field values
-   */
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
   static data --snr-average/int?=null --snr-minimum/int?=null --snr-maximum/int?=null --total-satellites/int?=null --good-satellites/int?=null --gps-l1/ByteArray?=null --gps-lx/ByteArray?=null --glonass-l1/ByteArray?=null --glonass-lx/ByteArray?=null --beidou-l1/ByteArray?=null --beidou-lx/ByteArray?=null --galileo-l1/ByteArray?=null --galileo-lx/ByteArray?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if snr-average != null: data.add-data-uint SNR-AVERAGE snr-average
@@ -52,12 +52,10 @@ class SatelliteData extends protocol.Data:
     return data
 
   /**
-   * Creates a GET Request message for Satellite Data.
-   */
+  Creates a GET Request message for Satellite Data.
   
-  /**
-   * Returns: A Message ready to be sent
-   */
+  Returns: A Message ready to be sent
+  */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
@@ -75,90 +73,88 @@ class SatelliteData extends protocol.Data:
     return msg
 
   /**
-   * Creates a UNSUBSCRIBE Request message for Satellite Data.
-   */
+  Creates a UNSUBSCRIBE Request message for Satellite Data.
   
-  /**
-   * Returns: A Message ready to be sent
-   */
+  Returns: A Message ready to be sent
+  */
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
-   * Average signal-to-noise ratio across all satellites
-   */
+    Average signal-to-noise ratio across all satellites
+  */
   snr-average -> int:
     return get-data-uint SNR-AVERAGE
 
   /**
-   * Minimum signal-to-noise ratio among all satellites
-   */
+    Minimum signal-to-noise ratio among all satellites
+  */
   snr-minimum -> int:
     return get-data-uint SNR-MINIMUM
 
   /**
-   * Maximum signal-to-noise ratio among all satellites
-   */
+    Maximum signal-to-noise ratio among all satellites
+  */
   snr-maximum -> int:
     return get-data-uint SNR-MAXIMUM
 
   /**
-   * Total number of satellites in view
-   */
+    Total number of satellites in view
+  */
   total-satellites -> int:
     return get-data-uint TOTAL-SATELLITES
 
   /**
-   * Heuristic for signal quality (defined as satellites with SNR>=38dBm. This number should be higher than 8 for a good RTK fix, typically)
-   */
+    Heuristic for signal quality (defined as satellites with SNR>=38dBm. This number should be higher than 8 for a good RTK fix, typically)
+  */
   good-satellites -> int:
     return get-data-uint GOOD-SATELLITES
 
   /**
-   * Summary data for GPS L1 satellites
-   */
+    Summary data for GPS L1 satellites
+  */
   gps-l1 -> ByteArray:
     return get-data GPS-L1
 
   /**
-   * Summary data for GPS L2 or L5 satellite signals (depending on hardware)
-   */
+    Summary data for GPS L2 or L5 satellite signals (depending on hardware)
+  */
   gps-lx -> ByteArray:
     return get-data GPS-LX
 
   /**
-   * Summary data for GLONASS L1 satellite signals
-   */
+    Summary data for GLONASS L1 satellite signals
+  */
   glonass-l1 -> ByteArray:
     return get-data GLONASS-L1
 
   /**
-   * Summary data for GLONASS L2 or L5 satellite signals (depending on hardware)
-   */
+    Summary data for GLONASS L2 or L5 satellite signals (depending on hardware)
+  */
   glonass-lx -> ByteArray:
     return get-data GLONASS-LX
 
   /**
-   * Summary data for Beidou L1 satellite signals
-   */
+    Summary data for Beidou L1 satellite signals
+  */
   beidou-l1 -> ByteArray:
     return get-data BEIDOU-L1
 
   /**
-   * Summary data for Beidou L2 or L5 satellite signals (depending on hardware)
-   */
+    Summary data for Beidou L2 or L5 satellite signals (depending on hardware)
+  */
   beidou-lx -> ByteArray:
     return get-data BEIDOU-LX
 
   /**
-   * Summary data for Galileo L1 satellite signals
-   */
+    Summary data for Galileo L1 satellite signals
+  */
   galileo-l1 -> ByteArray:
     return get-data GALILEO-L1
 
   /**
-   * Summary data for Galileo L2 or L5 satellite signals (depending on hardware)
-   */
+    Summary data for Galileo L2 or L5 satellite signals (depending on hardware)
+  */
   galileo-lx -> ByteArray:
     return get-data GALILEO-LX
 

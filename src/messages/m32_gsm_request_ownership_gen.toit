@@ -16,13 +16,13 @@ class GSMRequestOwnership extends protocol.Data:
     super.from-data data
 
   /**
-   * Creates a protocol.Data object with all available fields for this message type.
-   *
-   * This is a comprehensive helper that accepts all possible fields.
-   * For method-specific usage, consider using the dedicated request/response methods.
-   *
-   * Returns: A protocol.Data object with the specified field values
-   */
+  Creates a protocol.Data object with all available fields for this message type.
+  
+  This is a comprehensive helper that accepts all possible fields.
+  For method-specific usage, consider using the dedicated request/response methods.
+  
+  Returns: A protocol.Data object with the specified field values
+  */
   static data --duration/int?=null --request-control/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if duration != null: data.add-data-uint DURATION duration
@@ -30,34 +30,30 @@ class GSMRequestOwnership extends protocol.Data:
     return data
 
   /**
-   * Creates a GET Request message for GSM Request Ownership.
-   */
+  Creates a GET Request message for GSM Request Ownership.
   
-  /**
-   * Returns: A Message ready to be sent
-   */
+  Returns: A Message ready to be sent
+  */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-   * Creates a SET Request message for GSM Request Ownership.
-   */
+  Creates a SET Request message for GSM Request Ownership.
   
-  /**
-   * Returns: A Message ready to be sent
-   */
+  Returns: A Message ready to be sent
+  */
   static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
-   * in mins
-   */
+    in mins
+  */
   duration -> int:
     return get-data-uint DURATION
 
   /**
-   * Request Control
-   */
+    Request Control
+  */
   request-control -> bool:
     return get-data-bool REQUEST-CONTROL
 
