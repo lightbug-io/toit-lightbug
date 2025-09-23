@@ -36,6 +36,7 @@ class I2C implements Device:
   name_ /string
   type_ /int? := null
   open_ /bool
+  with-default-handlers_ /bool
   logger_ /log.Logger
 
   comms_ /Comms? := null
@@ -57,6 +58,10 @@ class I2C implements Device:
       // But allow this to be disabled if needed
       // Calling .comms will start it anyway
       --startComms/bool=true
+      // Enabled default Lightbug firmware handlers
+      // Such as WiFi and BLE scan request handlers
+      // You may want to disable this while developing with logging, as this can cause slowness
+      --with-default-handlers/bool=true
 
       // Default to a logger named "lb" with ERROR level
       // This means we will only see critical stuff
@@ -72,6 +77,7 @@ class I2C implements Device:
 
     name_ = "I2C Device" // TODO look this up from a map eventually, so it could be used..
     logger_ = logger.with-level log-level
+    with-default-handlers_ = with-default-handlers
     open_ = open
 
     // Initialize I2C
@@ -114,19 +120,21 @@ class I2C implements Device:
 
   comms -> Comms:
     if not comms_:
+      handlers := [
+              // We need to be able to detect the device type, at least once
+              DeviceDetectionHandler this --logger=(logger_.with-name "h.detect"),
+      ]
+      if with-default-handlers_:
+        handlers = handlers + [
+            BLEHandler this --logger=(logger_.with-name "h.ble"),
+            WiFiHandler this --logger=(logger_.with-name "h.wifi"),
+        ]
+      else :
+        logger_.warn "Default message handlers disabled"
       comms_ = Comms 
           --device=this
           --open=open_
-          --handlers=[
-              // These handlers will always be registered
-              // We need to be able to detect the device type, at least once
-              // So that we know what modules to enable, and how to enable them
-              DeviceDetectionHandler this --logger=(logger_.with-name "h.detect"),
-              // As all ESP devices have BLE and WiFi support
-              // And the Lightbug device may request scans at any time
-              BLEHandler this --logger=(logger_.with-name "h.ble"),
-              WiFiHandler this --logger=(logger_.with-name "h.wifi")
-            ]
+          --handlers=handlers
           --logger=(logger_.with-name "comms")
     return comms_
 
