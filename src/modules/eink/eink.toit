@@ -156,7 +156,7 @@ class Eink:
 
   Selected item is zero-based.
   */
-  send-menu --page-id/int?=null --page-title/string?=null --items/List --selected-item/int?=null -> protocol.Message?:
+  send-menu --page-id/int?=null --items/List --selected-item/int?=null -> protocol.Message?:
   // Assumes device_.comms is present.
 
     if items == null or items.size == 0:
@@ -170,7 +170,6 @@ class Eink:
     data.add-data-uint messages.MenuPage.ITEM-COUNT count
 
     if page-id != null: data.add-data-uint messages.MenuPage.PAGE-ID page-id
-    if page-title != null: data.add-data-ascii messages.MenuPage.PAGE-TITLE page-title
     if selected-item != null: data.add-data-uint messages.MenuPage.SELECTED-ITEM selected-item
 
     for i := 0; i < count; i++:
@@ -182,10 +181,10 @@ class Eink:
     return device_.comms.send-new msg --flush=true
 
   // Async overload for send-menu
-  send-menu --async --page-id/int?=null --page-title/string?=null --items/List --selected-item/int?=null --onComplete/Lambda?=null --onError/Lambda?=null:
+  send-menu --async --page-id/int?=null --items/List --selected-item/int?=null --onComplete/Lambda?=null --onError/Lambda?=null:
     task::
       e := catch:
-        res := send-menu --page-id=page-id --page-title=page-title --items=items --selected-item=selected-item
+        res := send-menu --page-id=page-id --items=items --selected-item=selected-item
         if onComplete:
           onComplete.call res
       if e:
