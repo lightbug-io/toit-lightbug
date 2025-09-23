@@ -127,7 +127,7 @@ class Comms:
       logger_.info "Created new inbox $(name)"
       inboxesByName[name] = Channel size
     else if inboxesByName[name].capacity != size:
-      logger_.warn "Tried to get already created inbox, now with different size"
+      logger_.warn "Tried to get already created inbox $(name), now with different size"
     return inboxesByName[name]
 
   // Perform a single pass of inbound processing and return a parsed message if available.
@@ -218,11 +218,11 @@ class Comms:
 
     // Add to any registered inboxes (only if inboxes are enabled)
     if inboxesEnabled_:
-      inboxesByName.do --values=true: | inbox |
+      inboxesByName.do: | name inbox |
         if inbox.size >= inbox.capacity:
           dropped := inbox.receive
-          logger_.warn "Inbox full, Dropped message of type: $(dropped.type) in favour of new message of type: $(msg.type)"
-        logger_.debug "Adding message to inbox: $(msg.type)"
+          logger_.warn "Inbox full '$name', Dropped msg type: $(dropped.type) for new type: $(msg.type)"
+        logger_.debug "Inbox add '$name': $(msg.type)"
         inbox.send msg
 
     // Find waiting lambdas, based on the response
