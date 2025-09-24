@@ -19,7 +19,7 @@ class Position extends protocol.Data:
   static TYPE_INVALID := 0
   static TYPE_FIXED := 1
   static TYPE_RESERVED := 2
-  static TYPE_STANDALONE-3D-FIX := 3
+  static TYPE_3D := 3
   static TYPE_RTK-FLOAT := 4
   static TYPE_RTK-FIX := 5
 
@@ -27,7 +27,7 @@ class Position extends protocol.Data:
     0: "invalid",
     1: "fixed",
     2: "reserved",
-    3: "standalone 3d fix",
+    3: "3d",
     4: "rtk-float",
     5: "rtk-fix",
   }
@@ -173,7 +173,7 @@ class Position extends protocol.Data:
    * - TYPE_INVALID (0): invalid
    * - TYPE_FIXED (1): fixed
    * - TYPE_RESERVED (2): Can indicate a 2D fix, low accuracy, should be treated as invalid
-   * - TYPE_STANDALONE-3D-FIX (3): standalone 3d fix
+   * - TYPE_3D (3): standalone 3d fix
    * - TYPE_RTK-FLOAT (4): rtk-float
    * - TYPE_RTK-FIX (5): rtk-fix
    */
