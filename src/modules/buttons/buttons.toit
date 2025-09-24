@@ -38,7 +38,7 @@ class Buttons:
   Returns: true if subscription was successful, false otherwise
   */
   // Synchronous subscribe: returns subscriber id on success, null on failure.
-  subscribe --callback/Lambda?=null --timeout/Duration=(Duration --s=5) -> int?:
+  subscribe --callback/Lambda?=null --timeout/Duration=(Duration --s=5) --retries/int=3 -> int?:
     id := next-subscriber-id_ + 1
     next-subscriber-id_ = id
     if callback:
@@ -64,6 +64,7 @@ class Buttons:
           latch.set false
         )
         --timeout=timeout
+        --retries=retries
 
     // Wait for response
     latch.get
@@ -87,7 +88,7 @@ class Buttons:
     --onError: Optional lambda to call if subscription fails
   */
   // Async subscribe: returns subscriber id immediately.
-  subscribe --async --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null -> int:
+  subscribe --async --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null --retries/int=3 -> int:
     id := next-subscriber-id_ + 1
     next-subscriber-id_ = id
     if callback:
@@ -96,7 +97,7 @@ class Buttons:
       subscribers_[id] = (::)
 
     if not subscribed_:
-      subscribe_ --callback=null --onSuccess=onSuccess --onError=onError
+      subscribe_ --callback=null --onSuccess=onSuccess --onError=onError --retries=retries
     else:
       if onSuccess:
         onSuccess.call
@@ -180,7 +181,15 @@ class Buttons:
   
   This contains the shared logic between sync and async subscription methods.
   */
-  subscribe_ --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null --timeout/Duration?=null:
+  subscribe_ --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null --timeout/Duration?=null --retries/int=3:
+    subscribe-with-retries_ 0 retries --callback=callback --onSuccess=onSuccess --onError=onError --timeout=timeout
+
+  /**
+  Internal helper method to perform subscription with retry logic.
+  */
+  subscribe-with-retries_ current-attempt/int max-retries/int --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null --timeout/Duration?=null:
+    logger_.debug "Button subscription attempt $(current-attempt + 1) of $(max-retries + 1)"
+    
     // Send subscription message.
     comms_.send (messages.ButtonPress.subscribe-msg) --now=true
         --onAck=(:: 
@@ -192,22 +201,32 @@ class Buttons:
             onSuccess.call
         )
         --onNack=(:: |msg|
-          // Treat NACK as a failure - don't set subscribed_ or start listening
-          error-msg := ?
-          if msg.msg-status != null:
-            error-msg = "Button subscription failed, state: $(msg.msg-status)"
-            logger_.debug error-msg
+          // Check if we should retry
+          if current-attempt < max-retries:
+            logger_.debug "Button subscription failed, retrying... (attempt $(current-attempt + 1) of $(max-retries + 1))"
+            subscribe-with-retries_ (current-attempt + 1) max-retries --callback=callback --onSuccess=onSuccess --onError=onError --timeout=timeout
           else:
-            error-msg = "Button subscription failed"
-            logger_.debug error-msg
-          if onError:
-            onError.call error-msg
+            // Final failure - treat NACK as a failure
+            error-msg := ?
+            if msg.msg-status != null:
+              error-msg = "Button subscription failed after $(max-retries + 1) attempts, state: $(msg.msg-status)"
+              logger_.debug error-msg
+            else:
+              error-msg = "Button subscription failed after $(max-retries + 1) attempts"
+              logger_.debug error-msg
+            if onError:
+              onError.call error-msg
         )
         --onTimeout=(::
-          // Handle timeout case
-          logger_.debug "Button subscription timed out"
-          if onError:
-            onError.call "Subscription timed out"
+          // Check if we should retry on timeout
+          if current-attempt < max-retries:
+            logger_.debug "Button subscription timed out, retrying... (attempt $(current-attempt + 1) of $(max-retries + 1))"
+            subscribe-with-retries_ (current-attempt + 1) max-retries --callback=callback --onSuccess=onSuccess --onError=onError --timeout=timeout
+          else:
+            // Final timeout
+            logger_.debug "Button subscription timed out after $(max-retries + 1) attempts"
+            if onError:
+              onError.call "Subscription timed out after $(max-retries + 1) attempts"
         )
         --timeout=timeout
 
