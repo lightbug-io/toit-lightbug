@@ -130,6 +130,16 @@ class Comms:
       logger_.warn "Tried to get already created inbox $(name), now with different size"
     return inboxesByName[name]
 
+  // Prints a report on the state and usage of inboxes
+  // Can be useful for debugging inbox usage
+  inbox-report:
+    print "Inboxes report:"
+    if not inboxesEnabled_:
+      print "  Inboxes not enabled"
+      return
+    inboxesByName.do: | name inbox |
+      print "  Inbox '$(name)': size=$(inbox.size) capacity=$(inbox.capacity)"
+
   // Perform a single pass of inbound processing and return a parsed message if available.
   processInboundOnce_ -> protocol.Message?:
     // Look for the next byte that is 3, which could indicate our protocol version
