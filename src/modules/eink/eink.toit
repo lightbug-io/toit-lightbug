@@ -1,6 +1,7 @@
 import ...protocol as protocol
 import ...messages as messages
 import ...devices as devices
+import monitor
 import log
 
 // Constant list of MenuPage item fields to avoid recreating the list each call.
@@ -86,7 +87,7 @@ class Eink:
     data := messages.TextPage.data --page-id=page-id --page-title=page-title --status-bar-enable=status-bar-enable --redraw-type=rt --line-1=l1 --line-2=l2 --line-3=l3 --line-4=l4
     msg := messages.TextPage.msg --data=data
     // Use send-new to optionally wait for a response/ack from the device.
-    return device_.comms.send-new msg --flush=true
+    return device_.comms.send-new msg --flush=true --timeout=(Duration --s=3)
 
   // Async overload that runs the synchronous call in a background task and
   // calls the provided callbacks with the protocol.Message result or error.
@@ -111,7 +112,7 @@ class Eink:
 
     data := messages.BasePage.data --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=rt
     msg := messages.BasePage.msg --data=data
-    return device_.comms.send-new msg --flush=true
+    return device_.comms.send-new msg --flush=true --timeout=(Duration --s=3)
 
   // Async overload for send-base-page
   send-base-page --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --partial/bool?=false --full/bool?=false --buffer/bool?=false --clear/bool?=false --onComplete/Lambda?=null --onError/Lambda?=null:
@@ -178,7 +179,7 @@ class Eink:
       data.add-data-ascii field item
 
     msg := protocol.Message.with-data messages.MenuPage.MT data
-    return device_.comms.send-new msg --flush=true
+    return device_.comms.send-new msg --flush=true --timeout=(Duration --s=3)
 
   // Async overload for send-menu
   send-menu --async --page-id/int?=null --items/List --selected-item/int?=null --onComplete/Lambda?=null --onError/Lambda?=null:
@@ -226,7 +227,7 @@ class Eink:
       --text=text
 
     msg := messages.DrawElement.msg --data=data
-    return device_.comms.send-new msg --flush=true
+    return device_.comms.send-new msg --flush=true --timeout=(Duration --s=3)
 
   // Async overload for draw-element
   draw-element --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --onComplete/Lambda?=null --onError/Lambda?=null:
