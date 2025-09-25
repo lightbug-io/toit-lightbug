@@ -1,4 +1,5 @@
 import ...messages.messages_gen as messages
+import ...protocol as protocol
 import ...modules.comms as comms
 import monitor
 import log
@@ -189,9 +190,14 @@ class Buttons:
   */
   subscribe-with-retries_ current-attempt/int max-retries/int --callback/Lambda?=null --onSuccess/Lambda?=null --onError/Lambda?=null --timeout/Duration?=null:
     logger_.debug "Button subscription attempt $(current-attempt + 1) of $(max-retries + 1)"
+
+    // Set storage level 10 for button messages, as we want to receive all presses.
+    // TODO generate this as an option for all subscribe messages...
+    sub-msg := messages.ButtonPress.subscribe-msg
+    sub-msg.header.data.add-data-uint8 protocol.Header.TYPE_STORAGE_LEVEL 10
     
     // Send subscription message.
-    comms_.send (messages.ButtonPress.subscribe-msg) --now=true
+    comms_.send (sub-msg) --now=true
         --onAck=(:: 
           subscribed_ = true
           // Start listening for button press messages if we have any subscribers.
