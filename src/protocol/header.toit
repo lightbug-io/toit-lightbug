@@ -17,6 +17,8 @@ class Header:
   static TYPE_FORWARDED_SNR := 12         // SNR of forwarded message
   static TYPE_FORWARD_TO_TYPE := 13       // Type of forwarded message
   static TYPE_FORWARD_TO := 14
+  static TYPE_STORAGE_LEVEL := 15
+  static TYPE_MESSAGE_LEVEL := 16
 
   // For use with TYPE_MESSAGE_STATUS
   static STATUS_OK /int ::= 0
