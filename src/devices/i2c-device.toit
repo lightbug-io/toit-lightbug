@@ -34,6 +34,7 @@ class I2C implements Device:
   i2c-writer_ /Writer
 
   name_ /string
+  background_ /bool
   type_ /int? := null
   open_ /bool
   with-default-handlers_ /bool
@@ -53,6 +54,14 @@ class I2C implements Device:
       // Default to sending an open on start
       // Assuming the user will want to keep the connection open, unless explicitly closed
       --open/bool=true
+
+      // Run the primary device loops as background tasks, so that the main program
+      // exits, the device will not keep the program alive.
+      // If true, and you don't keep your program running, no previously scheduled messages,
+      // handlers, etc will be guaranteed to run before the program exits.
+      // Using this with startComms=false is unlikely to be useful, as comms contains the main
+      // device loops.
+      --background/bool=true
 
       // Default to starting comms when the device is created
       // But allow this to be disabled if needed
@@ -76,6 +85,7 @@ class I2C implements Device:
       --i2c-frequency/int=100_000:
 
     name_ = "I2C Device" // TODO look this up from a map eventually, so it could be used..
+    background_ = background
     logger_ = logger.with-level log-level
     with-default-handlers_ = with-default-handlers
     open_ = open
@@ -134,6 +144,7 @@ class I2C implements Device:
       comms_ = Comms 
           --device=this
           --open=open_
+          --background=background_
           --handlers=handlers
           --logger=(logger_.with-name "comms")
     return comms_

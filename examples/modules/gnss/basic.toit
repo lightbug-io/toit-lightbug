@@ -8,7 +8,7 @@ import log
 
 main:
   // Create device stub — examples in this repo often assume a default device
-  dev := devices.I2C --log-level=log.WARN-LEVEL
+  dev := devices.I2C --log-level=log.WARN-LEVEL --background=false
 
   // Register a message handler to print and flash when Position messages arrive.
   print "Registering Position message handler"
@@ -22,10 +22,6 @@ main:
   // Subscribe to position every 2000 ms for 1 second
   print "Subscribing to Position messages every 1 second"
   dev.gnss.subscribe-position --interval=1000
-
-  while true:
-    sleep --ms=10000
-
 
 /**
  * Handler that reacts to incoming Position messages, prints coordinates and

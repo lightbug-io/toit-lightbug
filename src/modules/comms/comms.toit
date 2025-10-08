@@ -19,6 +19,7 @@ class Comms:
   logger_/log.Logger
   device_ /devices.Device
   msgIdGenerator /IdGenerator
+  background_ /bool
 
   outbox_ /Channel
   outboxTaskStarted_ /bool := false
@@ -50,6 +51,7 @@ class Comms:
       --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
       --open/bool = true // Send Open message and heartbeats to keep connection alive
       --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
+      --background/bool = true // Run primairy tasks as background (non-blocking) tasks
       
       --logger=(log.default.with-name "lb-comms"):
 
@@ -57,6 +59,7 @@ class Comms:
     device_ = device
     messageHandlers_ = handlers
     msgIdGenerator = idGenerator
+    background_ = background
 
     if device_.prefix:
       LBSyncBytes_ = #[0x4c, 0x42] // LB
@@ -96,10 +99,10 @@ class Comms:
         logger_.error "Failed to reinitialize , but continuing..."
 
     if startInbound:
-      task --background=true:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
+      task --background=background_:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
     if startOutbox:
-      task --background=true:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
-    task --background=true:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
+      task --background=background_:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+    task --background=background_:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
 
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
@@ -427,7 +430,7 @@ class Comms:
     // Start the outbox task if it hasn't been started yet
     if not outboxTaskStarted_:
       outboxTaskStarted_ = true
-      task --background=true:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
+      task --background=background_:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
       
     // If the outbox is full, remove the oldest message, and add the new one
     // XXX TODO or do we want to actually force send a bunch of them in this case?!

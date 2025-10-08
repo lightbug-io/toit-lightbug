@@ -3,7 +3,7 @@ import lightbug.util.bytes as bytes
 
 main:
   // This example is setup to work with the RH2 device.
-  device := devices.RtkHandheld2
+  device := devices.I2C
 
   print "Performing WiFi scan for 10s..."
   scan-results := device.wifi.scan --duration=10000

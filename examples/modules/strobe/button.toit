@@ -8,7 +8,7 @@ A simple example demonstrating the new buttons module with error handling.
 This example shows the synchronous subscription pattern with proper error handling.
 */
 main:
-  device := devices.I2C
+  device := devices.I2C --background=false
 
   // Subscribe to button presses with error handling.
   e := catch:
@@ -40,12 +40,3 @@ main:
   if e:
     log.error "🚨 Button setup failed: $e"
     throw e
-
-  // Keep the program running to handle button presses.
-  // In a real application, you might have other work to do here.
-  while true:
-    sleep (Duration --s=10)
-    log.info "Still listening for button presses..."
-
-  // Example of how to unsubscribe (this code won't be reached in this example).
-  // device.buttons.unsubscribe

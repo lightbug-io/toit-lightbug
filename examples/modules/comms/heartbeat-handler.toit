@@ -6,17 +6,12 @@ import lightbug.protocol as protocol
 import log
 
 main:
-  device := devices.I2C
+  device := devices.I2C --background=false
 
   heartbeat-handler := HeartbeatHandler --strobe=device.strobe
   device.comms.register-handler heartbeat-handler
 
   print "Heartbeat handler registered - will show 💓 for each heartbeat"
-  print "Device will send heartbeats automatically..."
-
-  while true:
-    sleep --ms=11000
-    print "Still listening for heartbeats... (💓 count: $(heartbeat-handler.heartbeat-count))"
 
 /**
  * Example message handler that prints a heart emoji when heartbeat messages are received.

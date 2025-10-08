@@ -8,7 +8,7 @@ A simple application that demonstrates drawing bitmaps on the E-ink display.
 This example shows how to display a Lightbug logo.
 */
 main:
-  device := devices.I2C
+  device := devices.I2C --background=false
   
   screen-width := 250
   screen-height := 122
@@ -23,7 +23,3 @@ main:
   print "💬 Sending bitmap logos to device screen"
   positions.do: | p |
     device.eink.draw-bitmap --status-bar-enable=false --redraw-type=p[0] --x=p[1] --y=p[2] --width=bitmap-dimension --height=bitmap-dimension --bitmap=lightbug-40-40
-  
-  // Continue running to keep the app alive
-  while true:
-    sleep --ms=10000
