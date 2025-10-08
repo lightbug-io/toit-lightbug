@@ -1,6 +1,7 @@
 import i2c
 import io
 import log
+import monitor
 import .base
 import .i2c
 import .types show *
@@ -169,17 +170,20 @@ class I2C implements Device:
     
     return true
 
+  request-type-mutex_ := monitor.Mutex
   strobe -> Strobe:
-    // TODO: this pattern of service check, type check, status request and construction should
-    // be refactored into a common utility, as it will be needed for all conditionally available services
-    if not strobe_:
-      request-type
-      if type_ == TYPE-ZCARD:
-        strobe_ = (StandardStrobe --initial-value=1)
-      else if type_ == TYPE-RH2 or type_ == TYPE-RH2Z or type_ == TYPE-RH2M:
-        strobe_ = StandardStrobe
-      else:
-        strobe_ = NoStrobe
+    // DO this in a mutex for now, ALL things that request-type likely should be in a single mutex
+    request-type-mutex_.do:
+      // TODO: this pattern of service check, type check, status request and construction should
+      // be refactored into a common utility, as it will be needed for all conditionally available services
+      if not strobe_:
+        request-type
+        if type_ == TYPE-ZCARD:
+          strobe_ = (StandardStrobe --initial-value=1)
+        else if type_ == TYPE-RH2 or type_ == TYPE-RH2Z or type_ == TYPE-RH2M:
+          strobe_ = StandardStrobe
+        else:
+          strobe_ = NoStrobe
     return strobe_
 
   piezo -> Piezo:
