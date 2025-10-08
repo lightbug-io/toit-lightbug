@@ -1,3 +1,6 @@
 dependencies:
   lightbug:
     path: ..
+  watchdog:
+    url: github.com/toitware/toit-watchdog
+    version: ^1.4.1
