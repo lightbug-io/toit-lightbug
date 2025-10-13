@@ -12,14 +12,3 @@ class SequentialIdGenerator implements IdGenerator:
   next -> int:
     nextId_ = (nextId_ + 1) % maxId_
     return nextId_
-
-class RandomIdGenerator implements IdGenerator:
-  lowerBound_ := 0
-  upperBound_ := 0
-
-  constructor --lowerBound/int --upperBound/int:
-    lowerBound_ = lowerBound
-    upperBound_ = upperBound
-  
-  next -> int:
-    return random lowerBound_ upperBound_

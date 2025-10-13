@@ -3,7 +3,7 @@ import ...devices as devices
 import ...messages as messages
 import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
-import ...util.idgen show IdGenerator RandomIdGenerator SequentialIdGenerator
+import ...util.idgen show IdGenerator SequentialIdGenerator
 import ...util.bytes show stringify-all-bytes byte-array-to-list
 import .message-handler show MessageHandler
 import io.reader show Reader
@@ -46,8 +46,8 @@ class Comms:
       // Allow passing in handlers to register on creation
       --handlers/List?/*<MessageHandler>*/ = []
       // Customizable id generator for message ids
-      // Defaults to a random uint32 generator
-      --idGenerator/IdGenerator = (RandomIdGenerator --lowerBound=1 --upperBound=4_294_967_295)
+      // Defaults to a sequential generator starting at 1, max 4_294_967_295 (uint32 max)
+      --idGenerator/IdGenerator = (SequentialIdGenerator --start=1 --maxId=4_294_967_295)
       --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
       --open/bool = true // Send Open message and heartbeats to keep connection alive
       --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.

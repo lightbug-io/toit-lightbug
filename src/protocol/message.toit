@@ -40,11 +40,6 @@ class Message:
   msg.header.data.add-data-uint8 Header.TYPE-MESSAGE-METHOD method
   return msg
 
- with-random-msg-id -> Message:
-  randomUint32 := ( random 4_294_967_295) +1
-  header.data.add-data-uint32 Header.TYPE_MESSAGE_ID randomUint32
-  return this
-
  msgId -> int?:
   if header.data.has-data Header.TYPE_MESSAGE_ID: return header.data.get-data-uint Header.TYPE_MESSAGE_ID
   return null
