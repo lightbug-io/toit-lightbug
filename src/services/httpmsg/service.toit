@@ -5,7 +5,6 @@ import ...messages as messages
 import ...util.resilience show catch-and-restart
 import ...util.docs show docsUrl
 import ...util.bytes show stringify-all-bytes
-import .msgs show sample-messages
 import .html
 import http
 import net
@@ -14,16 +13,13 @@ import monitor show Channel
 import crypto.crc
 import io
 import io.byte-order show LITTLE-ENDIAN
+import encoding.json
 
 // Hosts a small HTTP server that serves a page for directly sending bytes or messages to a Lightbug device
 class HttpMsg:
 
   static DEFAULT_PORT /int := 80
   serve-port /int
-  default-messages_ /Map
-  hide-screen_ /bool
-  custom-actions_ /Map
-  custom-handlers_ /Map
   response-message-formatter_ /Lambda
   listen-and-log-all_/bool
   inbox /Channel
@@ -32,10 +28,6 @@ class HttpMsg:
 
   constructor
       device/devices.Device
-      --defaults/Map?=sample-messages // A map of default messages to show on the page, similar to the messages map
-      --hide-screen/bool=false // Hide the screen input...
-      --custom-actions/Map={:} // A map of maps, similar to the messages map. Top level are groups, second level are the actions
-      --custom-handlers/Map={:} // A map of handlers for custom actions. The key is the action name, and the value is a function that takes a writer which can be used to write a response.
       --response-message-formatter/Lambda?=null // A function that takes a writer and message and returns a string to be displayed in the response. Otherwise bytes will be shown...
       --port/int=DEFAULT_PORT
       --serve/bool=true
@@ -43,69 +35,8 @@ class HttpMsg:
       --subscribe-lora/bool=false
       --listen-and-log-all/bool=false:
     logger_ = logger
-    default-messages_ = defaults
-    hide-screen_ = hide-screen
     serve-port = port
     device_ = device
-    custom-actions_ = custom-actions
-    custom-handlers_ = custom-handlers
-    if device.strobe.available:
-      custom-actions_["Strobe"] = {
-        "Off": "custom:strobe:OFF",
-        "R": "custom:strobe:R",
-        "G": "custom:strobe:G",
-        "B": "custom:strobe:B",
-        "C": "custom:strobe:C",
-        "M": "custom:strobe:M",
-        "Y": "custom:strobe:Y",
-        "W": "custom:strobe:W",
-        "Party": "custom:strobe:PARTY",
-      }
-      if not custom-handlers_.get "strobe:OFF":
-        custom-handlers_["strobe:OFF"] = (:: | writer |
-          writer.write "Strobe: Off\n"
-          device.strobe.off
-        )
-      if not custom-handlers_.get "strobe:R":
-        custom-handlers_["strobe:R"] = (:: | writer |
-          writer.write "Strobe: Red\n"
-          device.strobe.red
-        )
-      if not custom-handlers_.get "strobe:G":
-        custom-handlers_["strobe:G"] = (:: | writer |
-          writer.write "Strobe: Green\n"
-          device.strobe.green
-        )
-      if not custom-handlers_.get "strobe:B":
-        custom-handlers_["strobe:B"] = (:: | writer |
-          writer.write "Strobe: Blue\n"
-          device.strobe.blue
-        )
-      if not custom-handlers_.get "strobe:C":
-        custom-handlers_["strobe:C"] = (:: | writer |
-          writer.write "Strobe: Cyan\n"
-          device.strobe.cyan
-        )
-      if not custom-handlers_.get "strobe:M":
-        custom-handlers_["strobe:M"] = (:: | writer |
-          writer.write "Strobe: Magenta\n"
-          device.strobe.magenta
-        )
-      if not custom-handlers_.get "strobe:Y":
-        custom-handlers_["strobe:Y"] = (:: | writer |
-          writer.write "Strobe: Yellow\n"
-          device.strobe.yellow
-        )
-      if not custom-handlers_.get "strobe:W":
-        custom-handlers_["strobe:W"] = (:: | writer |
-          writer.write "Strobe: White\n"
-          device.strobe.white
-        )
-      if not custom-handlers_.get "strobe:PARTY":
-        custom-handlers_["strobe:PARTY"] = (:: | writer |
-          writer.write "Strobe: Party\n"
-          device.strobe.sequence --speed-ms=10 --colors=device.strobe.RAINBOW-SEQUENCE
-        )
     if response-message-formatter != null:
       response-message-formatter_ = response-message-formatter
     else:
@@ -147,6 +78,8 @@ class HttpMsg:
       handle-page request writer
     else if resource == "/post":
       handle-post request writer
+    else if resource == "/post-receive":
+      handle-post-receive request writer
     else if resource == "/poll":
       handle-poll request writer
     else :
@@ -156,7 +89,7 @@ class HttpMsg:
     writer.close
 
   handle-page request/http.RequestIncoming writer/http.ResponseWriter:
-    html := html-page device_ docsUrl default-messages_ hide-screen_ custom-actions_
+    html := html-page device_ docsUrl
     writer.headers.set "Content-Type" "text/html"
     writer.headers.set "Content-Length" html.size.stringify
     writer.write_headers 200
@@ -168,7 +101,46 @@ class HttpMsg:
       writer.headers.set "Content-Type" "text/plain"
       writer.headers.set "Access-Control-Allow-Origin" "*"
       writer.write_headers 200
-      handle-post-string request.body.read-all.to-string writer.out
+      // Support text, binary, and form-encoded JSON formats.
+      ctype := request.headers.get "Content-Type"
+      ctype-str := ctype ? ctype[0] : ""
+      if ctype-str.starts-with "application/x-www-form-urlencoded":
+        // Parse form data to extract JSON payload.
+        body-str := request.body.read-all.to-string
+        bytes := parse-form-json-bytes_ body-str
+        if bytes:
+          handle-post-bytes bytes writer.out
+        else:
+          writer.out.write "Error: Could not parse form payload\n"
+      else if ctype-str == "application/octet-stream":
+        buf := request.body.read-all
+        handle-post-bytes buf writer.out
+      else:
+        handle-post-string request.body.read-all.to-string writer.out
+    finally:
+      writer.close
+
+  handle-post-receive request/http.RequestIncoming writer/http.ResponseWriter:
+    try:
+      writer.headers.set "Content-Type" "text/plain"
+      writer.headers.set "Access-Control-Allow-Origin" "*"
+      writer.write_headers 200
+      // Support text, binary, and form-encoded JSON formats.
+      ctype := request.headers.get "Content-Type"
+      ctype-str := ctype ? ctype[0] : ""
+      if ctype-str.starts-with "application/x-www-form-urlencoded":
+        // Parse form data to extract JSON payload.
+        body-str := request.body.read-all.to-string
+        bytes := parse-form-json-bytes_ body-str
+        if bytes:
+          handle-post-receive-bytes bytes writer.out
+        else:
+          writer.out.write "Error: Could not parse form payload\n"
+      else if ctype-str == "application/octet-stream":
+        buf := request.body.read-all
+        handle-post-receive-bytes buf writer.out
+      else:
+        handle-post-receive-string request.body.read-all.to-string writer.out
     finally:
       writer.close
   
@@ -176,13 +148,6 @@ class HttpMsg:
     e := catch --trace=true:
         // Split into lines
         lines := ((input.replace "," " ").replace "  " " ").split "\n"
-
-        // Check for custom: lines, and process and remove them...
-        lines.do: |line|
-          if line.starts_with "custom:":
-            if custom-handlers_.get (line.replace "custom:" ""):
-              custom-handlers_[line.replace "custom:" ""].call writer
-            lines.remove line
 
         // Strings to bytes, with checksum injection
         byteCount := 0
@@ -251,6 +216,106 @@ class HttpMsg:
     if e:
       logger_.error "Error in handle-post: $e"
 
+  handle-post-bytes input/ByteArray writer/io.Writer:
+    e := catch --trace=true:
+        // Treat the input as raw protocol message bytes.
+        // Split on newline (0x0A) if present, otherwise treat as single message.
+        parts := []
+        start := 0
+        for i := 0; i < input.size; i++:
+          if input[i] == 10: // LF
+            if i > start:
+              parts.add (input.copy start i)
+            start = i + 1
+        if start < input.size:
+          parts.add (input.copy start input.size)
+
+        if parts.size > 1:
+          // Send raw combined when there are multiple parts for efficiency.
+          device_.comms.send-raw-bytes input
+          parts.do: |p/ByteArray|
+            if p.size == 0: continue.do
+            msg := protocol.Message.from-bytes p
+            writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+        else if parts.size == 1:
+          // Single message.
+          p := parts[0]
+          if p.size == 0: return
+          msg := protocol.Message.from-bytes p
+          wait-for-response := 5000
+          msgLatch := device_.comms.send msg
+            --withLatch=true
+            --timeout=(Duration --ms=wait-for-response)
+            --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes p --short=true --commas=false --hex=false)\n")
+            --postSend=(:: writer.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
+          e2 := catch:
+            response := msgLatch.get
+            if not response:
+              writer.write "$(msg.msgId) No response in $(wait-for-response)ms...\n"
+            else:
+              if not listen-and-log-all_:
+                write-msg-out writer response "Received"
+          if e2:
+            logger_.error "Error sending raw message: $e2"
+    if e:
+      logger_.error "Error in handle-post-bytes: $e"
+
+
+  handle-post-receive-string input/string writer/io.Writer:
+    e := catch --trace=true:
+        // Split into lines.
+        lines := ((input.replace "," " ").replace "  " " ").split "\n"
+
+        // Strings to bytes, with checksum injection.
+        byteCount := 0
+        lines.do: |line|
+          byteCount += (line.split " ").size
+        b := ByteArray byteCount
+        written := 0
+        lines.do: |line|
+          lineParts := line.split " "
+          lineStartPos := written
+          for i := 0; i < lineParts.size; i++:
+            b[written] = int.parse lineParts[i]
+            written++
+          // Checksum injection.
+          // lineParts is longer than 2, and the last 2 bytes written are 255 255, calc a checksum and replace them.
+          if lineParts.size > 2 and b[written - 2] == 255 and b[written - 1] == 255:
+            checksum := crc.crc16-xmodem (b.byte-slice lineStartPos (written - 2) )
+            LITTLE-ENDIAN.put-uint16 b (written - 2) checksum
+            logger_.debug "Checksum injected: $(checksum) as bytes $(b[written - 2]) $(b[written - 1])"
+
+        // Simulate receiving the messages.
+        lines.do: |line|
+          l := []
+          ((line.split " ").do: |s| l.add (int.parse s))
+          msg := protocol.Message.from-bytes (list-to-byte-array l)
+          writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+          device_.comms.simulate-receive msg
+    if e:
+      logger_.error "Error in handle-post-receive: $e"
+
+  handle-post-receive-bytes input/ByteArray writer/io.Writer:
+    e := catch --trace=true:
+        // Split on newlines if present, otherwise treat as single message.
+        start := 0
+        for i := 0; i < input.size; i++:
+          if input[i] == 10: // LF
+            if i > start:
+              p := input.copy start i
+              msg := protocol.Message.from-bytes p
+              writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+              device_.comms.simulate-receive msg
+            start = i + 1
+        if start < input.size:
+          p := input.copy start input.size
+          msg := protocol.Message.from-bytes p
+          writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+          device_.comms.simulate-receive msg
+    if e:
+      logger_.error "Error in handle-post-receive-bytes: $e"
+
+
   write-msg-out writer/io.Writer msg/protocol.Message prefix/string="":
     prefix = "$(prefix) $(msg.msgId)"
     if msg.response-to:
@@ -292,6 +357,68 @@ class HttpMsg:
       msg := inbox.receive
       write-msg-out writer.out msg "Received"
     writer.close
+
+  /**
+  Parses form-encoded data to extract JSON payload with bytes array.
+  Expected format: "payload=%7B%22bytes%22%3A%5B1%2C2%2C3%5D%7D"
+  Returns ByteArray or null if parsing fails.
+  */
+  parse-form-json-bytes_ body/string -> ByteArray?:
+    e := catch:
+      // URL decode and extract payload field.
+      // Simple approach: find "payload=" and extract the value.
+      payload-prefix := "payload="
+      idx := body.index-of payload-prefix
+      if idx == -1: return null
+      
+      // Extract the URL-encoded JSON (up to next & or end of string).
+      start := idx + payload-prefix.size
+      end-idx := body.index-of "&"
+      end := end-idx == -1 ? body.size : end-idx
+      
+      encoded-json := body[start..end]
+      
+      // URL decode the JSON string.
+      decoded-json := url-decode_ encoded-json
+      
+      // Parse JSON.
+      parsed := json.decode decoded-json.to-byte-array
+      if parsed is not Map: return null
+      
+      bytes-array := parsed.get "bytes"
+      if bytes-array is not List: return null
+      
+      // Convert to ByteArray.
+      result := ByteArray bytes-array.size
+      for i := 0; i < bytes-array.size; i++:
+        result[i] = bytes-array[i]
+      
+      return result
+    if e:
+      log.error "Error parsing form JSON: $e"
+      return null
+    return null
+
+  /**
+  URL decodes a string (handles %XX encoding).
+  */
+  url-decode_ str/string -> string:
+    result := ""
+    i := 0
+    while i < str.size:
+      if str[i] == '%' and i + 2 < str.size:
+        // Decode %XX
+        hex := str[i + 1..i + 3]
+        byte-val := int.parse hex --radix=16
+        result += string.from-rune byte-val
+        i += 3
+      else if str[i] == '+':
+        result += " "
+        i++
+      else:
+        result += str[i..i + 1]
+        i++
+    return result
 
 
 list-to-byte-array l/List -> ByteArray:

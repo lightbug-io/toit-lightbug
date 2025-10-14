@@ -451,6 +451,15 @@ class Comms:
       else:
         logger_.debug "SNT raw: $(bytes.size) bytes"
 
+  /**
+  Simulates receiving a message.
+  Processes the message as if it was received from the device.
+  */
+  simulate-receive msg/protocol.Message -> none:
+    logger_.with-level log.DEBUG-LEVEL:
+      logger_.debug "SIM RCV: $(msg)"
+    processReceivedMessage_ msg
+
   processAwaitTimeouts_:
     while true:
       yield
