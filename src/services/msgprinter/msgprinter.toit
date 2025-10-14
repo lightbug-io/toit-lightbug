@@ -5,7 +5,6 @@ import ...devices as devices
 import log
 import monitor
 
-// Hosts a small HTTP server that serves a page for directly sending bytes or messages to a Lightbug device
 class MsgPrinter:
 
   inbox /monitor.Channel
@@ -19,7 +18,7 @@ class MsgPrinter:
       msg := inbox.receive
       // Try to process the message, catching any errors that occur, printing if successful
       e := catch --trace:
-        log.info "Message: $(msg.msgType) $(message-to-docs-url msg)"
+        print "Message: $(msg.msgType) $(msg)"
       if e != null:
         log.error "Error processing message: $e"
         continue

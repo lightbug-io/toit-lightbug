@@ -11,7 +11,8 @@ import lightbug.services as services
 main:
   // This example is setup to work with the RH2 device
   // Don't send an initial open message, allowing you full message control
-  device := devices.I2C --background=false
+  // And don't handle any messages from P1 by default
+  device := devices.I2C --background=false --with-default-handlers=false --log-level=devices.DEBUG-LEVEL
 
   services.HttpMsg device --serve=true --listen-and-log-all=true
   services.MsgPrinter device

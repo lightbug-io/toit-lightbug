@@ -10,7 +10,8 @@ import lightbug.services as services
 // This example can be used with the Lightbug documentation site message generator, and message examples
 // to directly send messages to the device, and see the responses, when on the same network.
 main:
-  device := devices.I2C --background=false
+  // Don't handle any messages from P1 by default
+  device := devices.I2C --background=false --with-default-handlers=false
 
   services.HttpMsg device --serve=true
   services.MsgPrinter device
