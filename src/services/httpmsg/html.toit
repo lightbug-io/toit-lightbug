@@ -27,7 +27,7 @@ html-page device/devices.Device docsUrl/string default-messags/Map hide-screen_/
   <div><h2>Actions</h2>$(generate-msg-buttons device default-messags custom-actions)</div>
   $(screenHtml)
   </div>
-  </br><a href="$(docsUrl)/devices/api/generate" target="_blank">You can also generate your own messages</a>
+  </br><a href="$(docsUrl)/devices/api/tools/generate" target="_blank">You can also generate your own messages</a>
   <h2>Log</h2>
   <div id="l"><span>Sent messages, and their responses will appear here...</span></div>
   
