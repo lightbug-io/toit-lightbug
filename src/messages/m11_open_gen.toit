@@ -6,6 +6,7 @@ class Open extends protocol.Data:
   static MT := 11
   static MT_NAME := "Open"
 
+  static FLAGS := 1
   static DEVICE-TYPE := 10
 
   constructor:
@@ -22,8 +23,9 @@ class Open extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --device-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --flags/int?=null --device-type/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
+    if flags != null: data.add-data-uint FLAGS flags
     if device-type != null: data.add-data-uint DEVICE-TYPE device-type
     return data
 
@@ -42,13 +44,19 @@ class Open extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-   * Type of device, relates to the serial number prefix.
-   * Primarily used by inter processor communication to identify the type of device.
+   * For future use, if used should currently always be 0
+   */
+  flags -> int:
+    return get-data-uint FLAGS
+
+  /**
+   * Type of device, relates to the SN prefix
    */
   device-type -> int:
     return get-data-uint DEVICE-TYPE
 
   stringify -> string:
     return {
+      "Flags": flags,
       "Device Type": device-type,
     }.stringify

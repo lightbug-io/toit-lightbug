@@ -112,13 +112,15 @@ class Alarm extends protocol.Data:
     return get-data-uint STROBE-INTENSITY
 
   /**
-   * Prompt message
+   * Message to show on the device prompt If not set, no prompt will be shown
+   * Prompts can be dismissed by button presses, or automatically after the prompt timeout has expired
    */
   prompt-message -> string:
     return get-data-ascii PROMPT-MESSAGE
 
   /**
    * Timeout for the prompt in seconds
+   * If not set, prompt will stay until dismissed with a button press
    */
   prompt-timeout -> int:
     return get-data-uint PROMPT-TIMEOUT

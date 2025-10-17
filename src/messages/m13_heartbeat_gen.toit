@@ -6,6 +6,8 @@ class Heartbeat extends protocol.Data:
   static MT := 13
   static MT_NAME := "Heartbeat"
 
+  static BATTERY-PERCENT := 6
+
   constructor:
     super
 
@@ -20,7 +22,10 @@ class Heartbeat extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
+  static data --battery-percent/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
+    if battery-percent != null: data.add-data-uint BATTERY-PERCENT battery-percent
+    return data
 
   /**
    * Creates a Heartbeat message without a specific method.
@@ -36,6 +41,13 @@ class Heartbeat extends protocol.Data:
   static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-data MT data
 
+  /**
+   * Devices send battery percentage in heartbeats
+   */
+  battery-percent -> int:
+    return get-data-uint BATTERY-PERCENT
+
   stringify -> string:
     return {
+      "Battery Percent": battery-percent,
     }.stringify

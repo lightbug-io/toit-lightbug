@@ -7,6 +7,15 @@ class BasePage extends protocol.Data:
   static MT_NAME := "BasePage"
 
   static PAGE-ID := 3
+  static PAGE-ID_HOME-PAGE := 1
+
+  static PAGE-ID_STRINGS := {
+    1: "Home Page",
+  }
+
+  static page-id-from-int value/int -> string:
+    return PAGE-ID_STRINGS.get value --if-absent=(: "unknown")
+
   static STATUS-BAR-ENABLE := 5
   static REDRAW-TYPE := 6
   static REDRAW-TYPE_AUTO := 0
@@ -65,9 +74,11 @@ class BasePage extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-   * The page to draw or update.
-   * Page ids 0-10 are reserved for system use.
-   * If no page id is provided, page id 11 will be assumed.
+   * The page to draw.
+   *
+   *
+   * Valid values:
+   * - PAGE-ID_HOME-PAGE (1): The preset home page programmed into the device
    */
   page-id -> int:
     return get-data-uint PAGE-ID

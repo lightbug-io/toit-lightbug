@@ -59,14 +59,6 @@ class LORA extends protocol.Data:
     return protocol.Message.with-data MT data
 
   /**
-   * Creates a DO Request message for LORA.
-   *
-   * Returns: A Message ready to be sent
-   */
-  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
-
-  /**
    * Creates a GET Request message for LORA.
    *
    * Returns: A Message ready to be sent

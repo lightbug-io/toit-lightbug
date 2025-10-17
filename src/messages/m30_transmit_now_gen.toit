@@ -34,27 +34,35 @@ class TransmitNow extends protocol.Data:
     return data
 
   /**
-   * Creates a DO Request message for Transmit Now.
+   * Creates a Transmit Now message without a specific method.
+   *
+   * This is used for messages that don't require a specific method type
+   * (like GET, SET, SUBSCRIBE) but still need to carry data.
+   *
+   * Parameters:
+   * - data: Optional protocol.Data object containing message payload
    *
    * Returns: A Message ready to be sent
    */
-  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
+  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-data MT data
 
   /**
-   * GPS Search
+   * 0 = no gps fix required
+   * 1 = wait for GPS lock (or timeout) before send
    */
   gps-search -> bool:
     return get-data-bool GPS-SEARCH
 
   /**
-   * Data to send, can be up to 200 bytes
+   * Data to send, can be up to 200 bytes.
+   * Only supported by devices that support uart_blob sensorReading type. (Currently only Vipers)
    */
   payload -> ByteArray:
     return get-data PAYLOAD
 
   /**
-   * 0 - 10
+   * Number of retries [0-10]. Exponential backoff (10 = 25h)
    */
   retries -> int:
     return get-data-uint RETRIES

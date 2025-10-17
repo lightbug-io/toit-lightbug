@@ -30,12 +30,18 @@ class CPU2Sleep extends protocol.Data:
     return data
 
   /**
-   * Creates a DO Request message for CPU2 Sleep.
+   * Creates a CPU2 Sleep message without a specific method.
+   *
+   * This is used for messages that don't require a specific method type
+   * (like GET, SET, SUBSCRIBE) but still need to carry data.
+   *
+   * Parameters:
+   * - data: Optional protocol.Data object containing message payload
    *
    * Returns: A Message ready to be sent
    */
-  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
+  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-data MT data
 
   /**
    * Interval in ms to turn off the CPU2 for, before turning it back on

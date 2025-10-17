@@ -114,25 +114,30 @@ class DeviceStatus extends protocol.Data:
     return get-data-uint NETWORK-TYPE
 
   /**
-   * Network MNC
+   * MNC of the currently connected network.
+   * Can be 0 if not connected.
+   * See <a href="https://mcc-mnc.net/" target="_blank">mcc-mnc.net</a>
    */
   network-mnc -> int:
     return get-data-uint NETWORK-MNC
 
   /**
-   * Network MCC
+   * MCC of the currently connected network.
+   * Can be 0 if not connected.
+   * See <a href="https://mcc-mnc.net/" target="_blank">mcc-mnc.net</a>
    */
   network-mcc -> int:
     return get-data-uint NETWORK-MCC
 
   /**
-   * Firmware Version
+   * Firmware version as a single integer, e.g. 2287
    */
   firmware-version -> int:
     return get-data-uint FIRMWARE-VERSION
 
   /**
-   * Type of device, relates to the SN prefix
+   * Type of device, relates to the SN prefix.
+   * For devices released from 2025 onwards, this is documented on the device specification page.
    */
   device-type -> int:
     return get-data-uint DEVICE-TYPE

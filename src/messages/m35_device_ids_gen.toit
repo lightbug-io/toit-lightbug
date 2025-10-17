@@ -40,7 +40,8 @@ class DeviceIDs extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-   * Unique ID for the device which is used in the cloud API. uint32 or uint64 only
+   * Unique ID for the device which is used in the cloud API.
+   * uint32 or uint64 only
    */
   id -> int:
     return get-data-uint ID

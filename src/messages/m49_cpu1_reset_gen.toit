@@ -23,12 +23,18 @@ class CPU1Reset extends protocol.Data:
   static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
 
   /**
-   * Creates a DO Request message for CPU1 Reset.
+   * Creates a CPU1 Reset message without a specific method.
+   *
+   * This is used for messages that don't require a specific method type
+   * (like GET, SET, SUBSCRIBE) but still need to carry data.
+   *
+   * Parameters:
+   * - data: Optional protocol.Data object containing message payload
    *
    * Returns: A Message ready to be sent
    */
-  static do-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-method MT protocol.Header.METHOD-DO base-data
+  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-data MT data
 
   stringify -> string:
     return {

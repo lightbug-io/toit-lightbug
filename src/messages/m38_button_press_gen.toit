@@ -8,19 +8,21 @@ class ButtonPress extends protocol.Data:
 
   static BUTTON-ID := 1
   static BUTTON-ID_ACTION := 0
-  static BUTTON-ID_LEFT-UP := 1
-  static BUTTON-ID_RIGHT-DOWN := 2
+  static BUTTON-ID_UP_LEFT := 1
+  static BUTTON-ID_DOWN_RIGHT := 2
 
   static BUTTON-ID_STRINGS := {
     0: "Action",
-    1: "Left Up",
-    2: "Right Down",
+    1: "Up_Left",
+    2: "Down_Right",
   }
 
   static button-id-from-int value/int -> string:
     return BUTTON-ID_STRINGS.get value --if-absent=(: "unknown")
 
   static DURATION := 2
+  static PAGE-ID := 3
+  static MENU-ITEM := 4
 
   constructor:
     super
@@ -36,10 +38,12 @@ class ButtonPress extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --button-id/int?=null --duration/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --button-id/int?=null --duration/int?=null --page-id/int?=null --menu-item/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if button-id != null: data.add-data-uint BUTTON-ID button-id
     if duration != null: data.add-data-uint DURATION duration
+    if page-id != null: data.add-data-uint PAGE-ID page-id
+    if menu-item != null: data.add-data-uint MENU-ITEM menu-item
     return data
 
   // Subscribe to a message with an optional interval in milliseconds
@@ -64,12 +68,19 @@ class ButtonPress extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
-   * ID of the button, 0 indexed. Check device spec for button numbering
+   * ID of the button.
+   * Zero indexed.
+   *
+   * Devices may have buttons in different locations, however the following is a common layout:
+   * 0 = Action button (usually center)
+   * 1 = Left / Up button
+   * 2 = Right / Down button
+   *
    *
    * Valid values:
-   * - BUTTON-ID_ACTION (0): Action button. RH2 Middle button.
-   * - BUTTON-ID_LEFT-UP (1): Left / Up button. RH2 Left button.
-   * - BUTTON-ID_RIGHT-DOWN (2): Right / Down button. RH2 Right button.
+   * - BUTTON-ID_ACTION (0): Action
+   * - BUTTON-ID_UP_LEFT (1): Up_Left
+   * - BUTTON-ID_DOWN_RIGHT (2): Down_Right
    */
   button-id -> int:
     return get-data-uint BUTTON-ID
@@ -80,8 +91,23 @@ class ButtonPress extends protocol.Data:
   duration -> int:
     return get-data-uint DURATION
 
+  /**
+   * ID of the page the button was on when pressed, if the device has a screen.
+   */
+  page-id -> int:
+    return get-data-uint PAGE-ID
+
+  /**
+   * ID of the menu item the button was on when pressed, if the device has a screen and a menu was showing.
+   * Zero indexed.
+   */
+  menu-item -> int:
+    return get-data-uint MENU-ITEM
+
   stringify -> string:
     return {
       "Button ID": button-id,
       "Duration": duration,
+      "Page ID": page-id,
+      "Menu Item": menu-item,
     }.stringify

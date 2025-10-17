@@ -8,7 +8,7 @@ class ChargerSettings extends protocol.Data:
 
   static INPUT-CURRENT-LIMIT := 1
   static CHARGE-CURRENT-LIMIT := 2
-  static CHARGE-TERMINATION-VOLGATE := 3
+  static CHARGE-TERMINATION-VOLTAGE := 3
 
   constructor:
     super
@@ -24,11 +24,11 @@ class ChargerSettings extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --input-current-limit/int?=null --charge-current-limit/int?=null --charge-termination-volgate/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --input-current-limit/int?=null --charge-current-limit/int?=null --charge-termination-voltage/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if input-current-limit != null: data.add-data-uint INPUT-CURRENT-LIMIT input-current-limit
     if charge-current-limit != null: data.add-data-uint CHARGE-CURRENT-LIMIT charge-current-limit
-    if charge-termination-volgate != null: data.add-data-uint CHARGE-TERMINATION-VOLGATE charge-termination-volgate
+    if charge-termination-voltage != null: data.add-data-uint CHARGE-TERMINATION-VOLTAGE charge-termination-voltage
     return data
 
   /**
@@ -68,12 +68,12 @@ class ChargerSettings extends protocol.Data:
    *
    * Unit: mV
    */
-  charge-termination-volgate -> int:
-    return get-data-uint CHARGE-TERMINATION-VOLGATE
+  charge-termination-voltage -> int:
+    return get-data-uint CHARGE-TERMINATION-VOLTAGE
 
   stringify -> string:
     return {
       "Input Current Limit": input-current-limit,
       "Charge Current Limit": charge-current-limit,
-      "Charge Termination Volgate": charge-termination-volgate,
+      "Charge Termination Voltage": charge-termination-voltage,
     }.stringify

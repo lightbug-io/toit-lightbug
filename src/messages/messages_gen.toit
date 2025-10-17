@@ -8,7 +8,7 @@ import .m16_satellite_data_gen show SatelliteData
 import .m30_transmit_now_gen show TransmitNow
 import .m31_gsm_control_gen show GSMControl
 import .m32_gsm_request_ownership_gen show GSMRequestOwnership
-import .m33_change_sim_settings_gen show ChangeSIMsettings
+import .m33_sim_settings_gen show SIMsettings
 import .m34_device_status_gen show DeviceStatus
 import .m35_device_ids_gen show DeviceIDs
 import .m36_device_time_gen show DeviceTime

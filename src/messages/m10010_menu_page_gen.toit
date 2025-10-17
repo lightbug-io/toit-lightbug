@@ -89,18 +89,20 @@ class MenuPage extends protocol.Data:
    * The page to draw or update.
    * Page ids 0-10 are reserved for system use.
    * If no page id is provided, page id 11 will be assumed.
+   * You can provide the same page id as last time to update the menu, or a new page id to create a new menu.
    */
   page-id -> int:
     return get-data-uint PAGE-ID
 
   /**
-   * Number of items in the menu. Max 20.
+   * Number of items in the menu (max 20). Required.
    */
   item-count -> int:
     return get-data-uint ITEM-COUNT
 
   /**
-   * Optionally select a specific item, else the first will be used. 0 indexed.
+   * Optionally select a specific item, else the first will be unsubscribed.
+   * Zero indexed.
    */
   selected-item -> int:
     return get-data-uint SELECTED-ITEM

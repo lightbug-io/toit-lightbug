@@ -9,6 +9,7 @@ class LinkControl extends protocol.Data:
   static IP-ADDRESS := 1
   static PORT := 2
   static ENABLE := 3
+  static FQDN := 4
 
   constructor:
     super
@@ -24,11 +25,12 @@ class LinkControl extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --ip-address/string?=null --port/int?=null --enable/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --ip-address/string?=null --port/int?=null --enable/bool?=null --fqdn/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if ip-address != null: data.add-data-ascii IP-ADDRESS ip-address
     if port != null: data.add-data-uint PORT port
     if enable != null: data.add-data-bool ENABLE enable
+    if fqdn != null: data.add-data-ascii FQDN fqdn
     return data
 
   /**
@@ -48,7 +50,7 @@ class LinkControl extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
-   * IP Address of the link
+   * IP Address of the link, if not using FQDN
    */
   ip-address -> string:
     return get-data-ascii IP-ADDRESS
@@ -65,9 +67,16 @@ class LinkControl extends protocol.Data:
   enable -> bool:
     return get-data-bool ENABLE
 
+  /**
+   * FQDN of the link, if not using IP address
+   */
+  fqdn -> string:
+    return get-data-ascii FQDN
+
   stringify -> string:
     return {
       "IP Address": ip-address,
       "Port": port,
       "Enable": enable,
+      "FQDN": fqdn,
     }.stringify
