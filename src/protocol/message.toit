@@ -64,6 +64,11 @@ class Message:
  was-forwarded -> bool:
   return header_.data.has-data Header.TYPE_FORWARDED_FOR or header_.data.has-data Header.TYPE_FORWARDED_FOR_TYPE
 
+ forwarded-for -> int?:
+  if header_.data.has-data Header.TYPE_FORWARDED_FOR:
+    return header_.data.get-data-uint Header.TYPE_FORWARDED_FOR
+  return null
+
  header -> Header:
   return header_  
 
