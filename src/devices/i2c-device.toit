@@ -20,6 +20,7 @@ import ..util.backoff as backoff
 import ..modules.comms.message-handler show MessageHandler
 import ..modules.ble.handler show BLEHandler
 import ..modules.wifi.handler show WiFiHandler
+import ..modules.strobe.handler show StrobeHandler
 
 /*
 A class for a generic Lightbug I2C device
@@ -139,6 +140,7 @@ class I2C implements Device:
         handlers = handlers + [
             BLEHandler this --logger=(logger_.with-name "h.ble"),
             WiFiHandler this --logger=(logger_.with-name "h.wifi"),
+            StrobeHandler this --logger=(logger_.with-name "h.strobe"),
         ]
       else :
         logger_.warn "Default message handlers disabled"
