@@ -73,8 +73,8 @@ class ProtectionLevel extends protocol.Data:
 
   stringify -> string:
     return {
-      "Valid": valid,
-      "latitude": latitude,
-      "longitude": longitude,
-      "Altitude": altitude,
+      "valid": valid,
+      "lat": latitude,
+      "lon": longitude,
+      "alt": altitude,
     }.stringify

@@ -49,5 +49,5 @@ class ACK extends protocol.Data:
 
   stringify -> string:
     return {
-      "ACK Type": ack-type,
+      "type": ack-type,
     }.stringify

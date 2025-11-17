@@ -75,8 +75,8 @@ class LinkControl extends protocol.Data:
 
   stringify -> string:
     return {
-      "IP Address": ip-address,
-      "Port": port,
-      "Enable": enable,
-      "FQDN": fqdn,
+      "ip": ip-address,
+      "port": port,
+      "enable": enable,
+      "fqdn": fqdn,
     }.stringify

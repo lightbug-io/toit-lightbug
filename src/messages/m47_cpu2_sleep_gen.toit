@@ -57,6 +57,6 @@ class CPU2Sleep extends protocol.Data:
 
   stringify -> string:
     return {
-      "Interval": interval,
-      "Wake on Event": wake-on-event,
+      "interval": interval,
+      "wakeOnEvent": wake-on-event,
     }.stringify

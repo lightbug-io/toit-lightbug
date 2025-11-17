@@ -144,12 +144,12 @@ class DeviceStatus extends protocol.Data:
 
   stringify -> string:
     return {
-      "Battery": battery,
-      "Signal Strength": signal-strength,
-      "Mode": mode,
-      "Network type": network-type,
-      "Network MNC": network-mnc,
-      "Network MCC": network-mcc,
-      "Firmware Version": firmware-version,
-      "Device Type": device-type,
+      "bat": battery,
+      "signalStrength": signal-strength,
+      "mode": mode,
+      "networkType": network-type,
+      "mnc": network-mnc,
+      "mcc": network-mcc,
+      "fw": firmware-version,
+      "deviceType": device-type,
     }.stringify

@@ -135,7 +135,7 @@ class GPSControl extends protocol.Data:
 
   stringify -> string:
     return {
-      "GPS is on": gps-is-on,
-      "Corrections Enabled": corrections-enabled,
-      "Start Mode": start-mode,
+      "gpsOn": gps-is-on,
+      "correctionsOn": corrections-enabled,
+      "startMode": start-mode,
     }.stringify

@@ -93,6 +93,6 @@ class HapticsControl extends protocol.Data:
 
   stringify -> string:
     return {
-      "Pattern": pattern,
-      "Intensity": intensity,
+      "pattern": pattern,
+      "intensity": intensity,
     }.stringify

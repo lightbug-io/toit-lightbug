@@ -45,5 +45,5 @@ class Temperature extends protocol.Data:
 
   stringify -> string:
     return {
-      "Temperature": temperature,
+      "temperature": temperature,
     }.stringify

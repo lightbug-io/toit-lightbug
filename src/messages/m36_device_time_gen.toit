@@ -49,12 +49,12 @@ class DeviceTime extends protocol.Data:
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
-  // [parser: timestamp]
-  unix-time -> Time:
-    return Time.epoch --ms=(get-data-uint UNIX-TIME)
-
-  // Raw value for Unix Time before conversion
-  unix-time-raw -> int:
+  /**
+   * Unix time
+   *
+   * Unit: s since epoch
+   */
+  unix-time -> int:
     return get-data-uint UNIX-TIME
 
   /**
@@ -101,12 +101,12 @@ class DeviceTime extends protocol.Data:
 
   stringify -> string:
     return {
-      "Unix Time": unix-time,
-      "Year": year,
-      "Month": month,
-      "Date": date,
-      "Weekday": weekday,
-      "Hour": hour,
-      "Minute": minute,
-      "Second": second,
+      "unix": unix-time,
+      "year": year,
+      "month": month,
+      "date": date,
+      "weekday": weekday,
+      "hour": hour,
+      "minute": minute,
+      "second": second,
     }.stringify

@@ -64,7 +64,7 @@ class BLEScan extends protocol.Data:
 
   stringify -> string:
     return {
-      "Advertising Data": advertising-data,
-      "MAC": mac,
-      "RSSI": rssi,
+      "advertisingData": advertising-data,
+      "mac": mac,
+      "rssi": rssi,
     }.stringify

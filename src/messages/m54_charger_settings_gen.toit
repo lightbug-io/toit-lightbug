@@ -73,7 +73,7 @@ class ChargerSettings extends protocol.Data:
 
   stringify -> string:
     return {
-      "Input Current Limit": input-current-limit,
-      "Charge Current Limit": charge-current-limit,
-      "Charge Termination Voltage": charge-termination-voltage,
+      "inputCurrentLimit": input-current-limit,
+      "chargeCurrentLimit": charge-current-limit,
+      "chargeTerminationVoltage": charge-termination-voltage,
     }.stringify

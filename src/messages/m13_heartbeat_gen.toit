@@ -49,5 +49,5 @@ class Heartbeat extends protocol.Data:
 
   stringify -> string:
     return {
-      "Battery Percent": battery-percent,
+      "batteryPct": battery-percent,
     }.stringify

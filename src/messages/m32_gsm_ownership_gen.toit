@@ -1,14 +1,12 @@
 import ..protocol as protocol
 
 // Auto generated class for protocol message
-class GSMControl extends protocol.Data:
+class GSMOwnership extends protocol.Data:
 
-  static MT := 31
-  static MT_NAME := "GSMControl"
+  static MT := 32
+  static MT_NAME := "GSMOwnership"
 
-  static FLIGHT-MODE := 1
   static DURATION := 2
-  static GSM-ACTIVE := 3
   static REQUEST-CONTROL := 4
 
   constructor:
@@ -25,15 +23,14 @@ class GSMControl extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --flight-mode/bool?=null --duration/int?=null --request-control/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --duration/int?=null --request-control/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
-    if flight-mode != null: data.add-data-bool FLIGHT-MODE flight-mode
     if duration != null: data.add-data-uint DURATION duration
     if request-control != null: data.add-data-bool REQUEST-CONTROL request-control
     return data
 
   /**
-   * Creates a GET Request message for GSM Control.
+   * Creates a GET Request message for GSM Ownership.
    *
    * Returns: A Message ready to be sent
    */
@@ -41,7 +38,7 @@ class GSMControl extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-   * Creates a SET Request message for GSM Control.
+   * Creates a SET Request message for GSM Ownership.
    *
    * Returns: A Message ready to be sent
    */
@@ -49,35 +46,19 @@ class GSMControl extends protocol.Data:
     return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
-   * Flight mode
-   */
-  flight-mode -> bool:
-    return get-data-bool FLIGHT-MODE
-
-  /**
-   * Duration
-   *
-   * Unit: minutes
+   * in mins
    */
   duration -> int:
     return get-data-uint DURATION
 
   /**
-   * GSM Active
-   */
-  gsm-active -> bool:
-    return get-data-bool GSM-ACTIVE
-
-  /**
-   * Note this will always be true when GETting state in flight mode (as control has been taken).
+   * Request Control
    */
   request-control -> bool:
     return get-data-bool REQUEST-CONTROL
 
   stringify -> string:
     return {
-      "flightMode": flight-mode,
       "duration": duration,
-      "gsmActive": gsm-active,
       "requestControl": request-control,
     }.stringify

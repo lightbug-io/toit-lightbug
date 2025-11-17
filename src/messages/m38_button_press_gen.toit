@@ -106,8 +106,8 @@ class ButtonPress extends protocol.Data:
 
   stringify -> string:
     return {
-      "Button ID": button-id,
-      "Duration": duration,
-      "Page ID": page-id,
-      "Menu Item": menu-item,
+      "button": button-id,
+      "duration": duration,
+      "page": page-id,
+      "menuItem": menu-item,
     }.stringify

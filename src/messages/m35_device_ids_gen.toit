@@ -60,7 +60,7 @@ class DeviceIDs extends protocol.Data:
 
   stringify -> string:
     return {
-      "ID": id,
-      "IMEI": imei,
-      "ICCID": iccid,
+      "id": id,
+      "imei": imei,
+      "iccid": iccid,
     }.stringify

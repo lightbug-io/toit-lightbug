@@ -72,6 +72,6 @@ class Config extends protocol.Data:
 
   stringify -> string:
     return {
-      "Key": key,
-      "Payload": payload,
+      "key": key,
+      "payload": payload,
     }.stringify

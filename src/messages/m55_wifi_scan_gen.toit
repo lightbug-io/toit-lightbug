@@ -72,8 +72,8 @@ class WiFiScan extends protocol.Data:
 
   stringify -> string:
     return {
-      "SSID": ssid,
-      "MAC": mac,
-      "RSSI": rssi,
-      "Channel": channel,
+      "ssid": ssid,
+      "mac": mac,
+      "rssi": rssi,
+      "channel": channel,
     }.stringify

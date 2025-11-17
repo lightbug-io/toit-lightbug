@@ -100,9 +100,9 @@ class SIMsettings extends protocol.Data:
 
   stringify -> string:
     return {
-      "Active SIM": active-sim,
-      "SIM2 APN": sim2-apn,
-      "SIM2 APN Username": sim2-apn-username,
-      "SIM2 APN Password": sim2-apn-password,
-      "SIM2 ICCID": sim2-iccid,
+      "active": active-sim,
+      "sim2Apn": sim2-apn,
+      "sim2ApnUser": sim2-apn-username,
+      "sim2ApnPass": sim2-apn-password,
+      "sim2Iccid": sim2-iccid,
     }.stringify

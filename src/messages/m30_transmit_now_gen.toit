@@ -75,8 +75,8 @@ class TransmitNow extends protocol.Data:
 
   stringify -> string:
     return {
-      "GPS Search": gps-search,
-      "Payload": payload,
-      "Retries": retries,
-      "Priority": priority,
+      "gpsSearch": gps-search,
+      "payload": payload,
+      "retries": retries,
+      "priority": priority,
     }.stringify

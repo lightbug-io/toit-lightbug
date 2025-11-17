@@ -94,12 +94,14 @@ class Position extends protocol.Data:
   static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
-  // [parser: timestamp]
-  timestamp -> Time:
-    return Time.epoch --ms=(get-data-uint TIMESTAMP)
-
-  // Raw value for Timestamp before conversion
-  timestamp-raw -> int:
+  /**
+   * Timestamp of when the position was taken
+   * May be invalid if the GPS has not locked in yet (when type is 'invalid')
+   *
+   *
+   * Unit: ms since epoch
+   */
+  timestamp -> int:
     return get-data-uint TIMESTAMP
 
   // [unit: degree]
@@ -200,16 +202,16 @@ class Position extends protocol.Data:
 
   stringify -> string:
     return {
-      "Timestamp": timestamp,
-      "Latitude": latitude,
-      "Longitude": longitude,
-      "Altitude": altitude,
-      "Accuracy": accuracy,
-      "Course": course,
-      "Speed": speed,
-      "Satellites": satellites,
-      "CN0": cn0,
-      "Type": type,
-      "Source": source,
-      "Correction Age": correction-age,
+      "timestamp": timestamp,
+      "lat": latitude,
+      "lon": longitude,
+      "alt": altitude,
+      "acc": accuracy,
+      "course": course,
+      "speed": speed,
+      "sats": satellites,
+      "cn0": cn0,
+      "type": type,
+      "source": source,
+      "correctionAge": correction-age,
     }.stringify

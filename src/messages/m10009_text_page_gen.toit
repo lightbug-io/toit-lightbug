@@ -134,12 +134,12 @@ class TextPage extends protocol.Data:
 
   stringify -> string:
     return {
-      "Page ID": page-id,
-      "Page Title": page-title,
-      "Status bar Enable": status-bar-enable,
-      "Redraw Type": redraw-type,
-      "Line 1": line-1,
-      "Line 2": line-2,
-      "Line 3": line-3,
-      "Line 4": line-4,
+      "pageId": page-id,
+      "pageTitle": page-title,
+      "statusBarEnable": status-bar-enable,
+      "redrawType": redraw-type,
+      "line1": line-1,
+      "line2": line-2,
+      "line3": line-3,
+      "line4": line-4,
     }.stringify

@@ -87,7 +87,7 @@ class PowerProfile extends protocol.Data:
 
   stringify -> string:
     return {
-      "Total power": total-power,
-      "Current": current,
-      "Charging": charging,
+      "totalPower": total-power,
+      "current": current,
+      "charging": charging,
     }.stringify

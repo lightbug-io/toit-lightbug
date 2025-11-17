@@ -55,6 +55,6 @@ class BatteryStatus extends protocol.Data:
 
   stringify -> string:
     return {
-      "Voltage": voltage,
-      "Percent": percent,
+      "voltage": voltage,
+      "percent": percent,
     }.stringify

@@ -157,14 +157,14 @@ class LORA extends protocol.Data:
 
   stringify -> string:
     return {
-      "Payload": payload,
-      "Spread Factor": spread-factor,
-      "Coding Rate": coding-rate,
-      "Bandwidth": bandwidth,
-      "Center Frequency": center-frequency,
-      "TX Power": tx-power,
-      "Preamble Length": preamble-length,
-      "Receive Ms": receive-ms,
-      "Sleep": sleep,
-      "State": state,
+      "payload": payload,
+      "spreadFactor": spread-factor,
+      "codingRate": coding-rate,
+      "bandwidth": bandwidth,
+      "centerFrequency": center-frequency,
+      "txPower": tx-power,
+      "preambleLength": preamble-length,
+      "receiveMs": receive-ms,
+      "sleep": sleep,
+      "state": state,
     }.stringify

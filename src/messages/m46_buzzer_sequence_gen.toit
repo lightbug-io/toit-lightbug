@@ -57,6 +57,6 @@ class BuzzerSequence extends protocol.Data:
 
   stringify -> string:
     return {
-      "Frequencies": frequencies,
-      "Timings": timings,
+      "frequencies": frequencies,
+      "timings": timings,
     }.stringify

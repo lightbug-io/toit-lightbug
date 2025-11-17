@@ -139,16 +139,16 @@ class Alarm extends protocol.Data:
 
   stringify -> string:
     return {
-      "Legacy alarm action": legacy-alarm-action,
-      "Duration": duration,
-      "Buzzer Pattern": buzzer-pattern,
-      "Buzzer Intensity": buzzer-intensity,
-      "Haptics Pattern": haptics-pattern,
-      "Haptics Intensity": haptics-intensity,
-      "Strobe Pattern": strobe-pattern,
-      "Strobe Intensity": strobe-intensity,
-      "Prompt message": prompt-message,
-      "Prompt timeout": prompt-timeout,
-      "Prompt button 1": prompt-button-1,
-      "Prompt button 2": prompt-button-2,
+      "legacyAlarmAction": legacy-alarm-action,
+      "duration": duration,
+      "buzzerPattern": buzzer-pattern,
+      "buzzerIntensity": buzzer-intensity,
+      "hapticsPattern": haptics-pattern,
+      "hapticsIntensity": haptics-intensity,
+      "strobePattern": strobe-pattern,
+      "strobeIntensity": strobe-intensity,
+      "promptMessage": prompt-message,
+      "promptTimeout": prompt-timeout,
+      "promptButton1": prompt-button-1,
+      "promptButton2": prompt-button-2,
     }.stringify

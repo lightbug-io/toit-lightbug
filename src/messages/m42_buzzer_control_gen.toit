@@ -114,9 +114,9 @@ class BuzzerControl extends protocol.Data:
 
   stringify -> string:
     return {
-      "Duration": duration,
-      "Sound Type": sound-type,
-      "Intensity": intensity,
-      "Run Count": run-count,
-      "Frequency": frequency,
+      "duration": duration,
+      "soundType": sound-type,
+      "intensity": intensity,
+      "runCount": run-count,
+      "frequency": frequency,
     }.stringify

@@ -57,6 +57,6 @@ class Open extends protocol.Data:
 
   stringify -> string:
     return {
-      "Flags": flags,
-      "Device Type": device-type,
+      "flags": flags,
+      "deviceType": device-type,
     }.stringify

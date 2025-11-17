@@ -118,7 +118,7 @@ class BasePage extends protocol.Data:
 
   stringify -> string:
     return {
-      "Page ID": page-id,
-      "Status bar Enable": status-bar-enable,
-      "Redraw Type": redraw-type,
+      "pageId": page-id,
+      "statusBarEnable": status-bar-enable,
+      "redrawType": redraw-type,
     }.stringify
