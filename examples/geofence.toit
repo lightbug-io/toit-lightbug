@@ -3,7 +3,6 @@ import lightbug.devices as devices
 import lightbug.messages as messages
 import lightbug.services as services
 import lightbug.modules as modules
-import lightbug.util.docs show message-to-docs-url
 import lightbug.util.resilience show catch-and-restart
 import lightbug show Coordinate
 
@@ -219,7 +218,7 @@ mainLoop:
         continue
       // Provide some useful output for messages that are not handled
       if msg.type != messages.ACK.MT:
-        logger.info "📟❓ Unhandled device message: $(msg.msgType) $(message-to-docs-url msg)"
+        logger.info "📟❓ Unhandled device message: $(msg.msgType)"
     if e != null:
       logger.error "Error processing message: $e"
       continue

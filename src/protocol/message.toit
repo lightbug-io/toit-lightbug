@@ -81,7 +81,6 @@ class Message:
     s += " response-to: $this.response-to"
   log.default.with-level log.DEBUG-LEVEL:
     s += " bytes: $stringify-all-bytes"
-    s += " link: $(message-to-docs-url this)"
   return s
 
  stringify-all-bytes -> string:

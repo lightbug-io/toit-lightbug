@@ -1,5 +1,4 @@
 import ...services as services
-import ...util.docs show message-to-docs-url
 import ...util.resilience show catch-and-restart
 import ...devices as devices
 import log

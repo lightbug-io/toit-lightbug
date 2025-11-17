@@ -16,10 +16,6 @@ docsUrl -> string:
     baseUrl = "http://localhost:8093"
   return baseUrl
 
-// Returns a link to parse a message on the Lightbug docs site.
-message-to-docs-url msg/Message -> string:
-  return message-bytes-to-docs-url msg.bytes
-
 // Returns a link to parse bytes of a message on the Lightbug docs site.
 message-bytes-to-docs-url msgBytes/ByteArray -> string:
   // XXX: This could also be added as part of a log viewer, rather than the app, which saves build bytes, comms bytes, etc
