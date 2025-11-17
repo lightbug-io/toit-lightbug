@@ -664,9 +664,9 @@ class SurveyApp:
           body = body + "- $s\n"
           i -= 1
 
-    left_id := messages.ButtonPress.BUTTON-ID_LEFT-UP.stringify
+    left_id := messages.ButtonPress.BUTTON-ID_UP_LEFT.stringify
     select_id := messages.ButtonPress.BUTTON-ID_ACTION.stringify
-    right_id := messages.ButtonPress.BUTTON-ID_RIGHT-DOWN.stringify
+    right_id := messages.ButtonPress.BUTTON-ID_DOWN-RIGHT.stringify
 
     left_label := if showing-page_ == PAGE-SURVEY: device-button-left else: "Up"
     middle_label := if showing-page_ == PAGE-SURVEY: device-button-middle else: "Select"
@@ -835,9 +835,9 @@ class SurveyApp:
           survey-start
         else if device-button-middle == BUTTON-MIDDLE-STORE:
           store-last-point
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_RIGHT-DOWN:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN-RIGHT:
         show-actions-menu
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_LEFT-UP:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         show-info-page
 
     // Info page
@@ -845,9 +845,9 @@ class SurveyApp:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID_ACTION:
         if menu-selection.current == 0:
           show-survey
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_RIGHT-DOWN:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN-RIGHT:
         menu-selection.up
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_LEFT-UP:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         menu-selection.down
     
     // Actions menu
@@ -919,9 +919,9 @@ class SurveyApp:
           store-last-point-dist_ = 5.0
           update-actions-menu
           screen-on-button-change
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_RIGHT-DOWN:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN-RIGHT:
         menu-selection.up
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_LEFT-UP:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         menu-selection.down
     else:
       // logger_.info "Unhandled button press on unknown page"

@@ -74,7 +74,7 @@ class Apps:
             else if self.app_ and self.app_.is-running:
               // If an app is running, let it handle button presses
             else if showing-page_ == PAGE-HOME: // TODO use a preset page const ID
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-RIGHT-DOWN:
+              if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
                 self.show_menu
             else if showing-page_ == PAGE-MENU:
               if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
@@ -82,12 +82,12 @@ class Apps:
                   task:: open-survey-app
                 else if menu-selection.current == MENU-OPTION-REBOOT:
                   log.info "Rebooting device"
-                  device_.comms.send messages.CPU1Reset.do-msg
+                  device_.comms.send messages.CPU1Reset.msg
                 else if menu-selection.current == MENU-OPTION-GO-BACK:
                   show-home
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-RIGHT-DOWN:
+              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
                 menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-LEFT-UP:
+              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
                 menu-selection.down
             else:
               // logger_.info "BTN miss $button-data"
@@ -97,7 +97,7 @@ class Apps:
           logger_.warn "BTN sub fail"
         else:
           buttons-subscriber-id_ = id
-          logger_.warn "BTN sub $(id)"
+          logger_.info "BTN sub $(id)"
       if e:
         logger_.error "BTN sub fail $e"
 
