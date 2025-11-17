@@ -7,4 +7,4 @@ import lightbug.messages.messages_gen as messages
 // It will reset the CPU1 and then the device will reboot
 // This is useful for testing or recovering from a bad state
 main:
-  ((devices.I2C).comms.send messages.CPU1Reset.do-msg --withLatch=true).get
+  ((devices.I2C).comms.send messages.CPU1Reset.msg --withLatch=true).get
