@@ -20,9 +20,12 @@ main:
 
   device := devices.I2C
     --log-level=LOG-LEVEL
-    --with-default-handlers=false
+    --with-default-handlers=true
     --background=false
   apps := apps.Apps device dog
 
   // Listen for "Actions" button presses...
   apps.start
+
+  // Uncomment the line below to run the QC app
+  // apps.open-qc-app

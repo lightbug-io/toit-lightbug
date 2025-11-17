@@ -138,6 +138,7 @@ class I2C implements Device:
       ]
       if with-default-handlers_:
         handlers = handlers + [
+            // TODO add a reset msg handler
             BLEHandler this --logger=(logger_.with-name "h.ble"),
             WiFiHandler this --logger=(logger_.with-name "h.wifi"),
             StrobeHandler this --logger=(logger_.with-name "h.strobe"),

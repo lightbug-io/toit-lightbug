@@ -23,7 +23,7 @@ import .m45_alarm_gen show Alarm
 import .m46_buzzer_sequence_gen show BuzzerSequence
 import .m47_cpu2_sleep_gen show CPU2Sleep
 import .m48_power_profile_gen show PowerProfile
-import .m49_cpu1_reset_gen show CPU1Reset
+import .m49_reset_gen show Reset
 import .m50_link_control_gen show LinkControl
 import .m52_led_control_gen show LEDControl
 import .m53_protection_level_gen show ProtectionLevel

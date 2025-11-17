@@ -2,6 +2,7 @@ import ..devices
 import ..services
 import ..messages.messages_gen as messages
 import .survey
+import .qc
 import ..modules.eink.menu-selection show MenuSelection
 import .survey.eink-batch show eink-do-batch
 import .survey.strobe-once show strobe-once
@@ -21,12 +22,14 @@ class Apps:
 
   MENU-OPTIONS := [
     "Survey",
+    "QC",
     "Reboot",
     "Go Back",
     ]
   MENU-OPTION-SURVEY := 0
-  MENU-OPTION-REBOOT:= 1
-  MENU-OPTION-GO-BACK := 2
+  MENU-OPTION-QC:= 1
+  MENU-OPTION-REBOOT:= 2
+  MENU-OPTION-GO-BACK := 3
 
   PAGE-HOME := 1
   PAGE-MENU := 20
@@ -80,9 +83,11 @@ class Apps:
               if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
                 if menu-selection.current == MENU-OPTION-SURVEY:
                   task:: open-survey-app
+                else if menu-selection.current == MENU-OPTION-QC:
+                  task:: open-qc-app
                 else if menu-selection.current == MENU-OPTION-REBOOT:
                   log.info "Rebooting device"
-                  device_.comms.send messages.CPU1Reset.msg
+                  device_.comms.send messages.Reset.msg
                 else if menu-selection.current == MENU-OPTION-GO-BACK:
                   show-home
               else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
@@ -107,6 +112,11 @@ class Apps:
     app_ = SurveyApp device_ this dog_
     app_.start
     app_.show-survey
+  
+  open-qc-app:
+    stop
+    app_ = QCApp device_ this dog_
+    app_.start
 
   stop:
     // logger_.info "STOP"
