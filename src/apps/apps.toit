@@ -14,7 +14,6 @@ class Apps:
   device_/Device
   dog_/Watchdog
   is-running_/bool := false
-  showing-page_/int := 0
   menu-selection/MenuSelection? := null
   app_/any? := null // TODO make an app interface?
   logger_/log.Logger := log.default.with-name "apps"
@@ -43,27 +42,25 @@ class Apps:
     eink-do-batch --important:
       // logger_.info "HOME"
       device_.eink.show-preset --page-id=PAGE-HOME
-      showing-page_ = PAGE-HOME
       menu-selection = null
 
   show_menu:
     eink-do-batch --important:
       // logger_.info "MENU"
       device_.eink.send-menu --page-id=PAGE-MENU --items=MENU-OPTIONS --selected-item=0
-      showing-page_ = PAGE-MENU
       menu-selection = MenuSelection --start=0 --size=MENU-OPTIONS.size
 
   // Basic app control, similar to SurveyApp.
   start:
     // logger_.info "START"
     is-running_ = true
-    showing-page_ = PAGE-HOME // We assume we start on the home page..
     self := this
 
     // Subscribe to buttons if we're not already subscribed.
     if not buttons-subscriber-id_:
       e := catch:
         id := device_.buttons.subscribe --timeout=null --callback=(:: |button-data|
+          // We only listen to button presses on page 0...
           if button-data.duration <= 0:
             // Not actually a press... TODO make this nicer
           else:
@@ -76,10 +73,10 @@ class Apps:
               show-home
             else if self.app_ and self.app_.is-running:
               // If an app is running, let it handle button presses
-            else if showing-page_ == PAGE-HOME: // TODO use a preset page const ID
+            else if button-data.page-id == PAGE-HOME: // TODO use a preset page const ID
               if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
                 self.show_menu
-            else if showing-page_ == PAGE-MENU:
+            else if button-data.page-id == PAGE-MENU:
               if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
                 if menu-selection.current == MENU-OPTION-SURVEY:
                   task:: open-survey-app
@@ -120,7 +117,6 @@ class Apps:
 
   stop:
     // logger_.info "STOP"
-    showing-page_ = 0 // We no longer assume to know
     is-running_ = false
     // Unsubscribe from buttons if we have a subscriber id
     if buttons-subscriber-id_:
