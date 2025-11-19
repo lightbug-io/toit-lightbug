@@ -48,7 +48,6 @@ class QCApp:
     opmsg := messages.Open.msg
     opmsg = add-forwarding-headers opmsg 0
     device_.comms.send opmsg
-
   
   show-text-page line/string:
     device_.eink.text-page --page-id=30 --status-bar-enable=false --lines=["",line,"","   No    Skip    Yes"]

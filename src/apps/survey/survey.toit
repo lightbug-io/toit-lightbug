@@ -789,7 +789,6 @@ class SurveyApp:
       link-send-sem.up // release semaphore slot
       if (it == null or not it.msg-ok) and retries_ > 1:
         retries_ -= 1
-        logger_.warn "CLOUD point retry..."
         sleep --ms=1000
         send-point-to-link pos --retries_=retries_
       else if it != null and it.msg-ok:
@@ -798,7 +797,6 @@ class SurveyApp:
           sleep --ms=50
           device_.strobe.off
       else:
-        logger_.warn "CLOUD point FAIL"
         strobe-once:
           device_.strobe.red
           sleep --ms=50
