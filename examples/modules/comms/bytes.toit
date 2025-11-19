@@ -7,20 +7,19 @@ main:
   // Do not send an open or heartbeat messages
   device := devices.I2C --open=false
 
-  // Send a currently valid, but unused message to the device
+  // Send a currently valid, but unused message to the device, with a device ID.
   // The device will ignore it, but it will ACK the message
-  // https://docs.lightbug.io/devices/api/tools/parse?bytes=3+11+0+231+3+0+0+0+0+64+86
   print "Writing unused msg to device"
-  device.out.write #[3, 11, 0, 231, 3, 0, 0, 0, 0, 64, 86] --flush=true
+  device.out.write #[3, 17, 0, 231, 3, 1, 0, 1, 4, 231, 3, 0, 0, 0, 0, 184, 115] --flush=true
 
   // Send an open to the device
   // This will start the device and allow it to send heartbeats
-  // https://docs.lightbug.io/devices/api/tools/parse?bytes=3+11+0+11+0+0+0+0+0+73+56
+  // There is no message ID so no ACK is expected
   print "Writing open msg to device"
   device.out.write #[3, 11, 0, 11, 0, 0, 0, 0, 0, 73, 56] --flush=true
 
   // Read all pending bytes from the device
-  // This should include responses to the above messages
+  // This should include response to the first message
   print "Reading all bytes from device"
   read := device.in.read
   print "Read bytes: $read"
