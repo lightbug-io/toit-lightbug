@@ -1,3 +1,5 @@
 .packages
 *.snapshot
 *.envelope
+*.bin
+build/out/
