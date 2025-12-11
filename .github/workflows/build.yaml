@@ -96,6 +96,13 @@ jobs:
       - name: Install Dependencies
         run: toit pkg install
 
+      # TODO it would be nice to abstract this away via the Makefiles...
+      - name: Install Example Dependencies
+        run: |
+          pushd examples
+          toit pkg install
+          popd
+
       - name: Build Snapshot and Envelope
         run: |
           chmod +x build/build.sh
