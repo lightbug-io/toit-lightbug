@@ -2,6 +2,17 @@
 
 set -e
 
+# Detect toit command - use 'toit' if available, otherwise fall back to 'jag toit'
+if command -v toit &> /dev/null; then
+    TOIT_CMD="toit"
+elif command -v jag &> /dev/null; then
+    TOIT_CMD="jag toit"
+else
+    echo "Error: Neither 'toit' nor 'jag' command found."
+    echo "Please install Toit SDK or Jaguar CLI."
+    exit 1
+fi
+
 # Check for correct number of arguments
 if [ "$#" -ne 4 ]; then
     echo "Usage: $0 <snapshot_name> <target_toit_file> <toit_version> <firmware_type>"
@@ -27,9 +38,10 @@ echo "Output directory: ${BUILD_DIR}"
 # 1. Compile the snapshot
 echo "----------------------------------------------------------------"
 echo "Step 1: Compiling snapshot from ${TARGET_FILE}..."
+echo "Using command: ${TOIT_CMD}"
 echo "----------------------------------------------------------------"
 SNAPSHOT_FILE="${BUILD_DIR}/${SNAPSHOT_NAME}.snapshot"
-jag toit compile --snapshot -o "${SNAPSHOT_FILE}" -O 2 "$TARGET_FILE"
+${TOIT_CMD} compile --snapshot -o "${SNAPSHOT_FILE}" -O 2 "$TARGET_FILE"
 
 if [ $? -eq 0 ]; then
     echo "Snapshot created: ${SNAPSHOT_FILE}"
@@ -91,7 +103,7 @@ echo "----------------------------------------------------------------"
 echo "Step 3: Creating final envelope ${OUTPUT_ENVELOPE}..."
 echo "----------------------------------------------------------------"
 # Using 'apps' as the container name as per standard practice/example
-jag toit tool firmware -e "${SOURCE_ENVELOPE}" container install -o "${OUTPUT_ENVELOPE}" "${CONTAINER_NAME}" "${SNAPSHOT_FILE}"
+${TOIT_CMD} tool firmware -e "${SOURCE_ENVELOPE}" container install -o "${OUTPUT_ENVELOPE}" "${CONTAINER_NAME}" "${SNAPSHOT_FILE}"
 
 if [ $? -ne 0 ]; then
     echo "Failed to create envelope."
@@ -104,7 +116,7 @@ echo ""
 echo "----------------------------------------------------------------"
 echo "Step 4: Extracting binary image ${BIN_FILE}..."
 echo "----------------------------------------------------------------"
-jag toit tool firmware --envelope "${OUTPUT_ENVELOPE}" extract --format=image -o "${BIN_FILE}"
+${TOIT_CMD} tool firmware --envelope "${OUTPUT_ENVELOPE}" extract --format=image -o "${BIN_FILE}"
 
 if [ $? -ne 0 ]; then
     echo "Failed to extract binary image from envelope."

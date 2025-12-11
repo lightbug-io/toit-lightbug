@@ -93,13 +93,6 @@ jobs:
         with:
           toit-version: ${{ matrix.version }}
 
-      - name: Install Jaguar
-        run: |
-          curl -L https://github.com/toitlang/jaguar/releases/latest/download/jag_linux_amd64 -o jag
-          chmod +x jag
-          sudo mv jag /usr/local/bin/jag
-          jag version
-
       - name: Build Snapshot and Envelope
         run: |
           chmod +x build/build.sh
