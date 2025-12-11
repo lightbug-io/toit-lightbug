@@ -93,6 +93,9 @@ jobs:
         with:
           toit-version: ${{ matrix.version }}
 
+      - name: Install Dependencies
+        run: toit pkg install
+
       - name: Build Snapshot and Envelope
         run: |
           chmod +x build/build.sh
