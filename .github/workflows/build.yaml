@@ -1,0 +1,137 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*.*.*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      snapshot_name:
+        description: 'Snapshot Name'
+        required: true
+        default: 'custom-app'
+      target_file:
+        description: 'Target Toit File'
+        required: true
+        default: 'examples/geofence.toit'
+      toit_version:
+        description: 'Toit Version'
+        required: true
+        default: 'v2.0.0-alpha.189'
+      firmware_type:
+        description: 'Firmware Type'
+        required: true
+        default: 'esp32c6'
+
+env:
+  DEFAULT_TOIT_VERSION: v2.0.0-alpha.189
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: toitlang/action-setup@v1
+        with:
+          toit-version: ${{ env.DEFAULT_TOIT_VERSION }}
+      - run: make test
+
+  prepare-matrix:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Construct JSON for manual dispatch
+            MATRIX_JSON=$(jq -n -c \
+              --arg name "${{ inputs.snapshot_name }}" \
+              --arg path "${{ inputs.target_file }}" \
+              --arg version "${{ inputs.toit_version }}" \
+              --arg chip "${{ inputs.firmware_type }}" \
+              '[{$name, $path, $version, $chip}]')
+          else
+            # Construct JSON for standard build
+            # Add new entries to this array as needed
+            MATRIX_JSON=$(jq -n -c \
+              --arg version "${{ env.DEFAULT_TOIT_VERSION }}" \
+              '[
+                {
+                  name: "ble-cert-test", 
+                  path: "./examples/basic/ble-cert-test.toit", 
+                  version: $version, 
+                  chip: "esp32c6"
+                },
+                {
+                  name: "base-apps", 
+                  path: "./examples/containers/base-apps.toit", 
+                  version: $version, 
+                  chip: "esp32c6"
+                }
+              ]')
+          fi
+          
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build Artifacts
+    needs: [test, prepare-matrix]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Toit
+        uses: toitlang/action-setup@v1
+        with:
+          toit-version: ${{ matrix.version }}
+
+      - name: Install Jaguar
+        run: |
+          curl -L https://github.com/toitlang/jaguar/releases/latest/download/jag_linux_amd64 -o jag
+          chmod +x jag
+          sudo mv jag /usr/local/bin/jag
+          jag version
+
+      - name: Build Snapshot and Envelope
+        run: |
+          chmod +x build/build.sh
+          ./build/build.sh "${{ matrix.name }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-artifacts
+          path: build/out/${{ matrix.name }}/
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*
+          generate_release_notes: true

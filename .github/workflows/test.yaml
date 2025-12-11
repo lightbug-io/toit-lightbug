@@ -15,6 +15,6 @@ jobs:
 
         - uses: toitlang/action-setup@v1
           with:
-            toit-version: 'v2.0.0-alpha.150'
+            toit-version: 'v2.0.0-alpha.189'
 
         - run: make test
