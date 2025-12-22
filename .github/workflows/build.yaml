@@ -62,15 +62,21 @@ jobs:
               --arg version "${{ env.DEFAULT_TOIT_VERSION }}" \
               '[
                 {
-                  name: "ble-cert-test", 
-                  path: "./examples/basic/ble-cert-test.toit", 
-                  version: $version, 
+                  name: "ble-cert-test",
+                  path: "./examples/basic/ble-cert-test.toit",
+                  version: $version,
                   chip: "esp32c6"
                 },
                 {
-                  name: "base-apps", 
-                  path: "./examples/containers/base-apps.toit", 
-                  version: $version, 
+                  name: "base",
+                  path: "./examples/containers/base.toit",
+                  version: $version,
+                  chip: "esp32c6"
+                },
+                {
+                  name: "base-apps",
+                  path: "./examples/containers/base-apps.toit",
+                  version: $version,
                   chip: "esp32c6"
                 }
               ]')
