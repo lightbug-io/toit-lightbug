@@ -110,11 +110,14 @@ jobs:
           popd
 
       - name: Build Snapshot and Envelope
+        id: build
+        continue-on-error: ${{ matrix.name == 'base-apps' }}
         run: |
           chmod +x build/build.sh
           ./build/build.sh "${{ matrix.name }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
 
       - name: Upload Artifacts
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}-artifacts
