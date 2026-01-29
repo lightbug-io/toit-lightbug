@@ -367,7 +367,8 @@ class Comms:
 
   send-new msg/protocol.Message
       --flush/bool = false
-      --timeout/Duration = (Duration --s=60) -> protocol.Message?:
+      --timeout/Duration = (Duration --s=60)
+      --onTimeout/Lambda? = null -> protocol.Message?:
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
@@ -378,6 +379,9 @@ class Comms:
     latch := monitor.Latch
     latchForMessage[msg.msgId] = latch
     waitTimeouts[msg.msgId] = Time.now + timeout
+    
+    if onTimeout != null:
+      lambdasForTimeout[msg.msgId] = onTimeout
 
     sendSwitching_ msg --now=flush
 
@@ -386,7 +390,8 @@ class Comms:
   send-new msg/protocol.Message --async 
       --callback/Lambda? = null
       --flush/bool = false
-      --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
+      --timeout/Duration = (Duration --s=60)
+      --onTimeout/Lambda? = null -> monitor.Latch?:
     // Ensure the message has a known message id
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
@@ -397,6 +402,9 @@ class Comms:
     latch := monitor.Latch
     latchForMessage[msg.msgId] = latch
     waitTimeouts[msg.msgId] = Time.now + timeout
+    
+    if onTimeout != null:
+      lambdasForTimeout[msg.msgId] = onTimeout
 
     sendSwitching_ msg --now=flush
 

@@ -200,7 +200,7 @@ class Eink:
   helper. Returns the protocol.Message? from the sync send-new call, or
   null if comms are unavailable.
   */
-  draw-element --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null -> protocol.Message?:
+  draw-element --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --onTimeout/Lambda?=null -> protocol.Message?:
     if device_ == null or device_.comms == null:
       logger_.info "No device or comms available to draw element."
       return null
@@ -228,13 +228,13 @@ class Eink:
 
     msg := messages.DrawElement.msg --data=data
 
-    return device_.comms.send-new msg --timeout=(Duration --s=3)
+    return device_.comms.send-new msg --timeout=(Duration --s=3) --onTimeout=onTimeout
 
   // Async overload for draw-element
-  draw-element --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --onComplete/Lambda?=null --onError/Lambda?=null:
+  draw-element --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --onComplete/Lambda?=null --onError/Lambda?=null --onTimeout/Lambda?=null:
     task::
       e := catch:
-        res := draw-element --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --x=x --y=y --width=width --height=height --type=type --style=style --fontsize=fontsize --textalign=textalign --linewidth=linewidth --padding=padding --radius=radius --linetype=linetype --x2=x2 --y2=y2 --bitmap=bitmap --text=text
+        res := draw-element --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --x=x --y=y --width=width --height=height --type=type --style=style --fontsize=fontsize --textalign=textalign --linewidth=linewidth --padding=padding --radius=radius --linetype=linetype --x2=x2 --y2=y2 --bitmap=bitmap --text=text --onTimeout=onTimeout
         if onComplete:
           onComplete.call res
       if e:
@@ -301,14 +301,14 @@ class Eink:
   Convenience wrapper to draw a bitmap. Calls `draw-element` with TYPE_BITMAP.
   Accepts an optional --redraw-type to control buffer/draw behaviour.
   */
-  draw-bitmap --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null -> protocol.Message?:
-    return draw-element --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --type=messages.DrawElement.TYPE_BITMAP --x=x --y=y --width=width --height=height --bitmap=bitmap
+  draw-bitmap --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --onTimeout/Lambda?=null -> protocol.Message?:
+    return draw-element --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --type=messages.DrawElement.TYPE_BITMAP --x=x --y=y --width=width --height=height --bitmap=bitmap --onTimeout=onTimeout
 
   // Async overload for draw-bitmap
-  draw-bitmap --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --onComplete/Lambda?=null --onError/Lambda?=null:
+  draw-bitmap --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --onComplete/Lambda?=null --onError/Lambda?=null --onTimeout/Lambda?=null:
     task::
       e := catch:
-        res := draw-bitmap --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --x=x --y=y --width=width --height=height --bitmap=bitmap
+        res := draw-bitmap --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --x=x --y=y --width=width --height=height --bitmap=bitmap --onTimeout=onTimeout
         if onComplete:
           onComplete.call res
       if e:
