@@ -227,7 +227,8 @@ class Eink:
       --text=text
 
     msg := messages.DrawElement.msg --data=data
-    return device_.comms.send-new msg --flush=true --timeout=(Duration --s=3)
+
+    return device_.comms.send-new msg --timeout=(Duration --s=3)
 
   // Async overload for draw-element
   draw-element --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --onComplete/Lambda?=null --onError/Lambda?=null:
@@ -301,9 +302,7 @@ class Eink:
   Accepts an optional --redraw-type to control buffer/draw behaviour.
   */
   draw-bitmap --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null -> protocol.Message?:
-  // Assumes device_.comms is present.
-    rt := compute-redraw-type --redraw-type=redraw-type
-    return draw-element --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=rt --type=messages.DrawElement.TYPE_BITMAP --x=x --y=y --width=width --height=height --bitmap=bitmap
+    return draw-element --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --type=messages.DrawElement.TYPE_BITMAP --x=x --y=y --width=width --height=height --bitmap=bitmap
 
   // Async overload for draw-bitmap
   draw-bitmap --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --onComplete/Lambda?=null --onError/Lambda?=null:
