@@ -4,6 +4,7 @@ import io
 import log
 import io.byte-order show LITTLE-ENDIAN
 import ..util.backoff as backoff
+import ..util.sleep show *
 
 I2C-ADDRESS-LIGHTBUG := 0x1b
 
@@ -168,7 +169,7 @@ class Writer extends io.Writer:
         sleep I2C-WAIT-SLEEP
       else:
         logger_.debug "Can write $can-write-bytes bytes, continuing"
-    
+
     current-index := from
     read-to-index := 0
     while current-index < to and can-write-bytes > 0:
@@ -185,6 +186,7 @@ class Writer extends io.Writer:
       written += writing
       can-write-bytes -= writing
       current-index = read-to-index
-    
+      sleep-blocking --ms=2 // For I2C stability
+
     logger_.debug "Wrote $written bytes"
     return written
