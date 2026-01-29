@@ -479,9 +479,9 @@ class Comms:
           
           // Call timeout callback if it exists
           if lambdasForTimeout.contains key:
-            task --background=true::
-              logger_.debug "Calling timeout lambda for message: $(key)"
-              lambdasForTimeout[key].call
+            logger_.debug "Calling timeout lambda for message: $(key)"
+            // Just return the key, but it could be neat to return the message?
+            lambdasForTimeout[key].call key
           
           // Remove the timeout key, complete the latch, and remove all callbacks
           waitTimeouts.remove key
