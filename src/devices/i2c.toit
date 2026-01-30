@@ -78,13 +78,13 @@ class Reader extends io.Reader:
       // UART does this with a read state, for now we will just sleep a bit...
       if len-int == 0:
         // logger_.debug "None to read, sleeping for $I2C-WAIT-SLEEP" // verbose log
-        sleep I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
+        sleep-blocking I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
         break // Leave the while loop
 
       // If we are told there are more bytes available than the largest Lightbug buffer, ignore it...
       if len-int > I2C-MAX-READABLE-BYTES:
         logger_.info "⚠️ Messy readable ($len-int), bin & sleep $I2C-WAIT-SLEEP"
-        sleep I2C-WAIT-SLEEP
+        sleep-blocking I2C-WAIT-SLEEP
         break
 
       logger_.debug "Got $len-int to read"
@@ -99,12 +99,44 @@ class Reader extends io.Reader:
         if b.size != chunkSize:
           logger_.error "Failed to read chunk of $chunkSize, got $b.size"
           return null
+        
+        // Check for consecutive 0xff bytes which indicate a potential I2C issue.
+        consecutive-ff := 0
+        max-consecutive-ff := 0
+        total-ff := 0
+        b.size.repeat:
+          if b[it] == 0xff:
+            consecutive-ff++
+            total-ff++
+            max-consecutive-ff = max max-consecutive-ff consecutive-ff
+          else:
+            consecutive-ff = 0
+        
+        // If the chunk is mostly (95%+) or entirely 0xff, it's corrupted I2C data.
+        // Sleep and retry by breaking to the outer loop.
+        ff-percentage := (total-ff * 100) / b.size
+        if ff-percentage >= 95:
+          logger_.error "⚠️ I2C bus corruption: chunk is $ff-percentage% 0xff bytes ($total-ff/$b.size) (size $b.size): $b"
+          logger_.debug "Discarding chunk and retrying. Valid bytes so far: $all.size"
+          // Sleep to let the bus recover, then retry.
+          sleep-blocking I2C-WAIT-SLEEP
+          // Break inner loop to retry from the outer loop.
+          break
+
+        // We could also check this, but it's less useful than the percentage check above.
+        // And doesn't seen to happen in reality, its either a whole chunk or nothing.
+        // if max-consecutive-ff >= 3:
+        //   logger_.warn "⚠️ Detected $max-consecutive-ff consecutive 0xff bytes in I2C read"
+        //   logger_.warn "Chunk bytes (size $b.size): $b"
+        //   logger_.warn "All bytes so far (size $all.size): $all"
+        
         all += b
         len-int -= chunkSize
 
       logger_.debug "Read $all.size after $loops loops"
 
     yield // They are in our buffer now, so yield briefly before returning
+
     return all
 
 class Writer extends io.Writer:
@@ -159,11 +191,11 @@ class Writer extends io.Writer:
         // Probably got some messy data, so reset and sleep
         logger_.info "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
         can-write-bytes = 0
-        sleep I2C-WAIT-SLEEP
+        sleep-blocking I2C-WAIT-SLEEP
       logger_.debug "Can write $can-write-bytes bytes"
       if can-write-bytes == 0:
         logger_.debug "Waiting for some bytes to be writeable, sleeping for $I2C-WAIT-SLEEP"
-        sleep I2C-WAIT-SLEEP
+        sleep-blocking I2C-WAIT-SLEEP
       else:
         logger_.debug "Can write $can-write-bytes bytes, continuing"
 
