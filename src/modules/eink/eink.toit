@@ -307,9 +307,11 @@ class Eink:
   // Async overload for draw-bitmap
   draw-bitmap --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --bitmap/ByteArray?=null --onComplete/Lambda?=null --onError/Lambda?=null --onTimeout/Lambda?=null:
     task::
-      e := catch:
+      e := catch --trace=true:
         res := draw-bitmap --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=redraw-type --x=x --y=y --width=width --height=height --bitmap=bitmap --onTimeout=onTimeout
-        if onComplete:
+        // TODO decide on onComplete vs onTimeout handling
+        // Right now timeouts also call onComplete with null result
+        if onComplete and res:
           onComplete.call res
       if e:
         logger_.error "Async draw-bitmap failed: $(e)"
