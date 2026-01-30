@@ -94,6 +94,7 @@ class Reader extends io.Reader:
         logger_.debug "Requesting chunk of $chunkSize"
         device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
         logger_.debug "Reading $chunkSize"
+        sleep-blocking --ms=2 // For I2C stability, gap between write and read
         b := device.read chunkSize
         if b.size != chunkSize:
           logger_.error "Failed to read chunk of $chunkSize, got $b.size"
@@ -182,7 +183,7 @@ class Writer extends io.Writer:
       written += writing
       can-write-bytes -= writing
       current-index = read-to-index
-      sleep-blocking --ms=2 // For I2C stability
+      sleep-blocking --ms=2 // For I2C stability, gap between sequential writes
 
     logger_.debug "Wrote $written bytes"
     return written
