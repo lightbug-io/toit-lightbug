@@ -1,4 +1,5 @@
 import lightbug.devices as devices
+import lightbug.protocol as protocol
 import lightbug.messages.messages_gen as messages
 import monitor
 
@@ -59,7 +60,7 @@ fill-screen device fill-black/bool:
           print "onError $(error)"
         )
         --onTimeout=(:: | id |
-          print "onTimeout $(id) < < < < < < < < < < < < < < < < < < < < < < < < < < < < < <"
+          print "onTimeout $(id)"
         )
     
     message-count++
@@ -67,12 +68,12 @@ fill-screen device fill-black/bool:
 
 main:
   device := devices.I2C --background=false// --log-level=devices.DEBUG-LEVEL
+  
+  sleep --ms=2000
 
-  start := Time.now
-  end := Time.now
-  while true:
+  task:: while true:
     fill-screen device true
     sleep --ms=4000
 
     fill-screen device false
-    sleep --ms=4000
+    sleep --ms=4000 // left at 1:10
