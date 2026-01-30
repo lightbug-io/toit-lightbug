@@ -472,15 +472,19 @@ class Comms:
         tracker := entry[1]
         logger_.debug "Timeout for message: $(key)"
 
-        // Call timeout callback if it exists.
-        if tracker.on-timeout:
-          logger_.debug "Calling timeout lambda for message: $(key)"
-          task:: tracker.on-timeout.call key
+        // Capture callbacks before clearing
+        timeout-callback := tracker.on-timeout
+        latch := tracker.latch
 
-        // Complete latch with null to unblock waiters.
-        if tracker.latch:
-          tracker.latch.set null
-
-        // Remove and clear.
+        // Remove and clear early to prevent races
         trackers_.remove key
         tracker.clear
+
+        // Call timeout callback if it is set
+        if timeout-callback:
+          logger_.debug "Calling timeout lambda for message: $(key)"
+          task:: timeout-callback.call key
+
+        // Complete latch with null to unblock waiters.
+        if latch:
+          latch.set null
