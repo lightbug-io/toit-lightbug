@@ -83,7 +83,7 @@ class Reader extends io.Reader:
 
       // If we are told there are more bytes available than the largest Lightbug buffer, ignore it...
       if len-int > I2C-MAX-READABLE-BYTES:
-        logger_.info "⚠️ Messy readable, bin & sleep $I2C-WAIT-SLEEP"
+        logger_.info "⚠️ Messy readable ($len-int), bin & sleep $I2C-WAIT-SLEEP"
         sleep I2C-WAIT-SLEEP
         break
 
@@ -92,18 +92,14 @@ class Reader extends io.Reader:
       while len-int > 0:
         chunkSize := min len-int 254
         logger_.debug "Requesting chunk of $chunkSize"
-        // Use write-read to ensure a proper repeated start condition
-        // This keeps the slave in the correct state for the read
-        b := device.write-read #[I2C-COMMAND-LIGHTBUG-READ, chunkSize] chunkSize
+        device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
+        logger_.debug "Reading $chunkSize"
+        b := device.read chunkSize
         if b.size != chunkSize:
           logger_.error "Failed to read chunk of $chunkSize, got $b.size"
           return null
         all += b
         len-int -= chunkSize
-
-      if all.size != all-expected:
-        logger_.error "Failed to read $all-expected, got $all.size"
-        return null
 
       logger_.debug "Read $all.size after $loops loops"
 
