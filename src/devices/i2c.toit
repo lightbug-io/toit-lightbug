@@ -92,9 +92,9 @@ class Reader extends io.Reader:
       while len-int > 0:
         chunkSize := min len-int 254
         logger_.debug "Requesting chunk of $chunkSize"
-        device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
-        logger_.debug "Reading $chunkSize"
-        b := device.read chunkSize
+        // Use write-read to ensure a proper repeated start condition
+        // This keeps the slave in the correct state for the read
+        b := device.write-read #[I2C-COMMAND-LIGHTBUG-READ, chunkSize] chunkSize
         if b.size != chunkSize:
           logger_.error "Failed to read chunk of $chunkSize, got $b.size"
           return null
