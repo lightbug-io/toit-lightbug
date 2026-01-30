@@ -34,7 +34,7 @@ class Comms:
 
   // Maximum number of messages that can be tracked at once.
   // When exceeded, oldest entries are evicted (with timeout callback if set).
-  static MAX-TRACKED-MESSAGES_ /int := 64
+  static MAX-TRACKED-MESSAGES_ /int := 128
   trackers_ /BoundedTrackerMap := BoundedTrackerMap --capacity=MAX-TRACKED-MESSAGES_
 
   lastMsgId_ /int := 0

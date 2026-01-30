@@ -5,7 +5,7 @@ import monitor
 import .alternate show fill-screen
 
 main:
-  device := devices.I2C --background=false// --log-level=devices.DEBUG-LEVEL
+  device := devices.I2C --background=false --log-level=devices.ERROR-LEVEL
   
   sleep --ms=2000
 

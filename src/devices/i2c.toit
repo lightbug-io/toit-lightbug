@@ -50,7 +50,7 @@ class Reader extends io.Reader:
     e := catch:
       backoff.do-with-backoff
         --onError=(:: |error|
-          logger_.error "Error reading from device: $error, got $b.size bytes, will retry"
+          logger_.warn "Error reading from device: $error, got $b.size bytes, will retry"
         )
         --initial-delay=I2C-WAIT-SLEEP
         --backoff-factor=2.0
@@ -83,7 +83,7 @@ class Reader extends io.Reader:
 
       // If we are told there are more bytes available than the largest Lightbug buffer, ignore it...
       if len-int > I2C-MAX-READABLE-BYTES:
-        logger_.info "⚠️ Messy readable ($len-int), bin & sleep $I2C-WAIT-SLEEP"
+        logger_.warn "⚠️ Messy readable ($len-int), bin & sleep $I2C-WAIT-SLEEP"
         sleep-blocking I2C-WAIT-SLEEP
         break
 
@@ -116,7 +116,7 @@ class Reader extends io.Reader:
         // Sleep and retry by breaking to the outer loop.
         ff-percentage := (total-ff * 100) / b.size
         if ff-percentage >= 95:
-          logger_.error "⚠️ I2C bus corruption: chunk is $ff-percentage% 0xff bytes ($total-ff/$b.size) (size $b.size): $b"
+          logger_.warn "⚠️ I2C bus corruption: chunk is $ff-percentage% 0xff bytes ($total-ff/$b.size) (size $b.size): $b"
           logger_.debug "Discarding chunk and retrying. Valid bytes so far: $all.size"
           // Sleep to let the bus recover, then retry.
           sleep-blocking I2C-WAIT-SLEEP
@@ -158,7 +158,7 @@ class Writer extends io.Writer:
     e := catch:
       backoff.do-with-backoff
         --onError=(:: |error|
-          logger_.error "Error writing to device: $error, wrote $written bytes, will retry"
+          logger_.warn "Error writing to device: $error, wrote $written bytes, will retry"
         )
         --initial-delay=I2C-WAIT-SLEEP
         --backoff-factor=2.0
@@ -189,7 +189,7 @@ class Writer extends io.Writer:
       logger_.debug "Write space is $can-write-bytes"
       if can-write-bytes > I2C-MAX-WRITABLE-BYTES:
         // Probably got some messy data, so reset and sleep
-        logger_.info "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
+        logger_.warn "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
         can-write-bytes = 0
         sleep-blocking I2C-WAIT-SLEEP
       logger_.debug "Can write $can-write-bytes bytes"
