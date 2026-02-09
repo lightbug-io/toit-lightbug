@@ -152,7 +152,7 @@ class Comms:
 
     // Wait for a total of 3 bytes, which would also give us the length
     while not device_.in.try-ensure-buffered 3:
-      logger_.debug "Inbound reader waiting for 3 bytes"
+      logger_.trace "Inbound reader waiting for 3 bytes"
       yield
     // Peek all 3 bytes, which is protocol + message length
     b3 := device_.in.peek-bytes 3
@@ -167,7 +167,7 @@ class Comms:
 
     // Try and make sure that we have enough bytes buffered to read the full potential message
     while not device_.in.try-ensure-buffered messageLength:
-      logger_.debug "Inbound reader waiting for message length: $(messageLength)"
+      logger_.trace "Inbound reader waiting for message length: $(messageLength)"
       yield
 
     messageBytes := device_.in.peek-bytes messageLength
@@ -221,8 +221,8 @@ class Comms:
         processReceivedMessage_ m
 
   processReceivedMessage_ msg/protocol.Message:
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "RCV: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "RCV: $(msg)"
 
     // Let any registered message handlers try and handle the message
     messageHandlers_.do: | handler |
@@ -276,7 +276,7 @@ class Comms:
         // Call the lambda if it exists.
         if lambda:
           task::
-            logger_.debug "Calling lambda for message: $(msg.type) responding to: $(respondingTo)"
+            logger_.trace "Calling lambda for message: $(msg.type) responding to: $(respondingTo)"
             lambda.call msg
 
         // Complete the latch if set.
@@ -310,8 +310,8 @@ class Comms:
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SEND: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SEND: $(msg)"
 
     latch := monitor.Latch
 
@@ -352,8 +352,8 @@ class Comms:
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SEND: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SEND: $(msg)"
 
     latch := monitor.Latch
     tracker := MessageTracker --latch=latch --on-timeout=onTimeout --timeout=timeout
@@ -375,8 +375,8 @@ class Comms:
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SEND: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SEND: $(msg)"
 
     latch := monitor.Latch
     tracker := MessageTracker --latch=latch --on-timeout=onTimeout --timeout=timeout
@@ -404,13 +404,13 @@ class Comms:
 
       // Send the message
       device_.out.write m --flush=true
-      logger_.with-level log.DEBUG-LEVEL:
-        logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
+      logger_.with-level log.TRACE-LEVEL:
+        logger_.trace "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
       // TODO: It might be nice to allow the outbox to dedeuplicate messages sometimes?
       send-via-outbox msg
-      logger_.with-level log.DEBUG-LEVEL:
-        logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
+      logger_.with-level log.TRACE-LEVEL:
+        logger_.trace "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:
@@ -432,19 +432,19 @@ class Comms:
   send-raw-bytes bytes/ByteArray --flush=true:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
-    logger_.with-level log.DEBUG-LEVEL:
+    logger_.with-level log.TRACE-LEVEL:
       if bytes.size < 500:
-        logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
+        logger_.trace "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
       else:
-        logger_.debug "SNT raw: $(bytes.size) bytes"
+        logger_.trace "SNT raw: $(bytes.size) bytes"
 
   /**
   Simulates receiving a message.
   Processes the message as if it was received from the device.
   */
   simulate-receive msg/protocol.Message -> none:
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SIM RCV: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SIM RCV: $(msg)"
     processReceivedMessage_ msg
 
   /** Handle an evicted tracker (due to capacity limit). */
