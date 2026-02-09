@@ -5,14 +5,17 @@ import log
 import ...util.bytes as bytes
 
 /**
-BLE module for handling Bluetooth Low Energy scan operations.
+BLE module for handling Bluetooth Low Energy operations.
 
 Provides a clean interface for performing BLE scans with specified duration
-and handling the scan results locally on the ESP32.
+and handling the scan results locally on the ESP32, as well as starting
+and stopping BLE advertisements.
 */
 class BLE:
   logger_/log.Logger
   adapter_/ble.Adapter
+  peripheral_/ble.Peripheral? := null
+  advertising_/bool := false
 
   constructor --logger/log.Logger:
     logger_ = logger
@@ -88,6 +91,64 @@ class BLE:
         logger_.error "Async BLE scan failed: $e"
         if onError:
           onError.call e.stringify
+
+  /**
+  Starts BLE advertising with the provided advertisement data.
+
+  Parameters:
+    data: The advertisement data to broadcast. Use ble.Advertisement to construct.
+
+  Returns: true if advertising started successfully, false otherwise.
+  */
+  start-advertise data/ble.Advertisement -> bool:
+    if advertising_:
+      logger_.warn "Already advertising, stop first before starting a new advertisement"
+      return false
+
+    logger_.debug "Starting BLE advertisement"
+
+    e := catch:
+      if not peripheral_:
+        peripheral_ = adapter_.peripheral
+      peripheral_.start-advertise data
+      advertising_ = true
+
+    if e:
+      logger_.error "Failed to start BLE advertisement: $e"
+      return false
+
+    logger_.info "BLE advertisement started"
+    return true
+
+  /**
+  Stops BLE advertising.
+
+  Returns: true if advertising stopped successfully, false otherwise.
+  */
+  stop-advertise -> bool:
+    if not advertising_:
+      logger_.warn "Not currently advertising"
+      return false
+
+    logger_.debug "Stopping BLE advertisement"
+
+    e := catch:
+      if peripheral_:
+        peripheral_.stop-advertise
+      advertising_ = false
+
+    if e:
+      logger_.error "Failed to stop BLE advertisement: $e"
+      return false
+
+    logger_.info "BLE advertisement stopped"
+    return true
+
+  /**
+  Returns whether BLE advertising is currently active.
+  */
+  is-advertising -> bool:
+    return advertising_
 
 
 /**
