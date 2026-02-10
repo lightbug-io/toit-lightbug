@@ -45,12 +45,20 @@ def _load_image(source: str) -> Image.Image:
         with urllib.request.urlopen(source) as response:
             data = response.read()
         return Image.open(io.BytesIO(data))
-    return Image.open(Path(source))
+    img = Image.open(Path(source))
 
+    # If image has an alpha channel, composite onto a white background so
+    # transparent areas become white rather than black when converting to L.
+    try:
+        if img.mode in ("RGBA", "LA") or (hasattr(img, "getchannel") and "A" in img.getbands()):
+            bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
+            bg.paste(img, mask=img.split()[-1])
+            img = bg.convert("RGB")
+    except Exception:
+        # If anything goes wrong, fall back to the original image
+        pass
 
-def _resize_image(image: Image.Image, size: tuple[int, int]) -> Image.Image:
-    return image.resize(size, RESAMPLE_FILTER)
-
+    return img
 
 def _binary_grid_from_image(image: Image.Image, threshold: int) -> list[list[int]]:
     grayscale = image.convert("L")

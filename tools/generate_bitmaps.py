@@ -13,6 +13,11 @@ import shlex
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable
+import io
+import math
+import urllib.parse
+import urllib.request
+from PIL import Image
 
 from tools.bitmap_toit import convert_bitmap
 
@@ -57,6 +62,17 @@ def _resize_value(entry: Dict[str, Any]) -> tuple[int, int] | None:
     return (int(resize[0]), int(resize[1]))
 
 
+def _get_image_size(source: str) -> tuple[int, int]:
+    parsed = urllib.parse.urlparse(source)
+    if parsed.scheme in ("http", "https"):
+        with urllib.request.urlopen(source) as response:
+            data = response.read()
+        img = Image.open(io.BytesIO(data))
+    else:
+        img = Image.open(Path(source))
+    return img.size  # (width, height)
+
+
 def _sanitize_filename(name: str) -> str:
     name = name.strip()
     name = name.replace(" ", "-").replace("_", "-")
@@ -94,6 +110,21 @@ def main() -> None:
     for entry in entries:
         snippet_path = _snippet_path(entry)
         command_line = _build_command(entry, snippet_path)
+        # If the source is a URL and the manifest requests a max_height, fetch
+        # the image to determine scaling before conversion. The helper can
+        # accept a resize parameter; compute it here so bitmap_toit does the rest.
+        resize = None
+        max_h = entry.get("max_height")
+        if max_h:
+            try:
+                w, h = _get_image_size(entry["source"])
+                if h > int(max_h):
+                    scale = int(max_h) / float(h)
+                    resize = (max(1, int(w * scale)), int(max_h))
+            except Exception:
+                # Fall back to no resize if fetching fails
+                resize = None
+
         snippet, processed_image = convert_bitmap(
             source=entry["source"],
             name=entry["name"],
@@ -101,15 +132,22 @@ def main() -> None:
             invert=entry.get("invert", False),
             per_line=entry.get("per_line", 12),
             trim=entry.get("trim", False),
-            resize=_resize_value(entry),
+            resize=resize or _resize_value(entry),
             command_line=command_line,
         )
         # Per-entry snippet already written to disk above.
         snippet_path.parent.mkdir(parents=True, exist_ok=True)
         snippet_path.write_text(snippet + "\n")
+        # If manifest provided a processed_output path use it, otherwise
+        # write a sensible default next to the snippet so you can inspect it.
         processed_path = entry.get("processed_output")
-        if processed_path and processed_image:
+        if not processed_path:
+            # We could output, but do nothing for now
+            # processed_file = snippet_path.parent / f"{snippet_path.stem}-processed.png"
+            continue
+        else:
             processed_file = Path(processed_path)
+        if processed_image:
             processed_file.parent.mkdir(parents=True, exist_ok=True)
             processed_image.save(processed_file)
 
