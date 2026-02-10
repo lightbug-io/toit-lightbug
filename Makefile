@@ -11,6 +11,15 @@ install:
 		exit 1; \
 	fi
 
+PYTHON := python
+BITMAP_GENERATOR := $(PYTHON) -m tools.generate_bitmaps
+BITMAP_MANIFEST := tools/bitmaps.json
+BITMAP_TARGET := src/util/bitmaps.toit
+
+.PHONY: bitmaps
+bitmaps: $(BITMAP_MANIFEST) tools/generate_bitmaps.py
+	$(BITMAP_GENERATOR) --manifest $(BITMAP_MANIFEST)
+
 # We need a blocking jag run in order for this to work properly for things like BLE scans
 .PHONY: test
 test: install-tests

@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "name": "BT",
+      "source": "src/util/bitmaps/bt.bmp",
+      "trim": false,
+      "snippet": "src/util/bitmaps/bt.toit"
+    },
+    {
+      "name": "LIGHTBUG-20-20",
+      "source": "src/util/bitmaps/lightbug-20-20.bmp",
+      "snippet": "src/util/bitmaps/lightbug-20-20.toit"
+    },
+    {
+      "name": "LIGHTBUG-30-30",
+      "source": "src/util/bitmaps/lightbug-30-30.bmp",
+      "snippet": "src/util/bitmaps/lightbug-30-30.toit"
+    },
+    {
+      "name": "LIGHTBUG-40-40",
+      "source": "src/util/bitmaps/lightbug-40-40.bmp",
+      "snippet": "src/util/bitmaps/lightbug-40-40.toit"
+    }
+  ]
+}

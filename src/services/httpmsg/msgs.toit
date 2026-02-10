@@ -1,6 +1,5 @@
 import ...messages as messages
 import ...protocol as protocol
-import ...util.bitmaps show lightbug-40-40
 
 // TODO these should be defined elsewhere
 SCREEN-WIDTH := 250
