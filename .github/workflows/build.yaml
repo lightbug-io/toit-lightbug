@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: toitlang/action-setup@refs/pull/9/head
+      - uses: toitlang/action-setup@v1.4.0
         with:
           toit-version: ${{ env.DEFAULT_TOIT_VERSION }}
       - run: make test
@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Setup Toit
-        uses: toitlang/action-setup@refs/pull/9/head
+        uses: toitlang/action-setup@v1.4.0
         with:
           toit-version: ${{ matrix.version }}
 
