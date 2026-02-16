@@ -6,6 +6,7 @@ import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator SequentialIdGenerator
 import ...util.bytes show stringify-all-bytes byte-array-to-list
 import .message-handler show MessageHandler
+import .message-tracker show MessageTracker BoundedTrackerMap
 import io.reader show Reader
 import io.writer show Writer
 import encoding.url
@@ -31,15 +32,13 @@ class Comms:
 
   TimeoutCheckEvery_ /Duration := Duration --s=2
 
+  // Maximum number of messages that can be tracked at once.
+  // When exceeded, oldest entries are evicted (with timeout callback if set).
+  static MAX-TRACKED-MESSAGES_ /int := 128
+  trackers_ /BoundedTrackerMap := BoundedTrackerMap --capacity=MAX-TRACKED-MESSAGES_
+
   lastMsgId_ /int := 0
-  inboxesByName /Map := Map
-  latchForMessage /Map := Map
-  lambdasForGoodAck /Map := Map
-  lambdasForBadAck /Map := Map
-  lambdasForGoodResponse /Map := Map
-  lambdasForBadResponse /Map := Map
-  lambdasForTimeout /Map := Map
-  waitTimeouts /Map := Map
+  inboxesByName /Map := {:}
 
   constructor
       --device/devices.Device? = null
@@ -153,7 +152,7 @@ class Comms:
 
     // Wait for a total of 3 bytes, which would also give us the length
     while not device_.in.try-ensure-buffered 3:
-      logger_.debug "Inbound reader waiting for 3 bytes"
+      logger_.trace "Inbound reader waiting for 3 bytes"
       yield
     // Peek all 3 bytes, which is protocol + message length
     b3 := device_.in.peek-bytes 3
@@ -168,7 +167,7 @@ class Comms:
 
     // Try and make sure that we have enough bytes buffered to read the full potential message
     while not device_.in.try-ensure-buffered messageLength:
-      logger_.debug "Inbound reader waiting for message length: $(messageLength)"
+      logger_.trace "Inbound reader waiting for message length: $(messageLength)"
       yield
 
     messageBytes := device_.in.peek-bytes messageLength
@@ -222,8 +221,8 @@ class Comms:
         processReceivedMessage_ m
 
   processReceivedMessage_ msg/protocol.Message:
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "RCV: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "RCV: $(msg)"
 
     // Let any registered message handlers try and handle the message
     messageHandlers_.do: | handler |
@@ -266,41 +265,27 @@ class Comms:
 
     if isResponse:
       respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
-      lambda := null
-      if isAck:
-        if isBad:
-          if lambdasForBadAck.contains respondingTo:
-            lambda = lambdasForBadAck[respondingTo]
+      tracker := trackers_.get respondingTo
+      if tracker:
+        lambda := null
+        if isAck:
+          lambda = isBad ? tracker.on-bad-ack : tracker.on-good-ack
         else:
-          if lambdasForGoodAck.contains respondingTo:
-            lambda = lambdasForGoodAck[respondingTo]
-      else:
-        if isBad:
-          if lambdasForBadResponse.contains respondingTo:
-            lambda = lambdasForBadResponse[respondingTo]
-        else:
-          if lambdasForGoodResponse.contains respondingTo:
-            lambda = lambdasForGoodResponse[respondingTo]
-      
-      // And call the lambda if it exists
-      if lambda:
-        task::
-          // Call the waiting lambda, and pass the message
-          logger_.debug "Calling lambda for message: $(msg.type) responding to: $(respondingTo)"
-          lambda.call msg
+          lambda = isBad ? tracker.on-bad-response : tracker.on-good-response
 
-      // Removing any other lambdas or tracking for this message id
-      waitTimeouts.remove respondingTo
-      lambdasForBadAck.remove respondingTo
-      lambdasForGoodAck.remove respondingTo
-      lambdasForBadResponse.remove respondingTo
-      lambdasForGoodResponse.remove respondingTo
-      lambdasForTimeout.remove respondingTo
+        // Call the lambda if it exists.
+        if lambda:
+          task::
+            logger_.trace "Calling lambda for message: $(msg.type) responding to: $(respondingTo)"
+            lambda.call msg
 
-      // If we have a latch for this message id, set it to the responding message
-      if latchForMessage.contains respondingTo:
-        latchForMessage[respondingTo].set msg
-      latchForMessage.remove respondingTo // And stop tracking it
+        // Complete the latch if set.
+        if tracker.latch:
+          tracker.latch.set msg
+
+        // Remove tracker and clear references to help GC.
+        trackers_.remove respondingTo
+        tracker.clear
 
   processOutbox_:
     while true:
@@ -325,33 +310,27 @@ class Comms:
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SEND: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SEND: $(msg)"
 
     latch := monitor.Latch
-    
-    // add the lambdas (if set)
-    // TODO add a timeout for ack and or response too!
-    shouldTrack := false
-    if onAck != null:
-      lambdasForGoodAck[msg.msgId] = onAck
-      shouldTrack = true
-    if onNack != null:
-      lambdasForBadAck[msg.msgId] = onNack
-      shouldTrack = true
-    if onResponse != null:
-      lambdasForGoodResponse[msg.msgId] = onResponse
-      shouldTrack = true
-    if onError != null:
-      lambdasForBadResponse[msg.msgId] = onError
-      shouldTrack = true
-    if onTimeout != null:
-      lambdasForTimeout[msg.msgId] = onTimeout
-      shouldTrack = true
 
-    if shouldTrack or withLatch:
-      latchForMessage[msg.msgId] = latch
-      waitTimeouts[msg.msgId] = Time.now + timeout
+    // Create consolidated tracker if any callbacks are provided or latch needed.
+    shouldTrack := onAck != null or onNack != null or onResponse != null or onError != null or onTimeout != null or withLatch
+    if shouldTrack:
+      tracker := MessageTracker
+          --latch=latch
+          --on-good-ack=onAck
+          --on-bad-ack=onNack
+          --on-good-response=onResponse
+          --on-bad-response=onError
+          --on-timeout=onTimeout
+          --timeout=timeout
+      evicted := trackers_.set msg.msgId tracker
+      // If an old tracker was evicted, call its timeout callback.
+      if evicted:
+        logger_.warn "Evicted tracker for message due to capacity limit"
+        handle-evicted-tracker_ evicted
     
     if preSend != null:
       preSend.call msg
@@ -361,42 +340,50 @@ class Comms:
     if postSend != null:
       postSend.call msg
 
-    if shouldTrack or withLatch:
+    if shouldTrack:
       return latch
     return null
 
   send-new msg/protocol.Message
       --flush/bool = false
-      --timeout/Duration = (Duration --s=60) -> protocol.Message?:
-    // Ensure the message has a known message id
+      --timeout/Duration = (Duration --s=60)
+      --onTimeout/Lambda? = null -> protocol.Message?:
+    // Ensure the message has a known message id.
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SEND: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SEND: $(msg)"
 
     latch := monitor.Latch
-    latchForMessage[msg.msgId] = latch
-    waitTimeouts[msg.msgId] = Time.now + timeout
+    tracker := MessageTracker --latch=latch --on-timeout=onTimeout --timeout=timeout
+    evicted := trackers_.set msg.msgId tracker
+    if evicted:
+      logger_.warn "Evicted tracker for message due to capacity limit"
+      handle-evicted-tracker_ evicted
 
     sendSwitching_ msg --now=flush
 
     return latch.get
 
-  send-new msg/protocol.Message --async 
+  send-new msg/protocol.Message --async
       --callback/Lambda? = null
       --flush/bool = false
-      --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
-    // Ensure the message has a known message id
+      --timeout/Duration = (Duration --s=60)
+      --onTimeout/Lambda? = null -> monitor.Latch?:
+    // Ensure the message has a known message id.
     if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
       msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SEND: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SEND: $(msg)"
 
     latch := monitor.Latch
-    latchForMessage[msg.msgId] = latch
-    waitTimeouts[msg.msgId] = Time.now + timeout
+    tracker := MessageTracker --latch=latch --on-timeout=onTimeout --timeout=timeout
+    evicted := trackers_.set msg.msgId tracker
+    if evicted:
+      logger_.warn "Evicted tracker for message due to capacity limit"
+      handle-evicted-tracker_ evicted
 
     sendSwitching_ msg --now=flush
 
@@ -417,13 +404,13 @@ class Comms:
 
       // Send the message
       device_.out.write m --flush=true
-      logger_.with-level log.DEBUG-LEVEL:
-        logger_.debug "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
+      logger_.with-level log.TRACE-LEVEL:
+        logger_.trace "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
       // TODO: It might be nice to allow the outbox to dedeuplicate messages sometimes?
       send-via-outbox msg
-      logger_.with-level log.DEBUG-LEVEL:
-        logger_.debug "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
+      logger_.with-level log.TRACE-LEVEL:
+        logger_.trace "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:
@@ -445,45 +432,59 @@ class Comms:
   send-raw-bytes bytes/ByteArray --flush=true:
     device_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
-    logger_.with-level log.DEBUG-LEVEL:
+    logger_.with-level log.TRACE-LEVEL:
       if bytes.size < 500:
-        logger_.debug "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
+        logger_.trace "SNT raw: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
       else:
-        logger_.debug "SNT raw: $(bytes.size) bytes"
+        logger_.trace "SNT raw: $(bytes.size) bytes"
 
   /**
   Simulates receiving a message.
   Processes the message as if it was received from the device.
   */
   simulate-receive msg/protocol.Message -> none:
-    logger_.with-level log.DEBUG-LEVEL:
-      logger_.debug "SIM RCV: $(msg)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SIM RCV: $(msg)"
     processReceivedMessage_ msg
+
+  /** Handle an evicted tracker (due to capacity limit). */
+  handle-evicted-tracker_ tracker/MessageTracker -> none:
+    // Call timeout callback if set.
+    if tracker.on-timeout:
+      task:: tracker.on-timeout.call -1  // -1 indicates eviction.
+    // Complete latch with null to unblock waiters.
+    if tracker.latch:
+      tracker.latch.set null
+    tracker.clear
 
   processAwaitTimeouts_:
     while true:
       yield
       sleep TimeoutCheckEvery_
-      waitTimeouts.do --keys=true: | key |
-        durationSinceTimeout := Duration.since waitTimeouts[key]
-        if (durationSinceTimeout > (Duration --s=0)):
-          logger_.debug "Timeout for message: $(key) expired $(durationSinceTimeout) ago"
-          
-          // Call timeout callback if it exists
-          if lambdasForTimeout.contains key:
-            task --background=true::
-              logger_.debug "Calling timeout lambda for message: $(key)"
-              lambdasForTimeout[key].call
-          
-          // Remove the timeout key, complete the latch, and remove all callbacks
-          waitTimeouts.remove key
-          latchForMessage[key].set null // null, indicating there was no message received before the timeout
-          latchForMessage.remove key
-          lambdasForBadAck.remove key
-          lambdasForGoodAck.remove key
-          lambdasForBadResponse.remove key
-          lambdasForGoodResponse.remove key
-          lambdasForTimeout.remove key
-        else:
-          // not yet timed out
-          // logger_.debug "Not yet timed out: $(key) $(durationSinceTimeout) left"
+      // Collect timed-out trackers first to avoid modification during iteration.
+      timed-out := []
+      trackers_.do: | key tracker |
+        if tracker.is-timed-out:
+          timed-out.add [key, tracker]
+
+      timed-out.do: | entry |
+        key := entry[0]
+        tracker := entry[1]
+        logger_.debug "Timeout for message: $(key)"
+
+        // Capture callbacks before clearing
+        timeout-callback := tracker.on-timeout
+        latch := tracker.latch
+
+        // Remove and clear early to prevent races
+        trackers_.remove key
+        tracker.clear
+
+        // Call timeout callback if it is set
+        if timeout-callback:
+          logger_.debug "Calling timeout lambda for message: $(key)"
+          task:: timeout-callback.call key
+
+        // Complete latch with null to unblock waiters.
+        if latch:
+          latch.set null

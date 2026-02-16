@@ -4,6 +4,7 @@ import io
 import log
 import io.byte-order show LITTLE-ENDIAN
 import ..util.backoff as backoff
+import ..util.sleep show *
 
 I2C-ADDRESS-LIGHTBUG := 0x1b
 
@@ -49,7 +50,7 @@ class Reader extends io.Reader:
     e := catch:
       backoff.do-with-backoff
         --onError=(:: |error|
-          logger_.error "Error reading from device: $error, got $b.size bytes, will retry"
+          logger_.warn "Error reading from device: $error, got $b.size bytes, will retry"
         )
         --initial-delay=I2C-WAIT-SLEEP
         --backoff-factor=2.0
@@ -61,14 +62,14 @@ class Reader extends io.Reader:
     return data
 
   read-inner_ all/ByteArray -> ByteArray?:
-    // logger_.debug "calling read_ in LB Reader for i2c"
+    // logger_.trace "calling read_ in LB Reader for i2c"
     all-expected := 0
     loops := 0
     // Read from the buffer as fast as possible (as our buffer is bigger)
     // At most 5*(tx buffer), so 5*1000 = 5KB
     while loops <= 5:
       loops++
-      // logger_.debug "Getting bytes available to read, loop $loops"
+      // logger_.trace "Getting bytes available to read, loop $loops"
       len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-READABLE-BYTES] 2
       len-int := LITTLE-ENDIAN.uint16 len-bytes 0
       all-expected = all-expected + len-int
@@ -76,37 +77,66 @@ class Reader extends io.Reader:
       // Taking UART as an example, if there are no bytes, it loops until there are some.
       // UART does this with a read state, for now we will just sleep a bit...
       if len-int == 0:
-        // logger_.debug "None to read, sleeping for $I2C-WAIT-SLEEP" // verbose log
-        sleep I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
+        // logger_.trace "None to read, sleeping for $I2C-WAIT-SLEEP" // verbose log
+        sleep-blocking I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
         break // Leave the while loop
 
       // If we are told there are more bytes available than the largest Lightbug buffer, ignore it...
       if len-int > I2C-MAX-READABLE-BYTES:
-        logger_.info "⚠️ Messy readable, bin & sleep $I2C-WAIT-SLEEP"
-        sleep I2C-WAIT-SLEEP
+        logger_.warn "⚠️ Messy readable ($len-int), bin & sleep $I2C-WAIT-SLEEP"
+        sleep-blocking I2C-WAIT-SLEEP
         break
 
-      logger_.debug "Got $len-int to read"
+      logger_.trace "Got $len-int to read"
 
       while len-int > 0:
         chunkSize := min len-int 254
-        logger_.debug "Requesting chunk of $chunkSize"
+        logger_.trace "Requesting chunk of $chunkSize"
         device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
-        logger_.debug "Reading $chunkSize"
+        logger_.trace "Reading $chunkSize"
+        sleep-blocking --ms=2 // For I2C stability, gap between write and read
         b := device.read chunkSize
         if b.size != chunkSize:
           logger_.error "Failed to read chunk of $chunkSize, got $b.size"
           return null
+        
+        // Check for consecutive 0xff bytes which indicate a potential I2C issue.
+        consecutive-ff := 0
+        max-consecutive-ff := 0
+        total-ff := 0
+        b.size.repeat:
+          if b[it] == 0xff:
+            consecutive-ff++
+            total-ff++
+            max-consecutive-ff = max max-consecutive-ff consecutive-ff
+          else:
+            consecutive-ff = 0
+        
+        // If the chunk is mostly (95%+) or entirely 0xff, it's corrupted I2C data.
+        // Sleep and retry by breaking to the outer loop.
+        ff-percentage := (total-ff * 100) / b.size
+        if ff-percentage >= 95:
+          logger_.warn "⚠️ I2C bus corruption: chunk is $ff-percentage% 0xff bytes ($total-ff/$b.size) (size $b.size): $b"
+          logger_.trace "Discarding chunk and retrying. Valid bytes so far: $all.size"
+          // Sleep to let the bus recover, then retry.
+          sleep-blocking I2C-WAIT-SLEEP
+          // Break inner loop to retry from the outer loop.
+          break
+
+        // We could also check this, but it's less useful than the percentage check above.
+        // And doesn't seen to happen in reality, its either a whole chunk or nothing.
+        // if max-consecutive-ff >= 3:
+        //   logger_.warn "⚠️ Detected $max-consecutive-ff consecutive 0xff bytes in I2C read"
+        //   logger_.warn "Chunk bytes (size $b.size): $b"
+        //   logger_.warn "All bytes so far (size $all.size): $all"
+        
         all += b
         len-int -= chunkSize
 
-      if all.size != all-expected:
-        logger_.error "Failed to read $all-expected, got $all.size"
-        return null
-
-      logger_.debug "Read $all.size after $loops loops"
+      logger_.trace "Read $all.size after $loops loops"
 
     yield // They are in our buffer now, so yield briefly before returning
+
     return all
 
 class Writer extends io.Writer:
@@ -128,7 +158,7 @@ class Writer extends io.Writer:
     e := catch:
       backoff.do-with-backoff
         --onError=(:: |error|
-          logger_.error "Error writing to device: $error, wrote $written bytes, will retry"
+          logger_.warn "Error writing to device: $error, wrote $written bytes, will retry"
         )
         --initial-delay=I2C-WAIT-SLEEP
         --backoff-factor=2.0
@@ -147,28 +177,28 @@ class Writer extends io.Writer:
       bytes = ByteArray.from data
     
     bytes-in-window := to - from
-    logger_.debug "Going to write $bytes-in-window bytes"
-    logger_.debug "Bytes: $bytes"
+    logger_.trace "Going to write $bytes-in-window bytes"
+    logger_.trace "Bytes: $bytes"
 
     // Check the receiver has enough space for our bytes before sending...
     // TODO could refactor this to send in smaller chunks if needed?!
     while can-write-bytes == 0:
-      logger_.debug "Updating or waiting for writeable bytes"
+      logger_.trace "Updating or waiting for writeable bytes"
       len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
       can-write-bytes = LITTLE-ENDIAN.uint16 len-bytes 0
-      logger_.debug "Write space is $can-write-bytes"
+      logger_.trace "Write space is $can-write-bytes"
       if can-write-bytes > I2C-MAX-WRITABLE-BYTES:
         // Probably got some messy data, so reset and sleep
-        logger_.info "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
+        logger_.warn "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
         can-write-bytes = 0
-        sleep I2C-WAIT-SLEEP
-      logger_.debug "Can write $can-write-bytes bytes"
+        sleep-blocking I2C-WAIT-SLEEP
+      logger_.trace "Can write $can-write-bytes bytes"
       if can-write-bytes == 0:
-        logger_.debug "Waiting for some bytes to be writeable, sleeping for $I2C-WAIT-SLEEP"
-        sleep I2C-WAIT-SLEEP
+        logger_.trace "Waiting for some bytes to be writeable, sleeping for $I2C-WAIT-SLEEP"
+        sleep-blocking I2C-WAIT-SLEEP
       else:
-        logger_.debug "Can write $can-write-bytes bytes, continuing"
-    
+        logger_.trace "Can write $can-write-bytes bytes, continuing"
+
     current-index := from
     read-to-index := 0
     while current-index < to and can-write-bytes > 0:
@@ -176,15 +206,16 @@ class Writer extends io.Writer:
       writing := min (to - current-index) (min can-write-bytes 255)
       read-to-index = current-index + writing
     
-      logger_.debug "Writing bytes $current-index to $read-to-index, $writing bytes"
-      logger_.with-level log.DEBUG-LEVEL:
-        logger_.debug "Writing bytes $bytes[current-index..read-to-index]"
+      logger_.trace "Writing bytes $current-index to $read-to-index, $writing bytes"
+      logger_.with-level log.TRACE-LEVEL:
+        logger_.trace "Writing bytes $bytes[current-index..read-to-index]"
       send-len := #[0]
       LITTLE-ENDIAN.put-uint8 send-len 0 writing
       device.write-address #[I2C-COMMAND-LIGHTBUG-WRITE] send-len + bytes[current-index..read-to-index]
       written += writing
       can-write-bytes -= writing
       current-index = read-to-index
-    
-    logger_.debug "Wrote $written bytes"
+      sleep-blocking --ms=2 // For I2C stability, gap between sequential writes
+
+    logger_.trace "Wrote $written bytes"
     return written
