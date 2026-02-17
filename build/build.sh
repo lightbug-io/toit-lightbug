@@ -53,6 +53,7 @@ fi
 # 2. Locate or Download the envelope
 ENVELOPE_NAME="${FIRMWARE_TYPE}-single-ota.envelope"
 DOWNLOAD_URL=""
+ENVELOPE_CACHE_DIR="build/cache/envelopes"
 
 if [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
     echo "Using LIGHTBUG_ENVELOPE_URL override."
@@ -80,7 +81,8 @@ else
 fi
 echo "----------------------------------------------------------------"
 
-SOURCE_ENVELOPE_PATH="${BUILD_DIR}/${ENVELOPE_NAME}"
+mkdir -p "${ENVELOPE_CACHE_DIR}"
+SOURCE_ENVELOPE_PATH="${ENVELOPE_CACHE_DIR}/${ENVELOPE_NAME}"
 
 if [ -f "${SOURCE_ENVELOPE_PATH}" ]; then
     echo "Using cached envelope in build directory: ${SOURCE_ENVELOPE_PATH}"
