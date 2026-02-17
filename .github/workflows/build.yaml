@@ -70,16 +70,11 @@ jobs:
               '[{name: $name, path: $path, version: $version, chip: $chip, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}]')
           else
             # Construct JSON for standard build
-            # Add new entries to this array as needed
-            MATRIX_JSON=$(jq -n -c \
+            MATRIX_JSON=$(cat .github/variants.json | jq -c \
               --arg version "${{ env.DEFAULT_TOIT_VERSION }}" \
               --arg envelopeVersion "${{ env.LIGHTBUG_ENVELOPE_VERSION }}" \
               --arg envelopeUrl "" \
-              '[
-                {name: "ble-cert-test", path: "./examples/basic/ble-cert-test.toit", version: $version, chip: "esp32c6", envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl},
-                {name: "base", path: "./examples/containers/base.toit", version: $version, chip: "esp32c6", envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl},
-                {name: "base-apps", path: "./examples/containers/base-apps.toit", version: $version, chip: "esp32c6", envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}
-              ]')
+              '.variants | map(. + {version: $version, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl})')
           fi
           
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
@@ -139,6 +134,14 @@ jobs:
         with:
           path: artifacts
 
+      - name: Unpack downloaded artifacts
+        run: |
+          shopt -s nullglob
+          for archive in artifacts/*.zip; do
+            unzip -o "$archive" -d artifacts
+          done
+          rm -f artifacts/*.zip
+
       - name: Display structure of downloaded files
         run: ls -R artifacts
 
@@ -146,5 +149,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/**/*
+            artifacts/**/*.snapshot
+            artifacts/**/*.envelope
+            artifacts/**/*.bin
           generate_release_notes: true

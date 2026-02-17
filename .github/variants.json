@@ -1,0 +1,19 @@
+{
+  "variants": [
+    {
+      "name": "ble-cert-test",
+      "path": "./examples/basic/ble-cert-test.toit",
+      "chip": "esp32c6"
+    },
+    {
+      "name": "base",
+      "path": "./examples/containers/base.toit",
+      "chip": "esp32c6"
+    },
+    {
+      "name": "base-apps",
+      "path": "./examples/containers/base-apps.toit",
+      "chip": "esp32c6"
+    }
+  ]
+}
