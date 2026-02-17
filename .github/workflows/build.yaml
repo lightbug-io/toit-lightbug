@@ -24,9 +24,20 @@ on:
         description: 'Firmware Type'
         required: true
         default: 'esp32c6'
+      lightbug_envelope_version:
+        description: 'Lightbug envelope release suffix (default matches workflow env)'
+        required: true
+        default: 'lb.20260217-1'
+      lightbug_envelope_url:
+        description: 'Optional full URL to download a custom envelope'
+        required: false
+        default: ''
 
 env:
+  # https://github.com/toitlang/toit/releases
   DEFAULT_TOIT_VERSION: v2.0.0-alpha.189
+  # https://github.com/lightbug-io/toit-envelopes/releases
+  LIGHTBUG_ENVELOPE_VERSION: lb.20260217-1
 
 jobs:
   test:
@@ -54,31 +65,20 @@ jobs:
               --arg path "${{ inputs.target_file }}" \
               --arg version "${{ inputs.toit_version }}" \
               --arg chip "${{ inputs.firmware_type }}" \
-              '[{$name, $path, $version, $chip}]')
+              --arg envelopeVersion "${{ inputs.lightbug_envelope_version }}" \
+              --arg envelopeUrl "${{ inputs.lightbug_envelope_url }}" \
+              '[{name: $name, path: $path, version: $version, chip: $chip, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}]')
           else
             # Construct JSON for standard build
             # Add new entries to this array as needed
             MATRIX_JSON=$(jq -n -c \
               --arg version "${{ env.DEFAULT_TOIT_VERSION }}" \
+              --arg envelopeVersion "${{ env.LIGHTBUG_ENVELOPE_VERSION }}" \
+              --arg envelopeUrl "" \
               '[
-                {
-                  name: "ble-cert-test",
-                  path: "./examples/basic/ble-cert-test.toit",
-                  version: $version,
-                  chip: "esp32c6"
-                },
-                {
-                  name: "base",
-                  path: "./examples/containers/base.toit",
-                  version: $version,
-                  chip: "esp32c6"
-                },
-                {
-                  name: "base-apps",
-                  path: "./examples/containers/base-apps.toit",
-                  version: $version,
-                  chip: "esp32c6"
-                }
+                {name: "ble-cert-test", path: "./examples/basic/ble-cert-test.toit", version: $version, chip: "esp32c6", envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl},
+                {name: "base", path: "./examples/containers/base.toit", version: $version, chip: "esp32c6", envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl},
+                {name: "base-apps", path: "./examples/containers/base-apps.toit", version: $version, chip: "esp32c6", envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}
               ]')
           fi
           
@@ -111,9 +111,10 @@ jobs:
 
       - name: Build Snapshot and Envelope
         id: build
-        continue-on-error: ${{ matrix.name == 'base-apps' }}
         run: |
           chmod +x build/build.sh
+          LIGHTBUG_ENVELOPE_VERSION="${{ matrix.envelopeVersion != '' && matrix.envelopeVersion || env.LIGHTBUG_ENVELOPE_VERSION }}" \
+          LIGHTBUG_ENVELOPE_URL="${{ matrix.envelopeUrl }}" \
           ./build/build.sh "${{ matrix.name }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
 
       - name: Upload Artifacts
@@ -142,7 +143,7 @@ jobs:
         run: ls -R artifacts
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/**/*

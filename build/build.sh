@@ -51,46 +51,48 @@ else
 fi
 
 # 2. Locate or Download the envelope
-ENVELOPE_BASE_NAME="firmware-${FIRMWARE_TYPE}"
-ENVELOPE_NAME="${ENVELOPE_BASE_NAME}.envelope"
-ENVELOPE_GZ_NAME="${ENVELOPE_NAME}.gz"
+ENVELOPE_NAME="${FIRMWARE_TYPE}-single-ota.envelope"
+DOWNLOAD_URL=""
 
-# Check local cache first
-# Linux cache path example: ~/.cache/jaguar/v2.0.0-alpha.189/envelopes/firmware-esp32c6.envelope
-LOCAL_CACHE_PATH="$HOME/.cache/jaguar/${TOIT_VERSION}/envelopes/${ENVELOPE_NAME}"
-DOWNLOAD_URL="https://github.com/toitlang/envelopes/releases/download/${TOIT_VERSION}/${ENVELOPE_GZ_NAME}"
+if [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
+    echo "Using LIGHTBUG_ENVELOPE_URL override."
+    DOWNLOAD_URL="${LIGHTBUG_ENVELOPE_URL}"
+    ENVELOPE_NAME="$(basename "${LIGHTBUG_ENVELOPE_URL}")"
+else
+    if [ -z "${LIGHTBUG_ENVELOPE_VERSION}" ]; then
+        echo "LIGHTBUG_ENVELOPE_VERSION is not set. Please set this environment variable to the desired Lightbug envelope release."
+        exit 1
+    fi
 
-# We need a path to the envelope file to use for the install command
+    ENVELOPE_RELEASE_TAG="${TOIT_VERSION}.${LIGHTBUG_ENVELOPE_VERSION}"
+    DOWNLOAD_URL="https://github.com/lightbug-io/toit-envelopes/releases/download/${ENVELOPE_RELEASE_TAG}/${ENVELOPE_NAME}"
+fi
+
 SOURCE_ENVELOPE=""
 
 echo ""
 echo "----------------------------------------------------------------"
-echo "Step 2: Preparing base firmware envelope..."
+echo "Step 2: Preparing Lightbug firmware envelope (${ENVELOPE_NAME})..."
+if [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
+    echo "Source URL: ${LIGHTBUG_ENVELOPE_URL}"
+else
+    echo "Release: ${ENVELOPE_RELEASE_TAG}"
+fi
 echo "----------------------------------------------------------------"
 
-if [ -f "${LOCAL_CACHE_PATH}" ]; then
-    echo "Found cached envelope at: ${LOCAL_CACHE_PATH}"
-    SOURCE_ENVELOPE="${LOCAL_CACHE_PATH}"
+SOURCE_ENVELOPE_PATH="${BUILD_DIR}/${ENVELOPE_NAME}"
+
+if [ -f "${SOURCE_ENVELOPE_PATH}" ]; then
+    echo "Using cached envelope in build directory: ${SOURCE_ENVELOPE_PATH}"
+    SOURCE_ENVELOPE="${SOURCE_ENVELOPE_PATH}"
 else
-    echo "Envelope not found in local cache: ${LOCAL_CACHE_PATH}"
-    
-    # Check if we already downloaded it in the build dir
-    DOWNLOADED_ENVELOPE="${BUILD_DIR}/${ENVELOPE_NAME}"
-    DOWNLOADED_ENVELOPE_GZ="${BUILD_DIR}/${ENVELOPE_GZ_NAME}"
-    
-    if [ -f "${DOWNLOADED_ENVELOPE}" ]; then
-        echo "Using previously downloaded envelope in build dir: ${DOWNLOADED_ENVELOPE}"
-        SOURCE_ENVELOPE="${DOWNLOADED_ENVELOPE}"
+    echo "Downloading envelope from ${DOWNLOAD_URL}..."
+    if curl -L -f -o "${SOURCE_ENVELOPE_PATH}" "${DOWNLOAD_URL}"; then
+        echo "Download complete: ${SOURCE_ENVELOPE_PATH}"
+        SOURCE_ENVELOPE="${SOURCE_ENVELOPE_PATH}"
     else
-        echo "Downloading envelope from ${DOWNLOAD_URL}..."
-        if curl -L -f -o "${DOWNLOADED_ENVELOPE_GZ}" "${DOWNLOAD_URL}"; then
-            echo "Download complete. Unzipping..."
-            gunzip "${DOWNLOADED_ENVELOPE_GZ}"
-            SOURCE_ENVELOPE="${DOWNLOADED_ENVELOPE}"
-        else
-            echo "Failed to download envelope. Please check the version and firmware type."
-            exit 1
-        fi
+        echo "Failed to download envelope from ${DOWNLOAD_URL}. Please verify the versions and firmware type."
+        exit 1
     fi
 fi
 
