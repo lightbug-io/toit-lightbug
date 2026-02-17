@@ -2,6 +2,7 @@ import i2c
 import io
 import log
 import monitor
+import ble as ble-sdk
 import .base
 import .i2c
 import .types show *
@@ -51,6 +52,7 @@ class I2C implements Device:
   ble_ /BLE? := null
   wifi_ /WiFi? := null
   gnss_ /GNSS? := null
+  ble-advertisement_ /ble-sdk.Advertisement? := null
 
   constructor
       // Default to sending an open on start
@@ -79,6 +81,10 @@ class I2C implements Device:
       --logger/log.Logger=(log.default.with-name "lb")
       --log-level/int=log.ERROR-LEVEL
 
+      // Optional BLE advertisement to start on device creation.
+      // If provided, BLE advertising will be started automatically.
+      --ble-advertisement/ble-sdk.Advertisement?=null
+
       // INTERNAL USE
       // We allow overriding I2C for easy internal development
       // But users are unlikely to need this
@@ -91,6 +97,7 @@ class I2C implements Device:
     logger_ = logger.with-level log-level
     with-default-handlers_ = with-default-handlers
     open_ = open
+    ble-advertisement_ = ble-advertisement
 
     // Initialize I2C
     // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
@@ -103,6 +110,10 @@ class I2C implements Device:
     // Start things if needed
     if startComms:
       comms
+
+    // Start BLE advertising if advertisement data was provided.
+    if ble-advertisement_:
+      ble.start-advertise ble-advertisement_
   
   name -> string:
     return name_
