@@ -6,6 +6,9 @@ install:
 	elif command -v toit.pkg >/dev/null 2>&1; then \
 		echo "Running 'toit.pkg install'"; \
 		toit.pkg install; \
+	elif command -v toit >/dev/null 2>&1; then \
+		echo "Running 'toit pkg install'"; \
+		toit pkg install; \
 	else \
 		echo "Error: Neither 'jag' nor 'toit.pkg' found in PATH"; \
 		exit 1; \

@@ -1,6 +1,8 @@
 .packages
 *.snapshot
 *.envelope
+*.bin
+build/out/
 
 # Ignore Python build/cache artifacts for tools/
 tools/__pycache__/

@@ -6,8 +6,11 @@ install:
 	elif command -v toit.pkg >/dev/null 2>&1; then \
 		echo "Running 'toit.pkg install'"; \
 		toit.pkg install; \
+	elif command -v toit >/dev/null 2>&1; then \
+		echo "Running 'toit pkg install'"; \
+		toit pkg install; \
 	else \
-		echo "Error: Neither 'jag' nor 'toit.pkg' found in PATH"; \
+		echo "Error: Neither 'jag' nor 'toit.pkg' or 'toit' found in PATH"; \
 		exit 1; \
 	fi
 
@@ -35,8 +38,10 @@ test: install-tests
 		find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c 'echo Running {} && jag run --device $${DEVICE:-host} {} || FAILED=1' \; ; \
 	elif command -v toit.run >/dev/null 2>&1; then \
 		find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c 'echo Running {} && toit.run --device $${DEVICE:-host} {} || FAILED=1' \; ; \
+	elif command -v toit >/dev/null 2>&1; then \
+		find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c 'echo Running {} && toit run --device $${DEVICE:-host} {} || FAILED=1' \; ; \
 	else \
-		echo "Error: Neither 'jag' nor 'toit.run' found in PATH"; \
+		echo "Error: Neither 'jag' nor 'toit.run' or 'toit' found in PATH"; \
 		exit 1; \
 	fi; \
 	if [ $$FAILED -ne 0 ]; then \
