@@ -11,8 +11,28 @@ Scripts and artifacts related to building useful outputs from this repository.
 Example usage:
 
 ```sh
-./build/build.sh basic-ble-cert-test ./examples/basic/ble-cert-test.toit v2.0.0-alpha.189 esp32c6
+./build/build.sh basic-ble-cert-test ./examples/basic/ble-cert-test.toit v2.0.0-alpha.190 esp32c6
 ```
+
+### Using a custom local envelope (manual firmware build)
+
+If you need to build against a local envelope instead of a released `toit-envelopes` artifact,
+set `LIGHTBUG_ENVELOPE_FILE` to the local file path.
+
+The envelope source precedence in `build.sh` is:
+1. `LIGHTBUG_ENVELOPE_FILE` (local file path)
+2. `LIGHTBUG_ENVELOPE_URL` (remote URL)
+3. `LIGHTBUG_ENVELOPE_VERSION` (release suffix + auto-download)
+
+Example for `base-vending` with your manual envelope:
+
+```sh
+LIGHTBUG_ENVELOPE_FILE=/home/adam/dev/lb/io/toit-envelopes/build/variants/esp32c6-console-none-usb-serial-jtag/esp32c6/firmware.envelope \
+./build/build.sh base-vending ./examples/containers/base-vending.toit v2.0.0-alpha.189 esp32c6
+```
+
+This avoids SDK mismatch errors like:
+`Snapshot was built by SDK ... but envelope is for SDK ...`.
 
 ## Artifacts
 

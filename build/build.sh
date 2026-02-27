@@ -16,7 +16,12 @@ fi
 # Check for correct number of arguments
 if [ "$#" -ne 4 ]; then
     echo "Usage: $0 <snapshot_name> <target_toit_file> <toit_version> <firmware_type>"
-    echo "Example: $0 base-apps ./examples/containers/base-apps.toit v2.0.0-alpha.189 esp32c6"
+    echo "Example: $0 base-apps ./examples/containers/base-apps.toit v2.0.0-alpha.190 esp32c6"
+    echo ""
+    echo "Optional environment overrides (highest precedence first):"
+    echo "  LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope"
+    echo "  LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope"
+    echo "  LIGHTBUG_ENVELOPE_VERSION=lb.20260225-1"
     exit 1
 fi
 
@@ -54,8 +59,17 @@ fi
 ENVELOPE_NAME="${FIRMWARE_TYPE}-single-ota.envelope"
 DOWNLOAD_URL=""
 ENVELOPE_CACHE_DIR="build/cache/envelopes"
+CUSTOM_ENVELOPE_FILE="${LIGHTBUG_ENVELOPE_FILE}"
 
-if [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
+if [ -n "${CUSTOM_ENVELOPE_FILE}" ]; then
+    echo "Using LIGHTBUG_ENVELOPE_FILE override."
+    if [ ! -f "${CUSTOM_ENVELOPE_FILE}" ]; then
+        echo "LIGHTBUG_ENVELOPE_FILE does not exist: ${CUSTOM_ENVELOPE_FILE}"
+        exit 1
+    fi
+    SOURCE_ENVELOPE="${CUSTOM_ENVELOPE_FILE}"
+    ENVELOPE_NAME="$(basename "${CUSTOM_ENVELOPE_FILE}")"
+elif [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
     echo "Using LIGHTBUG_ENVELOPE_URL override."
     DOWNLOAD_URL="${LIGHTBUG_ENVELOPE_URL}"
     ENVELOPE_NAME="$(basename "${LIGHTBUG_ENVELOPE_URL}")"
@@ -69,32 +83,38 @@ else
     DOWNLOAD_URL="https://github.com/lightbug-io/toit-envelopes/releases/download/${ENVELOPE_RELEASE_TAG}/${ENVELOPE_NAME}"
 fi
 
-SOURCE_ENVELOPE=""
+if [ -z "${SOURCE_ENVELOPE}" ]; then
+    SOURCE_ENVELOPE=""
+fi
 
 echo ""
 echo "----------------------------------------------------------------"
 echo "Step 2: Preparing Lightbug firmware envelope (${ENVELOPE_NAME})..."
-if [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
+if [ -n "${CUSTOM_ENVELOPE_FILE}" ]; then
+    echo "Source file: ${CUSTOM_ENVELOPE_FILE}"
+elif [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
     echo "Source URL: ${LIGHTBUG_ENVELOPE_URL}"
 else
     echo "Release: ${ENVELOPE_RELEASE_TAG}"
 fi
 echo "----------------------------------------------------------------"
 
-mkdir -p "${ENVELOPE_CACHE_DIR}"
-SOURCE_ENVELOPE_PATH="${ENVELOPE_CACHE_DIR}/${ENVELOPE_NAME}"
+if [ -z "${SOURCE_ENVELOPE}" ]; then
+    mkdir -p "${ENVELOPE_CACHE_DIR}"
+    SOURCE_ENVELOPE_PATH="${ENVELOPE_CACHE_DIR}/${ENVELOPE_NAME}"
 
-if [ -f "${SOURCE_ENVELOPE_PATH}" ]; then
-    echo "Using cached envelope in build directory: ${SOURCE_ENVELOPE_PATH}"
-    SOURCE_ENVELOPE="${SOURCE_ENVELOPE_PATH}"
-else
-    echo "Downloading envelope from ${DOWNLOAD_URL}..."
-    if curl -L -f -o "${SOURCE_ENVELOPE_PATH}" "${DOWNLOAD_URL}"; then
-        echo "Download complete: ${SOURCE_ENVELOPE_PATH}"
+    if [ -f "${SOURCE_ENVELOPE_PATH}" ]; then
+        echo "Using cached envelope in build directory: ${SOURCE_ENVELOPE_PATH}"
         SOURCE_ENVELOPE="${SOURCE_ENVELOPE_PATH}"
     else
-        echo "Failed to download envelope from ${DOWNLOAD_URL}. Please verify the versions and firmware type."
-        exit 1
+        echo "Downloading envelope from ${DOWNLOAD_URL}..."
+        if curl -L -f -o "${SOURCE_ENVELOPE_PATH}" "${DOWNLOAD_URL}"; then
+            echo "Download complete: ${SOURCE_ENVELOPE_PATH}"
+            SOURCE_ENVELOPE="${SOURCE_ENVELOPE_PATH}"
+        else
+            echo "Failed to download envelope from ${DOWNLOAD_URL}. Please verify the versions and firmware type."
+            exit 1
+        fi
     fi
 fi
 
