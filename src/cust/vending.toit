@@ -93,11 +93,11 @@ class Vending:
     port.in.read-byte // Consume header.
 
     length := 0
-    exception := catch --unwind=(: it != DEADLINE-EXCEEDED-ERROR):
-      with-timeout (Duration --ms=100):
-        length = port.in.read-byte
-    if exception:
-      return null
+    // exception := catch --unwind=(: it != DEADLINE-EXCEEDED-ERROR):
+    //   with-timeout (Duration --ms=100):
+    length = port.in.read-byte
+    // if exception:
+    //   return null
 
     if length < 4 or length > BUFFER_SIZE:
       return null
@@ -105,12 +105,12 @@ class Vending:
     // LENGTH includes [command/data/xor] and trailing CRLF.
     payload := ByteArray length
 
-    exception = catch --unwind=(: it != DEADLINE-EXCEEDED-ERROR):
-      with-timeout (Duration --ms=50):
-        length.repeat: | i |
-          payload[i] = port.in.read-byte
-    if exception:
-      return null
+    // exception = catch --unwind=(: it != DEADLINE-EXCEEDED-ERROR):
+    //   with-timeout (Duration --ms=50):
+    length.repeat: | i |
+      payload[i] = port.in.read-byte
+    // if exception:
+    //   return null
 
     if payload[length - 2] != BACKSLASH_R or payload[length - 1] != BACKSLASH_N:
       return null
