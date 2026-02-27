@@ -1,4 +1,4 @@
-sdk: ^2.0.0-alpha.150
+sdk: ^2.0.0-alpha.170
 prefixes:
   coordinate: toit-coordinate
   lightbug: ..
@@ -8,13 +8,19 @@ packages:
     prefixes:
       coordinate: toit-coordinate
       http: pkg-http
+      watchdog: toit-watchdog
   pkg-http:
     url: github.com/toitlang/pkg-http
     name: http
-    version: 2.9.0
-    hash: ed6e198259c578154de830dc492821fdb5a40c7a
+    version: 2.11.0
+    hash: d2cdc57270eaafe8df8d8403bf4ebf95415aa0fd
   toit-coordinate:
     url: github.com/lightbug-io/toit-coordinate
     name: coordinate
     version: 1.0.0
     hash: 5db8272fdfbdc0b2e017280940dc537e5e64b361
+  toit-watchdog:
+    url: github.com/toitware/toit-watchdog
+    name: watchdog
+    version: 1.4.1
+    hash: 2621b25fca45f4f91c0b951f3658f3c18821edc4
