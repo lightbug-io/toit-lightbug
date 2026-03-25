@@ -14,11 +14,6 @@
       "name": "base-apps",
       "path": "./examples/containers/base-apps.toit",
       "chip": "esp32c6"
-    },
-    {
-      "name": "base-vending",
-      "path": "./examples/containers/base-vending.toit",
-      "chip": "esp32c6"
     }
   ]
 }
