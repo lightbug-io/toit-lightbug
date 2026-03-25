@@ -28,6 +28,12 @@ class Vending:
   static Cmd_Auth := VendingProtocol.Cmd_Auth // Will not be implemented.
 
   port := null
+  _rx-pin := null
+  _tx-pin := null
+  _tx-pin-num := null
+  _fake-pin := null
+  _rts-pin := null
+  _baud-rate := null
   temperature-cache_ /float := 20.0
   voltage-cache_ /float := 3.7
 
@@ -49,12 +55,42 @@ class Vending:
 
   constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --logger=log.default:
     logger_ = logger
+    _rx-pin = gpio.Pin rx-pin --open-drain=true
+    // _tx-pin = gpio.Pin tx-pin --open-drain=true
+    _tx-pin-num = tx-pin
+    _fake-pin = gpio.Pin 4 --open-drain=true
+    _rts-pin = gpio.Pin 21 --open-drain=true
+    _baud-rate = baud-rate
+    // Init a port..
+    set-port-rx
+
+  set-port-rx:
+    // print "Setting port to rx mode"
+    if port:
+      port.close
+    if _tx-pin:
+      // print "Closing tx pin for rx mode"
+      _tx-pin.close
+      _tx-pin = null
     port = uart.Port
-      --rx=gpio.Pin rx-pin
-      --tx=gpio.Pin tx-pin
-      --baud_rate=baud-rate
-      --rts=gpio.Pin 21 // Not actually used
-      --mode=uart.Port.MODE-RS485-HALF-DUPLEX
+      --rx=_rx-pin
+      --tx=_fake-pin // fake pin for rx only
+      --baud_rate=_baud-rate
+      // --rts=_rts-pin // Not actually used
+      // --mode=uart.Port.MODE-RS485-HALF-DUPLEX
+  
+  set-port-tx:
+    // print "Setting port to tx mode"
+    if port:
+      port.close
+    if not _tx-pin:
+      _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
+    port = uart.Port
+      --rx=_rx-pin
+      --tx=_tx-pin
+      --baud_rate=_baud-rate
+      // --rts=_rts-pin // Not actually used
+      // --mode=uart.Port.MODE-RS485-HALF-DUPLEX
 
   set-port --port_/uart.Port:
     port = port_
@@ -80,13 +116,20 @@ class Vending:
     return voltage-cache_
   
   send-error:
+    set-port-tx
     port.out.write "ERROR\r\n".to-byte-array --flush=true
+    set-port-rx
 
   send-response frame/ByteArray:
-    // logger_.debug "Sending response frame: $(frame)"
+    set-port-tx
     port.out.write frame --flush=true
+    set-port-rx
+    // logger_.debug "Sent response frame: $(frame)"
   
   read-frame -> ByteArray?:
+    // Wait for a port
+    while not port:
+        sleep (Duration --ms=1)
     // Wait for header byte.
     while port.in.peek-byte != HEADER:
       port.in.read-byte
