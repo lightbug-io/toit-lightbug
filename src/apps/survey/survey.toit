@@ -586,12 +586,12 @@ class SurveyApp:
     return "Survey App"
   
   // Toit will round down as part of a stringify, so we clamp to 0.01 minimum
-  // as 0.00 for dispaly is missleading
+  // as 0.00 for display is missleading
   text-for-accuracy pos/messages.Position -> string:
     if pos.latitude == 0.0 or pos.longitude == 0.0:
       return "N/A"
     if pos.accuracy >= 0.005:
-      return "$(pos.accuracy.stringify 2)m"
+      return "$(pos.accuracy.to-string --precision=2)m"
     return "0.01m"
   
   fixed-accuracy-from-message pos/messages.Position -> float:
@@ -637,7 +637,7 @@ class SurveyApp:
     return "Stored: $(point-store_.size) points / $(POINT-STORE-MAX) $(full-text)"
   
   text-for-dist-line:
-    return "Distance: $(point-store-dist_.stringify 2)m"
+    return "Distance: $(point-store-dist_.to-string --precision=2)m"
 
   generate-content-fragment -> string:
     body := ""
@@ -696,7 +696,7 @@ class SurveyApp:
   text-for-pos pos/messages.Position-> string:
     if pos == null:
       return "none"
-    return "$(pos.latitude.stringify 6) $(pos.longitude.stringify 6) $(text-for-accuracy pos)"
+    return "$(pos.latitude.to-string --precision=6) $(pos.longitude.to-string --precision=6) $(text-for-accuracy pos)"
 
   store-last-point:
     if showing-page_ != PAGE-SURVEY:
