@@ -30,10 +30,11 @@ class Vending:
   port := null
   _rx-pin := null
   _tx-pin := null
+  _rx-pin-num := null
   _tx-pin-num := null
-  _fake-pin := null
-  _rts-pin := null
   _baud-rate := null
+  _min-response-delay := (Duration --ms=50)
+  _last-request-start-us := 0
   temperature-cache_ /float := 20.0
   voltage-cache_ /float := 3.7
 
@@ -53,44 +54,60 @@ class Vending:
 
   logger_/log.Logger
 
-  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --logger=log.default:
+  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --logger=log.default:
     logger_ = logger
-    _rx-pin = gpio.Pin rx-pin --open-drain=true
-    // _tx-pin = gpio.Pin tx-pin --open-drain=true
+    _rx-pin-num = rx-pin
     _tx-pin-num = tx-pin
-    _fake-pin = gpio.Pin 4 --open-drain=true
-    _rts-pin = gpio.Pin 21 --open-drain=true
+    _rx-pin = gpio.Pin _rx-pin-num --open-drain=true
+    _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
     _baud-rate = baud-rate
+    _min-response-delay = min-response-delay
     // Init a port..
     set-port-rx
 
+  refresh-pins:
+    // Refresh both pins to avoid stale drive state after TX.
+    if _rx-pin:
+      _rx-pin.close
+    if _tx-pin:
+      _tx-pin.close
+    _rx-pin = gpio.Pin _rx-pin-num --open-drain=true
+    _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
+
+  wait-min-response-delay:
+    if _min-response-delay.in-us <= 0:
+      return
+    if _last-request-start-us <= 0:
+      return
+    elapsed-us := (Time.monotonic-us --since-wakeup) - _last-request-start-us
+    remaining-us := _min-response-delay.in-us - elapsed-us
+    if remaining-us > 0:
+      sleep --ms=((remaining-us + 999) / 1000)
+      // blocking-sleep (Duration --us=remaining-us)
+
   set-port-rx:
-    // print "Setting port to rx mode"
+    print "Setting port to rx mode"
     if port:
       port.close
-    if _tx-pin:
-      // print "Closing tx pin for rx mode"
-      _tx-pin.close
-      _tx-pin = null
+    refresh-pins
     port = uart.Port
       --rx=_rx-pin
-      --tx=_fake-pin // fake pin for rx only
+      --tx=_tx-pin // Partner pin for half-duplex read mode
       --baud_rate=_baud-rate
-      // --rts=_rts-pin // Not actually used
-      // --mode=uart.Port.MODE-RS485-HALF-DUPLEX
+      --high-priority=true
+      --no-large-buffers
   
   set-port-tx:
-    // print "Setting port to tx mode"
+    print "Setting port to tx mode"
     if port:
       port.close
-    if not _tx-pin:
-      _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
+    refresh-pins
     port = uart.Port
-      --rx=_rx-pin
-      --tx=_tx-pin
+      --rx=_tx-pin // Partner pin while transmitting
+      --tx=_rx-pin // Drive response on the kiosk line
       --baud_rate=_baud-rate
-      // --rts=_rts-pin // Not actually used
-      // --mode=uart.Port.MODE-RS485-HALF-DUPLEX
+      --high-priority=true
+      --no-large-buffers
 
   set-port --port_/uart.Port:
     port = port_
@@ -116,15 +133,23 @@ class Vending:
     return voltage-cache_
   
   send-error:
+    wait-min-response-delay
     set-port-tx
     port.out.write "ERROR\r\n".to-byte-array --flush=true
+    // Let the final stop bit clear before rearming RX.
+    sleep (Duration --ms=2)
     set-port-rx
 
   send-response frame/ByteArray:
+    wait-min-response-delay
     set-port-tx
+    // pad the frame with 500 bytes of 1...
+    // frame = frame + (ByteArray 500 --initial=1)
     port.out.write frame --flush=true
+    // Let the final stop bit clear before rearming RX.
+    sleep (Duration --ms=2)
     set-port-rx
-    // logger_.debug "Sent response frame: $(frame)"
+    logger_.debug "Sent response frame: $(frame)"
   
   read-frame -> ByteArray?:
     // Wait for a port
@@ -133,6 +158,7 @@ class Vending:
     // Wait for header byte.
     while port.in.peek-byte != HEADER:
       port.in.read-byte
+    _last-request-start-us = Time.monotonic-us --since-wakeup
     port.in.read-byte // Consume header.
 
     length := 0
@@ -197,11 +223,12 @@ class Vending:
     response := VendingProtocol.response-for-command-payload data vending-id get-temperature get-voltage
     if response:
       send-response response
+      print "Processed command $(data[0])"
       return
 
     if data[0] < Cmd_SetId or data[0] > Cmd_Auth:
-      logger_.error "Unhandled command received: $(data[0])"
       send-error
+      logger_.error "Unhandled command received: $(data[0])"
       return
 
     logger_.warn "Ignoring unsupported command $(data[0])"

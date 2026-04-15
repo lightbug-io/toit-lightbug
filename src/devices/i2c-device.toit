@@ -1,3 +1,4 @@
+import gpio
 import i2c
 import io
 import log
@@ -31,10 +32,18 @@ class I2C implements Device:
   static I2C-SDA := 6
   static I2C-SCL := 7
 
-  i2c-bus /i2c.Bus
-  i2c-device_ /i2c.Device
-  i2c-reader_ /Reader
-  i2c-writer_ /Writer
+  i2c-sda_ /int
+  i2c-scl_ /int
+  i2c-frequency_ /int
+
+  i2c-bus_ /i2c.Bus? := null
+  i2c-device_ /i2c.Device? := null
+  i2c-sda-pin_ /gpio.Pin? := null
+  i2c-scl-pin_ /gpio.Pin? := null
+  i2c-reader_ /Reader? := null
+  i2c-writer_ /Writer? := null
+  connected_ /bool := false
+  pending-reinit_ /bool := false
 
   name_ /string
   background_ /bool
@@ -55,6 +64,11 @@ class I2C implements Device:
   ble-advertisement_ /ble-sdk.Advertisement? := null
 
   constructor
+      // Should the device be connected (I2C bus initialized) immediately on creation,
+      // or should this be deferred until later?
+      // This is likely only needed to be false in very specific cases, and care should be taken in combination with other initialization params.
+      --connect-now/bool=true
+
       // Default to sending an open on start
       // Assuming the user will want to keep the connection open, unless explicitly closed
       --open/bool=true
@@ -99,17 +113,19 @@ class I2C implements Device:
     open_ = open
     ble-advertisement_ = ble-advertisement
 
-    // Initialize I2C
+    // Store I2C pin parameters so the bus can be reconnected later.
+    // And optionally connect immediately if requested.
     // TODO if more than one device is instantiated, things will likely break due to gpio / i2c conflicts, so WARN / throw in this case
-    logger_.debug "Lightbug I2C pins SDA=$i2c-sda, SCL=$i2c-scl at $i2c-frequency Hz"
-    i2c-bus = LBI2CBus --sda=i2c-sda --scl=i2c-scl --frequency=i2c-frequency
-    i2c-device_ = LBI2CDevice i2c-bus
-    i2c-reader_ = Reader i2c-device_ --logger=(logger_.with-name "i2c.read")
-    i2c-writer_ = Writer i2c-device_ --logger=(logger_.with-name "i2c.write")
+    i2c-sda_ = i2c-sda
+    i2c-scl_ = i2c-scl
+    i2c-frequency_ = i2c-frequency
+    logger_.debug "I2C Device created with SDA pin $i2c-sda_, SCL pin $i2c-scl_, frequency $i2c-frequency_ Hz, connect immediately: $connect-now"
+    if connect-now:
+      connect
 
-    // Start things if needed
-    if startComms:
-      comms
+      // Start things if needed
+      if startComms:
+        comms
 
     // Start BLE advertising if advertisement data was provided.
     if ble-advertisement_:
@@ -132,13 +148,71 @@ class I2C implements Device:
   prefix -> bool:
     return false
 
+  /** Returns the raw I2C bus. Throws if disconnected. */
+  i2c-bus -> i2c.Bus:
+    if not i2c-bus_: throw "I2C device not connected"
+    return i2c-bus_
+
   i2c-device -> i2c.Device:
+    if not i2c-device_: throw "I2C device not connected"
     return i2c-device_
 
+  /** Returns whether the I2C bus is currently connected. */
+  connected -> bool:
+    return connected_
+
+  /**
+  Connects the I2C bus and creates fresh reader/writer instances.
+  No-op if already connected.
+  */
+  connect -> none:
+    if connected_: return
+    logger_.debug "Connecting I2C bus (SDA=$i2c-sda_, SCL=$i2c-scl_ at $i2c-frequency_ Hz)"
+    sda-pin := gpio.Pin i2c-sda_
+    scl-pin := gpio.Pin i2c-scl_
+    i2c-bus_ = i2c.Bus
+        --sda=sda-pin
+        --scl=scl-pin
+        --frequency=i2c-frequency_
+        --pull-up=true
+    sleep --ms=10
+    i2c-sda-pin_ = sda-pin
+    i2c-scl-pin_ = scl-pin
+    i2c-device_ = LBI2CDevice i2c-bus_
+    i2c-reader_ = Reader i2c-device_ --logger=(logger_.with-name "i2c.read")
+    i2c-writer_ = Writer i2c-device_ --logger=(logger_.with-name "i2c.write")
+    connected_ = true
+    if pending-reinit_:
+      pending-reinit_ = false
+      reinit
+
+  /**
+  Disconnects the I2C bus, releasing the underlying hardware resource.
+  No-op if already disconnected.
+  */
+  disconnect -> none:
+    if not connected_: return
+    logger_.debug "Disconnecting I2C bus"
+    i2c-bus_.close
+    // Explicitly close the gpio.Pin wrappers so the Toit resource system
+    // marks those pins free before the next connect. Without this the pins
+    // remain "in use" until GC runs, causing ALREADY_IN_USE on reconnect.
+    i2c-sda-pin_.close
+    i2c-scl-pin_.close
+    i2c-bus_ = null
+    i2c-sda-pin_ = null
+    i2c-scl-pin_ = null
+    i2c-device_ = null
+    i2c-reader_ = null
+    i2c-writer_ = null
+    connected_ = false
+
   in -> io.Reader:
+    if not i2c-reader_: throw "I2C device not connected"
     return i2c-reader_
 
   out -> io.Writer:
+    if not i2c-writer_: throw "I2C device not connected"
     return i2c-writer_
 
   comms -> Comms:
@@ -165,8 +239,13 @@ class I2C implements Device:
     return comms_
 
   reinit -> bool:
+    // Defer the reinit until the bus is actually connected.
+    if not connected_:
+      pending-reinit_ = true
+      logger_.debug "Lightbug I2C: Reinit deferred until bus is connected"
+      return true
     logger_.info "Lightbug I2C: Reinitializing device"
-    
+
     e := catch:
       backoff.do-with-backoff
         --onSuccess=(:: logger_.info "Lightbug I2C: Device reinitialized successfully")
@@ -176,7 +255,7 @@ class I2C implements Device:
         --initial-delay=(Duration --ms=50)
         --backoff-factor=2.0
         --max-delay=(Duration --s=1):
-        i2c-device_.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
+        i2c-device.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
     
     if e:
       logger_.error "Lightbug I2C: Failed to reinitialize device after retries: $e"

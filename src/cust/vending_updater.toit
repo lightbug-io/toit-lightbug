@@ -13,8 +13,8 @@ class VendingUpdater:
 
   update-vending-cache-from-device comms vending/Vending:
     update-device-id comms vending
-    task --background=true:: update-temperature comms vending
-    task --background=true:: update-battery comms vending
+    update-temperature comms vending
+    update-battery comms vending
 
   update-device-id comms vending/Vending:
     if vending.vending-id != Vending.VENDING_ID_DEFAULT:

@@ -70,6 +70,11 @@ class Fake implements Device:
     return true
   prefix -> bool:
     return false
+  // Fake device has no physical transport; connect/disconnect are no-ops.
+  connected -> bool:
+    return true
+  connect -> none:
+  disconnect -> none:
   in -> io.Reader:
     if in_:
       return in_

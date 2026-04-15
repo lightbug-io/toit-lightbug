@@ -215,10 +215,23 @@ class Comms:
   processInbound_:
     // Keep going until we find a message
     while true:
+      // Pause polling while the physical transport is not connected.
+      if not device_.connected:
+        sleep --ms=50
+        continue
       yield
-      m := processInboundOnce_
-      if m:
-        processReceivedMessage_ m
+      // Guard against a race where the device disconnects between the connected-check above
+      // and the actual read inside processInboundOnce_.
+      e := catch:
+        m := processInboundOnce_
+        if m:
+          processReceivedMessage_ m
+      if e:
+        if not device_.connected:
+          logger_.debug "processInbound_: device disconnected mid-read, pausing"
+          sleep --ms=50
+        else:
+          throw e
 
   processReceivedMessage_ msg/protocol.Message:
     logger_.with-level log.TRACE-LEVEL:

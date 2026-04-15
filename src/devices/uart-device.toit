@@ -85,6 +85,11 @@ class UART implements Device:
     return true
   prefix -> bool:
     return true
+  // UART transport is managed externally; connect/disconnect are no-ops.
+  connected -> bool:
+    return true
+  connect -> none:
+  disconnect -> none:
   in -> io.Reader:
     return _port.in
   out -> io.Writer:

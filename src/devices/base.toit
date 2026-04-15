@@ -47,6 +47,12 @@ interface Device extends HasInOut:
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
   prefix -> bool
+  // Whether the physical transport is currently connected.
+  connected -> bool
+  // Connects the physical transport (e.g. I2C bus). No-op if already connected.
+  connect -> none
+  // Disconnects the physical transport (e.g. I2C bus). No-op if already disconnected.
+  disconnect -> none
 
 /*
 An interface for combining a Reader and Writer for a device.
