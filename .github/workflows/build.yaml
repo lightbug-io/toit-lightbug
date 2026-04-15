@@ -19,7 +19,7 @@ on:
       toit_version:
         description: 'Toit Version'
         required: true
-        default: 'v2.0.0-alpha.189'
+        default: 'v2.0.0-alpha.191'
       firmware_type:
         description: 'Firmware Type'
         required: true
@@ -27,7 +27,7 @@ on:
       lightbug_envelope_version:
         description: 'Lightbug envelope release suffix (default matches workflow env)'
         required: true
-        default: 'lb.20260217-1'
+        default: 'lb.20260415-1'
       lightbug_envelope_url:
         description: 'Optional full URL to download a custom envelope'
         required: false
@@ -35,9 +35,9 @@ on:
 
 env:
   # https://github.com/toitlang/toit/releases
-  DEFAULT_TOIT_VERSION: v2.0.0-alpha.189
+  DEFAULT_TOIT_VERSION: v2.0.0-alpha.191
   # https://github.com/lightbug-io/toit-envelopes/releases
-  LIGHTBUG_ENVELOPE_VERSION: lb.20260217-1
+  LIGHTBUG_ENVELOPE_VERSION: lb.20260415-1
 
 jobs:
   test:
