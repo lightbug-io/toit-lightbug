@@ -44,7 +44,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: toitlang/action-setup@v1.4.0
         with:
           toit-version: ${{ env.DEFAULT_TOIT_VERSION }}
@@ -56,7 +56,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: set-matrix
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -88,7 +88,7 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Toit
         uses: toitlang/action-setup@v1.4.0
@@ -128,7 +128,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Download all artifacts
         uses: actions/download-artifact@v7
