@@ -62,6 +62,7 @@ class Vending:
     _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
     _baud-rate = baud-rate
     _min-response-delay = min-response-delay
+    log.info "Vending RX: $rx-pin, TX: $tx-pin, baud: $baud-rate, delay: $min-response-delay"
     // Init a port..
     set-port-rx
 
