@@ -23,7 +23,7 @@ class VendingProtocol:
   static Stat_Fail := 0xF2
   static Stat_NoSupport := 0xF3
 
-  static ID_PREFIX_CURRENT := 0x1B
+  static ID_PREFIX_CURRENT := 0x2B // Was 0x1B, now 0x2B for testing
   static ID_PREFIX_SERIAL := 0x2B
 
   static vending-id-from-current-id current-id/int -> int:
