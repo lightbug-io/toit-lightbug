@@ -1,7 +1,6 @@
 import io.byte-order show LITTLE-ENDIAN
 import log
 import coordinate show Coordinate
-import .data-field show *
 
 class Data:
   dataTypes_ /List := []
@@ -16,17 +15,23 @@ class Data:
     data_ = data.data_
   
   constructor.from-bytes bytes/ByteArray:
-    if bytes.size < 2:
-      throw "V3 OOB: For fields, expected 2  got $bytes.size"
-    fields := LITTLE-ENDIAN.uint16 bytes 0
-    if bytes.size < 2 + fields:
-      throw "V3 OOB: For data types, expected $(2 + fields) got $bytes.size"
+    this.parse-bytes_ bytes 0
+
+  constructor.from-bytes-at bytes/ByteArray offset/int:
+    this.parse-bytes_ bytes offset
+
+  parse-bytes_ bytes/ByteArray offset/int -> none:
+    if bytes.size < offset + 2:
+      throw "V3 OOB: For fields, expected $(offset + 2) got $bytes.size"
+    fields := LITTLE-ENDIAN.uint16 bytes offset
+    if bytes.size < offset + 2 + fields:
+      throw "V3 OOB: For data types, expected $(offset + 2 + fields) got $bytes.size"
     // read data types
     for i := 0; i < fields; i++:
-      dataType := bytes[2 + i]
+      dataType := bytes[offset + 2 + i]
       dataTypes_.add dataType
     // read data (each is a uint8 length, then that number of bytes)
-    index := 2 + fields
+    index := offset + 2 + fields
     for i := 0; i < fields; i++:
       if index >= bytes.size:
         throw "V3 OOB: For data length, expected $index got $bytes.size"
@@ -34,9 +39,8 @@ class Data:
       index += 1
       if index + length > bytes.size:
         throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
+      data_.add (bytes[index..index + length])
       index += length
-      dataField := DataField (bytes[index - length..index])
-      data_.add dataField
 
   stringify -> string:
     s := ""
@@ -97,7 +101,9 @@ class Data:
     add-data dataType b
 
   add-data dataType/int data/ByteArray -> none:
-    data_.add (DataField data)
+    if data.size > 255:
+      throw "V3 protocol can't have data field of over 255 bytes"
+    data_.add data
     dataTypes_.add dataType
 
   add-data-bool dataType/int data/bool -> none:
@@ -135,7 +141,7 @@ class Data:
     e := catch:
       for i := 0; i < dataTypes_.size; i++:
         if dataTypes_[i] == dataType:
-          return data_[i].dataBytes_
+          return data_[i]
       return #[]
     if e:
       log.warn "Failed to get data: $(e)"
@@ -315,7 +321,7 @@ class Data:
   size -> int:
     dataLength := 0
     for i := 0; i < dataTypes_.size; i++:
-      dataLength += 1 + data_[i].dataBytes_.size
+      dataLength += 1 + data_[i].size
     return 2 + dataTypes_.size + dataLength
   
   data-field-count -> int:
@@ -325,7 +331,7 @@ class Data:
     dfc := dataTypes_.size
     dataLength := 0
     for i := 0; i < dfc; i++:
-      dataLength += 1 + data_[i].dataBytes_.size
+      dataLength += 1 + data_[i].size
     bLen := 2 + dfc + dataLength
 
     b := ByteArray bLen
@@ -340,7 +346,7 @@ class Data:
       bi += 1
     // then data
     for i := 0; i < dfc; i++:
-      fieldData := data_[i].dataBytes_
+      fieldData := data_[i]
       fieldSize := fieldData.size
       b[bi] = fieldSize
       bi += 1

@@ -72,12 +72,18 @@ class Header:
     data_ = header.data_
 
   constructor.from-bytes bytes/ByteArray:
+    this.parse-bytes_ bytes 0
+
+  constructor.from-bytes-at bytes/ByteArray offset/int:
+    this.parse-bytes_ bytes offset
+
+  parse-bytes_ bytes/ByteArray offset/int -> none:
     // First is uint16 LE message length
-    messageLength_ = LITTLE-ENDIAN.uint16 bytes 0
+    messageLength_ = LITTLE-ENDIAN.uint16 bytes offset
     // Second is uint16 LE message type
-    messageType_ = LITTLE-ENDIAN.uint16 bytes 2
-    // Third is data (use the bytes slice directly)
-    data_ = Data.from-bytes bytes[4..]
+    messageType_ = LITTLE-ENDIAN.uint16 bytes (offset + 2)
+    // Third is data.
+    data_ = Data.from-bytes-at bytes (offset + 4)
 
   stringify -> string:
     return "messageLength: " + messageLength_.stringify + ", messageType: " + messageType_.stringify + ", header data: " + data_.stringify

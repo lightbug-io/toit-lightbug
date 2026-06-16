@@ -25,8 +25,8 @@ class Message:
   // Create a message using with-data so constructors are satisfied.
   m := Message.with-data 0 (Data)
   // header starts at offset 1
-  m.header_ = Header.from-bytes bytes[1..]
-  m.data_ = Data.from-bytes bytes[1 + m.header_.size..]
+  m.header_ = Header.from-bytes-at bytes 1
+  m.data_ = Data.from-bytes-at bytes (1 + m.header_.size)
   m.checksum_ = (bytes[bytes.size - 1] << 8) + bytes[bytes.size - 2]
   return m
 
