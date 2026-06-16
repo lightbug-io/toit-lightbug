@@ -24,11 +24,14 @@ class Message:
  static from-bytes bytes/ByteArray -> Message:
   // Create a message using with-data so constructors are satisfied.
   m := Message.with-data 0 (Data)
-  // header starts at offset 1
-  m.header_ = Header.from-bytes-at bytes 1
-  m.data_ = Data.from-bytes-at bytes (1 + m.header_.size)
-  m.checksum_ = (bytes[bytes.size - 1] << 8) + bytes[bytes.size - 2]
+  m.parse-into bytes
   return m
+
+ parse-into bytes/ByteArray -> none:
+  // header starts at offset 1
+  header_.parse-into bytes 1
+  data_.parse-into bytes (1 + header_.size)
+  checksum_ = (bytes[bytes.size - 1] << 8) + bytes[bytes.size - 2]
 
  constructor.from-message msg/Message:
   header_ = Header.fromHeader msg.header

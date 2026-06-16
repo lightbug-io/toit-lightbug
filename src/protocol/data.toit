@@ -15,12 +15,12 @@ class Data:
     data_ = data.data_
   
   constructor.from-bytes bytes/ByteArray:
-    this.parse-bytes_ bytes 0
+    this.parse-into bytes 0
 
   constructor.from-bytes-at bytes/ByteArray offset/int:
-    this.parse-bytes_ bytes offset
+    this.parse-into bytes offset
 
-  parse-bytes_ bytes/ByteArray offset/int -> none:
+  parse-into bytes/ByteArray offset/int -> none:
     if bytes.size < offset + 2:
       throw "V3 OOB: For fields, expected $(offset + 2) got $bytes.size"
     fields := LITTLE-ENDIAN.uint16 bytes offset
@@ -29,7 +29,10 @@ class Data:
     // read data types
     for i := 0; i < fields; i++:
       dataType := bytes[offset + 2 + i]
-      dataTypes_.add dataType
+      if i < dataTypes_.size:
+        dataTypes_[i] = dataType
+      else:
+        dataTypes_.add dataType
     // read data (each is a uint8 length, then that number of bytes)
     index := offset + 2 + fields
     for i := 0; i < fields; i++:
@@ -39,8 +42,17 @@ class Data:
       index += 1
       if index + length > bytes.size:
         throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
-      data_.add (bytes[index..index + length])
+      field := bytes[index..index + length]
+      if i < data_.size:
+        data_[i] = field
+      else:
+        data_.add field
       index += length
+
+    while dataTypes_.size > fields:
+      dataTypes_.remove --at=(dataTypes_.size - 1)
+    while data_.size > fields:
+      data_.remove --at=(data_.size - 1)
 
   stringify -> string:
     s := ""
