@@ -413,7 +413,8 @@ class Comms:
       if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
         msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
-      m := LBSyncBytes_ + msg.bytes
+      // Only allocate a combined buffer when there is a prefix to prepend.
+      m := LBSyncBytes_.is-empty ? msg.bytes : LBSyncBytes_ + msg.bytes
 
       // Send the message
       device_.out.write m --flush=true
