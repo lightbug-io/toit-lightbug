@@ -28,6 +28,11 @@ class Comms:
   heartbeats_ /Heartbeats? := null
   messageHandlers_ /List/*<MessageHandler>*/ := []  // List of message handlers
 
+  // Dispatch message handlers in background tasks (safe default).
+  // Set false for maximum throughput.
+  // This may become the default in the future.
+  asyncHandlerDispatch_ /bool
+
   LBSyncBytes_ /ByteArray
 
   TimeoutCheckEvery_ /Duration := Duration --s=2
@@ -50,6 +55,7 @@ class Comms:
       --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
       --open/bool = true // Send Open message and heartbeats to keep connection alive
       --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
+      --asyncHandlerDispatch/bool = true // Dispatch message handlers in background tasks (safe default). Set false for maximum throughput.
       --background/bool = true // Run primairy tasks as background (non-blocking) tasks
       
       --logger=(log.default.with-name "lb-comms"):
@@ -59,6 +65,7 @@ class Comms:
     messageHandlers_ = handlers
     msgIdGenerator = idGenerator
     background_ = background
+    asyncHandlerDispatch_ = asyncHandlerDispatch
 
     if device_.prefix:
       LBSyncBytes_ = #[0x4c, 0x42] // LB
@@ -239,7 +246,10 @@ class Comms:
 
     // Let any registered message handlers try and handle the message
     messageHandlers_.do: | handler |
-      task:: handler.handle-message msg
+      if asyncHandlerDispatch_:
+        task:: handler.handle-message msg
+      else:
+        handler.handle-message msg
 
     // Add to any registered inboxes (only if inboxes are enabled)
     if inboxesEnabled_:
