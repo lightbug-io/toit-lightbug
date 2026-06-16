@@ -313,32 +313,39 @@ class Data:
     return 0
 
   size -> int:
-    return bytes-for-protocol.size
+    dataLength := 0
+    for i := 0; i < dataTypes_.size; i++:
+      dataLength += 1 + data_[i].dataBytes_.size
+    return 2 + dataTypes_.size + dataLength
   
   data-field-count -> int:
     return dataTypes_.size
   
   bytes-for-protocol -> ByteArray:
+    dfc := dataTypes_.size
     dataLength := 0
-    for i := 0; i < data-field-count; i++:
+    for i := 0; i < dfc; i++:
       dataLength += 1 + data_[i].dataBytes_.size
-    bLen := 2 + data-field-count + dataLength
+    bLen := 2 + dfc + dataLength
 
     b := ByteArray bLen
 
     // first, datafield count uint16 LE
-    dfc := data-field-count
     b[0] = dfc & 0xFF
     b[1] = dfc >> 8
     // then data types
     bi := 2
-    for i := 0; i < data-field-count; i++:
+    for i := 0; i < dfc; i++:
       b[bi] = dataTypes_[i]
       bi += 1
     // then data
-    for i := 0; i < data-field-count; i++:
-      b.replace bi data_[i].bytes-for-protocol 0 (1 + data_[i].dataBytes_.size)
-      bi += (1 + data_[i].dataBytes_.size)
+    for i := 0; i < dfc; i++:
+      fieldData := data_[i].dataBytes_
+      fieldSize := fieldData.size
+      b[bi] = fieldSize
+      bi += 1
+      b.replace bi fieldData 0 fieldSize
+      bi += fieldSize
     return b
 
 list-to-byte-array l/List -> ByteArray:

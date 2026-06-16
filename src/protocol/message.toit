@@ -99,22 +99,34 @@ class Message:
 
  size -> int:
   // protocol, header, data, checksum
-  return 1 + header_.size + data_.size +2
+  return 1 + 2 + 2 + header_.data_.size + data_.size + 2
 
  // TODO remove this duplicate method...
  bytes -> ByteArray:
   return bytes-for-protocol
 
  bytes-for-protocol -> ByteArray:
+  bData := data_.bytes-for-protocol
+
   // first prep the message to be rendered as bytes
   // set the message length in the header
-  header_.messageLength_ = size
+  header_.messageLength_ = 1 + 2 + 2 + header_.data_.size + bData.size + 2
 
-  // set the checksum in the message
-  checksum_ = checksum-calc
+  bHeader := header_.bytes-for-protocol
+  b := ByteArray 1 + bHeader.size + bData.size + 2
+  // first byte is protocol version
+  b[0] = protocol-version_
+  // then header
+  b.replace 1 bHeader 0 bHeader.size
+  // then main data
+  b.replace 1 + bHeader.size bData 0 bData.size
 
-  // now render the message with the checksum
-  return bytes-early_
+  // Calculate CRC16 XMODEM over the bytes (without the last 2 which will be checksum)
+  checksum_ = crc.crc16-xmodem (b.byte-slice 0 (b.byte-size - 2))
+  // add checksum which is uint16 LE
+  b[b.size - 2] = checksum_ & 0xFF
+  b[b.size - 1] = checksum_ >> 8
+  return b
 
  checksum-calc -> int:
   pre-csum := bytes-early_
