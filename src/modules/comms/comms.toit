@@ -5,6 +5,7 @@ import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator SequentialIdGenerator
 import ...util.bytes show stringify-all-bytes byte-array-to-list
+import crypto.crc
 import .message-handler show MessageHandler
 import .message-tracker show MessageTracker BoundedTrackerMap
 import io.reader show Reader
@@ -187,18 +188,19 @@ class Comms:
 
     e := catch --trace:
       // Extract the expected checksum from the last 2 bytes of the message (LE)
-      expectedChecksumBytes := [messageBytes[messageLength - 2], messageBytes[messageLength - 1]]
+      expectedChecksum := (messageBytes[messageLength - 1] << 8) + messageBytes[messageLength - 2]
 
       // And parse it as a protocol.Message directly from the ByteArray
       v3 := protocol.Message.from-bytes messageBytes
 
-      // Calculate the checksum of the message data
-      calculatedChecksum := v3.checksum-calc
-      // calculatedChecksumBytes is LE uint16 of calculatedChecksum
-      calculatedChecksumBytes := [calculatedChecksum & 0xFF, calculatedChecksum >> 8]
+      // Calculate the checksum directly over the message bytes, excluding the trailing checksum bytes.
+      // This avoids allocating temporary buffers/byte-lists in the hot inbound path.
+      checksum := crc.Crc16Xmodem
+      checksum.add messageBytes 0 (messageLength - 2)
+      calculatedChecksum := checksum.get-as-int
 
       // if they match, we have a message, return it
-      if expectedChecksumBytes == calculatedChecksumBytes:
+      if expectedChecksum == calculatedChecksum:
           // read the bytes we peeked
           device_.in.read-bytes messageLength
           return v3
