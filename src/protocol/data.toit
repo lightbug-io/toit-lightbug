@@ -3,21 +3,30 @@ import log
 import coordinate show Coordinate
 
 class Data:
-  dataTypes_ /List := []
-  data_ /List := []
+  dataTypes_ /List := ?
+  data_ /List := ?
+  serialized-size_ /int := 2
 
   constructor:
     dataTypes_ = []
     data_ = []
+    serialized-size_ = 2
   
   constructor.from-data data/Data:
     dataTypes_ = data.dataTypes_
     data_ = data.data_
+    serialized-size_ = data.serialized-size_
   
   constructor.from-bytes bytes/ByteArray:
+    dataTypes_ = []
+    data_ = []
+    serialized-size_ = 2
     this.parse-into bytes 0
 
   constructor.from-bytes-at bytes/ByteArray offset/int:
+    dataTypes_ = []
+    data_ = []
+    serialized-size_ = 2
     this.parse-into bytes offset
 
   parse-into bytes/ByteArray offset/int -> none:
@@ -35,6 +44,7 @@ class Data:
         dataTypes_.add dataType
     // read data (each is a uint8 length, then that number of bytes)
     index := offset + 2 + fields
+    data-length := 0
     for i := 0; i < fields; i++:
       if index >= bytes.size:
         throw "V3 OOB: For data length, expected $index got $bytes.size"
@@ -43,6 +53,7 @@ class Data:
       if index + length > bytes.size:
         throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
       field := bytes[index..index + length]
+      data-length += 1 + length
       if i < data_.size:
         data_[i] = field
       else:
@@ -53,6 +64,8 @@ class Data:
       dataTypes_.remove --at=(dataTypes_.size - 1)
     while data_.size > fields:
       data_.remove --at=(data_.size - 1)
+
+    serialized-size_ = 2 + fields + data-length
 
   stringify -> string:
     s := ""
@@ -117,6 +130,7 @@ class Data:
       throw "V3 protocol can't have data field of over 255 bytes"
     data_.add data
     dataTypes_.add dataType
+    serialized-size_ += 2 + data.size
 
   add-data-bool dataType/int data/bool -> none:
     if data:
@@ -141,8 +155,10 @@ class Data:
     e := catch:
       for i := 0; i < dataTypes_.size; i++:
         if dataTypes_[i] == dataType:
+          removed-size := data_[i].size
           dataTypes_.remove --at=i
           data_.remove --at=i
+          serialized-size_ -= 2 + removed-size
           return
     if e:
       log.warn "Failed to remove data: $(e)"
@@ -331,40 +347,36 @@ class Data:
     return 0
 
   size -> int:
-    dataLength := 0
-    for i := 0; i < dataTypes_.size; i++:
-      dataLength += 1 + data_[i].size
-    return 2 + dataTypes_.size + dataLength
+    return serialized-size_
   
   data-field-count -> int:
     return dataTypes_.size
   
   bytes-for-protocol -> ByteArray:
-    dfc := dataTypes_.size
-    dataLength := 0
-    for i := 0; i < dfc; i++:
-      dataLength += 1 + data_[i].size
-    bLen := 2 + dfc + dataLength
+    b := ByteArray serialized-size_
+    write-bytes-for-protocol-into b 0
+    return b
 
-    b := ByteArray bLen
+  write-bytes-for-protocol-into target/ByteArray offset/int -> int:
+    dfc := dataTypes_.size
 
     // first, datafield count uint16 LE
-    b[0] = dfc & 0xFF
-    b[1] = dfc >> 8
+    target[offset] = dfc & 0xFF
+    target[offset + 1] = dfc >> 8
     // then data types
-    bi := 2
+    bi := offset + 2
     for i := 0; i < dfc; i++:
-      b[bi] = dataTypes_[i]
+      target[bi] = dataTypes_[i]
       bi += 1
     // then data
     for i := 0; i < dfc; i++:
       fieldData := data_[i]
       fieldSize := fieldData.size
-      b[bi] = fieldSize
+      target[bi] = fieldSize
       bi += 1
-      b.replace bi fieldData 0 fieldSize
+      target.replace bi fieldData 0 fieldSize
       bi += fieldSize
-    return b
+    return bi
 
 list-to-byte-array l/List -> ByteArray:
   b := ByteArray l.size

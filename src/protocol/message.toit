@@ -109,20 +109,18 @@ class Message:
   return bytes-for-protocol
 
  bytes-for-protocol -> ByteArray:
-  bData := data_.bytes-for-protocol
-
   // first prep the message to be rendered as bytes
   // set the message length in the header
-  header_.messageLength_ = 1 + 2 + 2 + header_.data_.size + bData.size + 2
+  header-size := 2 + 2 + header_.data_.size
+  message-size := 1 + header-size + data_.size + 2
+  header_.messageLength_ = message-size
 
-  bHeader := header_.bytes-for-protocol
-  b := ByteArray 1 + bHeader.size + bData.size + 2
+  b := ByteArray message-size
   // first byte is protocol version
   b[0] = protocol-version_
-  // then header
-  b.replace 1 bHeader 0 bHeader.size
-  // then main data
-  b.replace 1 + bHeader.size bData 0 bData.size
+  // then header and main data
+  write-offset := header_.write-bytes-for-protocol-into b 1
+  data_.write-bytes-for-protocol-into b write-offset
 
   // Calculate CRC16 XMODEM over the bytes (without the last 2 which will be checksum)
   checksum_ = checksum-calc-bytes_ b
@@ -143,16 +141,16 @@ class Message:
 
  // byteListEarly_ is a byteList, without length of checksum calculated
  bytes-early_ -> ByteArray:
-  bHeader := header_.bytes-for-protocol
-  bData := data_.bytes-for-protocol
+  header-size := 2 + 2 + header_.data_.size
+  message-size := 1 + header-size + data_.size + 2
+  header_.messageLength_ = message-size
 
-  b := ByteArray 1 + bHeader.size + bData.size + 2
+  b := ByteArray message-size
   // first byte is protocol version
   b[0] = protocol-version_
-  // then header
-  b.replace 1 bHeader 0 bHeader.size
-  // then main data
-  b.replace 1 + bHeader.size bData 0 bData.size
+  // then header and main data
+  write-offset := header_.write-bytes-for-protocol-into b 1
+  data_.write-bytes-for-protocol-into b write-offset
   // add checksum which is uint16 LE
   b.replace b.size - 2 #[checksum_ & 0xFF, checksum_ >> 8] 0 2
   return b

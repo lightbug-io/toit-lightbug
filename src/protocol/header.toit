@@ -99,15 +99,16 @@ class Header:
     return data_
   
   bytes-for-protocol -> ByteArray:
-    bData := data_.bytes-for-protocol
-
-    b := ByteArray 4 + bData.size
-    // length is uint16 LE
-    b[0] = messageLength_ & 0xFF
-    b[1] = messageLength_ >> 8
-    // type is uint 16 LE
-    b[2] = messageType_ & 0xFF
-    b[3] = messageType_ >> 8
-    // data
-    b.replace 4 bData 0 bData.size
+    b := ByteArray this.size
+    write-bytes-for-protocol-into b 0
     return b
+
+  write-bytes-for-protocol-into target/ByteArray offset/int -> int:
+    // length is uint16 LE
+    target[offset] = messageLength_ & 0xFF
+    target[offset + 1] = messageLength_ >> 8
+    // type is uint 16 LE
+    target[offset + 2] = messageType_ & 0xFF
+    target[offset + 3] = messageType_ >> 8
+    // data
+    return data_.write-bytes-for-protocol-into target (offset + 4)
