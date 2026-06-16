@@ -122,7 +122,7 @@ class Message:
   b.replace 1 + bHeader.size bData 0 bData.size
 
   // Calculate CRC16 XMODEM over the bytes (without the last 2 which will be checksum)
-  checksum_ = crc.crc16-xmodem (b.byte-slice 0 (b.byte-size - 2))
+  checksum_ = checksum-calc-bytes_ b
   // add checksum which is uint16 LE
   b[b.size - 2] = checksum_ & 0xFF
   b[b.size - 1] = checksum_ >> 8
@@ -131,8 +131,12 @@ class Message:
  checksum-calc -> int:
   pre-csum := bytes-early_
   // Calculate CRC16 XMODEM over the bytes (without the last 2 which will be checksum)
-  checksum := crc.crc16-xmodem (pre-csum.byte-slice 0 (pre-csum.byte-size - 2))
-  return checksum
+  return checksum-calc-bytes_ pre-csum
+
+ checksum-calc-bytes_ bytes/ByteArray -> int:
+  checksum := crc.Crc16Xmodem
+  checksum.add bytes 0 (bytes.byte-size - 2)
+  return checksum.get-as-int
 
  // byteListEarly_ is a byteList, without length of checksum calculated
  bytes-early_ -> ByteArray:
