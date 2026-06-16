@@ -40,7 +40,7 @@ fill-screen device fill-black/bool:
       redraw-type = messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW
       first-message = false
     else if is-last-message:
-      redraw-type = messages.DrawElement.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR
+      redraw-type = messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
     else:
       redraw-type = messages.DrawElement.REDRAW-TYPE_BUFFERONLY
     

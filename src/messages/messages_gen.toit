@@ -5,6 +5,7 @@ import .m13_heartbeat_gen show Heartbeat
 import .m14_config_gen show Config
 import .m15_position_gen show Position
 import .m16_satellite_data_gen show SatelliteData
+import .m17_command_gen show Command
 import .m30_transmit_now_gen show TransmitNow
 import .m31_gsm_control_gen show GSMControl
 import .m32_gsm_ownership_gen show GSMOwnership
