@@ -160,9 +160,6 @@ run-rx-phase label/string msg-bytes/ByteArray count/int -> none:
       --reinitOnStart=false
       --startInbound=true
       --asyncHandlerDispatch=false
-      --yieldBetweenInboundPolls=false
-      --inboundYieldEveryMessages=0
-      --inboundYieldAtLeastEvery=(Duration --ms=2)
       --background=true
 
   // Background feeder: push one message-sized chunk at a time.
@@ -207,9 +204,6 @@ run-tx-phase label/string msg/protocol.Message msg-bytes/ByteArray count/int -> 
       --reinitOnStart=false
       --startInbound=false
       --asyncHandlerDispatch=false
-      --yieldBetweenInboundPolls=false
-      --inboundYieldEveryMessages=0
-      --inboundYieldAtLeastEvery=(Duration --ms=2)
       --background=false
 
   before := system.process-stats --gc=true
