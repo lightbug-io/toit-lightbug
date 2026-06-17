@@ -42,7 +42,7 @@ class HttpMsg:
     else:
       response-message-formatter_ = (:: | writer msg prefix |
         e := catch:
-          writer.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+          writer.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol)\n"
         if e:
           // do nothing for now (is this needed or caught higher up?)
       )
@@ -175,7 +175,7 @@ class HttpMsg:
             l := []
             ((line.split " ").do: |s| l.add (int.parse s))
             msg := protocol.Message.from-bytes (list-to-byte-array l) // TODO account for if the bytes are not a msg....
-            writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+            writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol)\n"
             if not listen-and-log-all_:
               // TODO listen to the responses and output them? (wait max 5s?)
               // if not response:
@@ -193,8 +193,8 @@ class HttpMsg:
             msgLatch := device_.comms.send msg
               --withLatch=true
               --timeout=(Duration --ms=wait-for-response) // 5s timeout so that /post requests don't need to remain open for ages
-              --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array l) --short=true --commas=false --hex=false)\n")
-              --postSend=(:: writer.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
+              --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes (list-to-byte-array l))\n")
+              --postSend=(:: writer.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol)\n")
             // Wait for the response (async), so that we can still send the next message
             tasksWaiting++
             task::
@@ -236,7 +236,7 @@ class HttpMsg:
           parts.do: |p/ByteArray|
             if p.size == 0: continue.do
             msg := protocol.Message.from-bytes p
-            writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+            writer.try-write "Sent (raw): $(stringify-all-bytes msg.bytes-for-protocol)\n"
         else if parts.size == 1:
           // Single message.
           p := parts[0]
@@ -246,8 +246,8 @@ class HttpMsg:
           msgLatch := device_.comms.send msg
             --withLatch=true
             --timeout=(Duration --ms=wait-for-response)
-            --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes p --short=true --commas=false --hex=false)\n")
-            --postSend=(:: writer.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n")
+            --preSend=(:: writer.write "$(it.msgId) Sending: $(stringify-all-bytes p)\n")
+            --postSend=(:: writer.write "$(it.msgId) Sent: $(stringify-all-bytes msg.bytes-for-protocol)\n")
           e2 := catch:
             response := msgLatch.get
             if not response:
@@ -290,7 +290,7 @@ class HttpMsg:
           l := []
           ((line.split " ").do: |s| l.add (int.parse s))
           msg := protocol.Message.from-bytes (list-to-byte-array l)
-          writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+          writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol)\n"
           device_.comms.simulate-receive msg
     if e:
       logger_.error "Error in handle-post-receive: $e"
@@ -304,13 +304,13 @@ class HttpMsg:
             if i > start:
               p := input.copy start i
               msg := protocol.Message.from-bytes p
-              writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+              writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol)\n"
               device_.comms.simulate-receive msg
             start = i + 1
         if start < input.size:
           p := input.copy start input.size
           msg := protocol.Message.from-bytes p
-          writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+          writer.write "Simulated receive: $(stringify-all-bytes msg.bytes-for-protocol)\n"
           device_.comms.simulate-receive msg
     if e:
       logger_.error "Error in handle-post-receive-bytes: $e"
@@ -324,7 +324,7 @@ class HttpMsg:
     if response-message-formatter_ != null:
       response-message-formatter_.call writer msg prefix
     else:
-      writer.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol --short=true --commas=false --hex=false)\n"
+      writer.write "$(prefix) $(stringify-all-bytes msg.bytes-for-protocol)\n"
 
   // It might be more efficient to store messages that have been received, to send
   // TODO having a "force-send" on monitor would be nice..

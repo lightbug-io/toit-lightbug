@@ -213,7 +213,7 @@ class Comms:
     if e:
       // output a row of red cross emojis
       logger_.error " ❌ " * 20
-      logger_.error "Error parsing message (probably garbled): $(e) $(stringify-all-bytes messageBytes)"
+      logger_.error "Error parsing message (probably garbled): $(e) $(%02x messageBytes)"
       logger_.error " ❌ " * 20
       // Read a byte, and continue looking for a message
       device_.in.read-byte

@@ -5,6 +5,7 @@ import log
 import .header show *
 import .data show *
 import ..util.docs
+import ..util.bytes show stringify-all-bytes
 
 class Message:
  protocol-version_ /int := 3
@@ -88,17 +89,8 @@ class Message:
   if this.response-to:
     s += " response-to: $this.response-to"
   log.default.with-level log.DEBUG-LEVEL:
-    s += " bytes: $stringify-all-bytes"
+    s += " bytes: $(stringify-all-bytes bytes-for-protocol)"
   return s
-
- stringify-all-bytes -> string:
-  buffer := io.Buffer
-  is-first := true
-  bytes.do:
-    if is-first: is-first = false
-    else: buffer.write ", "
-    buffer.write "$(%02x it)"
-  return buffer.to-string
 
  size -> int:
   // protocol, header, data, checksum
