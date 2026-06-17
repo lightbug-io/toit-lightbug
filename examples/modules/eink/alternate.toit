@@ -20,8 +20,9 @@ create-bitmap-chunk fill-byte/int rows/int -> ByteArray:
 fill-screen device fill-black/bool:
   fill-byte := fill-black ? 0xFF : 0x00
   color-name := fill-black ? "black" : "clear"
+  color-emoji := fill-black ? "⬛" : "⬜"
   
-  print "💬 Filling screen with $color-name pixels..."
+  print "💬 Filling screen with $color-name pixels $color-emoji..."
   
   y := 0
   message-count := 0
