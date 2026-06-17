@@ -211,12 +211,17 @@ class Comms:
         device_.in.read-byte
         return null
     if e:
+      // Always advance one byte before logging so malformed frames can't trap us in a retry loop
+      // if formatting/logging itself fails.
+      device_.in.read-byte
+
       // output a row of red cross emojis
       logger_.error " ❌ " * 20
-      logger_.error "Error parsing message (probably garbled): $(e) $(%02x messageBytes)"
+      log-e := catch:
+        logger_.error "Error parsing message (probably garbled): $(e) $(stringify-all-bytes messageBytes)"
+      if log-e:
+        logger_.error "Error parsing message (probably garbled): $(e)"
       logger_.error " ❌ " * 20
-      // Read a byte, and continue looking for a message
-      device_.in.read-byte
       return null
     // Fallback return if nothing matched
     return null
