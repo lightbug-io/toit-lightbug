@@ -37,6 +37,36 @@ validate-direct-writer-offset label/string message/protocol.Message -> none:
 
   assert-eq-bytes "$label direct-write" target[4..end] encoded
 
+validate-parsed-mutation label/string message/protocol.Message -> none:
+  encoded := message.bytes-for-protocol
+  parsed := protocol.Message.from-bytes encoded
+
+  parsed.header.data.add-data-uint16 protocol.Header.TYPE-MESSAGE_STATUS protocol.Header.STATUS_FAILED_WILL_RETRY
+  parsed.data.add-data-uint32 77 0x12345678
+
+  mutated := parsed.bytes-for-protocol
+  reparsed := protocol.Message.from-bytes mutated
+
+  assert-eq-int "$label mutated-status" reparsed.msg-status protocol.Header.STATUS_FAILED_WILL_RETRY
+  assert-eq-int "$label mutated-payload" (reparsed.data.get-data-uint32 77) 0x12345678
+  assert-eq-int "$label mutated-length" (length-from-header mutated) mutated.size
+  assert-eq-int "$label mutated-checksum" (reparsed.checksum-calc) (checksum-from-trailer mutated)
+
+validate-parsed-remove label/string message/protocol.Message -> none:
+  encoded := message.bytes-for-protocol
+  parsed := protocol.Message.from-bytes encoded
+
+  parsed.header.data.remove-data protocol.Header.TYPE-MESSAGE_ID
+  parsed.data.remove-data 1
+
+  mutated := parsed.bytes-for-protocol
+  reparsed := protocol.Message.from-bytes mutated
+
+  assert-eq-int "$label removed-header" (reparsed.header.data.has-data protocol.Header.TYPE-MESSAGE_ID ? 1 : 0) 0
+  assert-eq-int "$label removed-payload" (reparsed.data.has-data 1 ? 1 : 0) 0
+  assert-eq-int "$label remove-length" (length-from-header mutated) mutated.size
+  assert-eq-int "$label remove-checksum" (reparsed.checksum-calc) (checksum-from-trailer mutated)
+
 main:
   empty := protocol.Message.with-data 0 (protocol.Data)
   validate-built-message "empty" empty
@@ -63,7 +93,10 @@ main:
   mixed := protocol.Message.with-data 19 payload
   mixed.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE_TO_MESSAGE_ID 1234567
   mixed.header.data.add-data-uint16 protocol.Header.TYPE-FORWARDED_FOR 99
+  mixed.header.data.add-data-uint16 protocol.Header.TYPE-MESSAGE_ID 55
   validate-built-message "mixed" mixed
   validate-direct-writer-offset "mixed" mixed
+  validate-parsed-mutation "mixed" mixed
+  validate-parsed-remove "mixed" mixed
 
   print "✅ Message build tests passed"

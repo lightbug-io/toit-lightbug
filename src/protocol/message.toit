@@ -9,34 +9,51 @@ import ..util.bytes show stringify-all-bytes
 
 class Message:
  protocol-version_ /int := 3
- header_ /Header := Header
- data_ /Data := Data
+ header_ /Header? := null
+ data_ /Data? := null
+ bytes_ /ByteArray? := null
+ message-length_ /int := 0
+ message-type_ /int := 0
  checksum_ /int := 0
 
  constructor messageType/int:
-  header_.messageType_ = messageType
+  message-type_ = messageType
+  header_ = Header 0 messageType Data
+  data_ = Data
 
  constructor.with-data messageType/int data/Data?:
-  header_.messageType_ = messageType
   if data == null:
     data = Data
+  message-type_ = messageType
+  header_ = Header 0 messageType Data
   data_ = data
 
+ constructor.raw_:
+
  static from-bytes bytes/ByteArray -> Message:
-  // Create a message using with-data so constructors are satisfied.
-  m := Message.with-data 0 (Data)
+  m := Message.raw_
   m.parse-into bytes
   return m
 
  parse-into bytes/ByteArray -> none:
-  // header starts at offset 1
-  header_.parse-into bytes 1
-  data_.parse-into bytes (1 + header_.size)
+  protocol-version_ = bytes[0]
+  message-length_ = LITTLE-ENDIAN.uint16 bytes 1
+  message-type_ = LITTLE-ENDIAN.uint16 bytes 3
   checksum_ = LITTLE-ENDIAN.uint16 bytes (bytes.size - 2)
+  bytes_ = bytes
+  header_ = null
+  data_ = null
 
  constructor.from-message msg/Message:
-  header_ = Header.fromHeader msg.header
-  data_ = Data.from-data msg.data
+  if msg.raw-bytes-valid_:
+    bytes_ = msg.bytes_
+    protocol-version_ = msg.protocol-version_
+    message-length_ = msg.message-length_
+    message-type_ = msg.message-type_
+  else:
+    header_ = Header.fromHeader msg.header
+    data_ = Data.from-data msg.data
+    message-type_ = msg.type
   checksum_ = msg.checksum_
 
  static with-method messageType/int method/int data/Data?=Data -> Message:
@@ -45,45 +62,45 @@ class Message:
   return msg
 
  msgId -> int?:
-  if header.data.has-data Header.TYPE_MESSAGE_ID: return header.data.get-data-uint Header.TYPE_MESSAGE_ID
+  if header-data-has_ Header.TYPE_MESSAGE_ID: return header-data-uint_ Header.TYPE_MESSAGE_ID
   return null
 
  response-to -> int?:
-  if header.data.has-data Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header.data.get-data-uint Header.TYPE-RESPONSE-TO-MESSAGE-ID
+  if header-data-has_ Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header-data-uint_ Header.TYPE-RESPONSE-TO-MESSAGE-ID
   return null
 
  msgType -> int:
-  return header_.messageType_
+  return type
 
  msg-status -> int?:
-  if header.data.has-data Header.TYPE_MESSAGE_STATUS: return header.data.get-data-intn Header.TYPE_MESSAGE_STATUS
+  if header-data-has_ Header.TYPE_MESSAGE_STATUS: return header-data-int_ Header.TYPE_MESSAGE_STATUS
   return null
 
  msg-ok -> bool:
-  return not (header.data.has-data Header.TYPE_MESSAGE_STATUS) or (header.data.get-data-intn Header.TYPE_MESSAGE_STATUS) <= Header.STATUS_OK
+  return not (header-data-has_ Header.TYPE_MESSAGE_STATUS) or (header-data-int_ Header.TYPE_MESSAGE_STATUS) <= Header.STATUS_OK
 
  msg-status-id status/int -> bool:
-  return header.data.has-data Header.TYPE_MESSAGE_STATUS and (header.data.get-data-intn Header.TYPE_MESSAGE_STATUS) == status
+  return (header-data-has_ Header.TYPE_MESSAGE_STATUS) and (header-data-int_ Header.TYPE_MESSAGE_STATUS) == status
 
  was-forwarded -> bool:
-  return header_.data.has-data Header.TYPE_FORWARDED_FOR or header_.data.has-data Header.TYPE_FORWARDED_FOR_TYPE
+  return (header-data-has_ Header.TYPE_FORWARDED_FOR) or (header-data-has_ Header.TYPE_FORWARDED_FOR_TYPE)
 
  forwarded-for -> int?:
-  if header_.data.has-data Header.TYPE_FORWARDED_FOR:
-    return header_.data.get-data-uint Header.TYPE_FORWARDED_FOR
+  if header-data-has_ Header.TYPE_FORWARDED_FOR:
+    return header-data-uint_ Header.TYPE_FORWARDED_FOR
   return null
 
  header -> Header:
-  return header_  
+  return materialize-header_  
 
  type -> int:
-  return header_.messageType_
+  return message-type_
 
  data -> Data:
-  return data_
+  return materialize-data_
 
  stringify -> string:
-  s := "Message type: $header_.messageType_ length: $header_.messageLength_"
+  s := "Message type: $message-type_ length: $size"
   if this.msgId:
     s += " id: $this.msgId"
   if this.response-to:
@@ -93,32 +110,40 @@ class Message:
   return s
 
  size -> int:
+  if raw-bytes-valid_: return message-length_
   // protocol, header, data, checksum
-  return 1 + 2 + 2 + header_.data_.size + data_.size + 2
+  return 1 + 2 + 2 + materialize-header_.data_.size + materialize-data_.size + 2
 
  // TODO remove this duplicate method...
  bytes -> ByteArray:
   return bytes-for-protocol
 
  bytes-for-protocol -> ByteArray:
+  if raw-bytes-valid_: return bytes_
   message-size := size
   b := ByteArray message-size
   write-bytes-for-protocol-into b 0
   return b
 
  write-bytes-for-protocol-into target/ByteArray offset/int -> int:
+  if raw-bytes-valid_:
+    target.replace offset bytes_ 0 message-length_
+    return offset + message-length_
+
   message-size := size
-  header_.messageLength_ = message-size
+  materialize-header_.messageLength_ = message-size
 
   target[offset] = protocol-version_
-  write-offset := header_.write-bytes-for-protocol-into target (offset + 1)
-  write-offset = data_.write-bytes-for-protocol-into target write-offset
+  write-offset := materialize-header_.write-bytes-for-protocol-into target (offset + 1)
+  write-offset = materialize-data_.write-bytes-for-protocol-into target write-offset
 
   checksum_ = checksum-calc-range_ target offset message-size
   LITTLE-ENDIAN.put-uint16 target (offset + message-size - 2) checksum_
   return offset + message-size
 
  checksum-calc -> int:
+  if raw-bytes-valid_:
+    return checksum-calc-range_ bytes_ 0 message-length_
   pre-csum := bytes-early_
   // Calculate CRC16 XMODEM over the bytes (without the last 2 which will be checksum)
   return checksum-calc-bytes_ pre-csum
@@ -133,16 +158,82 @@ class Message:
 
  // byteListEarly_ is a byteList, without length of checksum calculated
  bytes-early_ -> ByteArray:
-  header-size := 2 + 2 + header_.data_.size
-  message-size := 1 + header-size + data_.size + 2
-  header_.messageLength_ = message-size
+  if raw-bytes-valid_: return bytes_
+  header-size := 2 + 2 + materialize-header_.data_.size
+  message-size := 1 + header-size + materialize-data_.size + 2
+  materialize-header_.messageLength_ = message-size
 
   b := ByteArray message-size
   // first byte is protocol version
   b[0] = protocol-version_
   // then header and main data
-  write-offset := header_.write-bytes-for-protocol-into b 1
-  data_.write-bytes-for-protocol-into b write-offset
+  write-offset := materialize-header_.write-bytes-for-protocol-into b 1
+  materialize-data_.write-bytes-for-protocol-into b write-offset
   // add checksum which is uint16 LE
   LITTLE-ENDIAN.put-uint16 b (b.size - 2) checksum_
   return b
+
+ raw-bytes-valid_ -> bool:
+  if bytes_ == null: return false
+  if header_ != null:
+    if header_.messageLength_ != message-length_: return false
+    if header_.messageType_ != message-type_: return false
+    if header_.data.is-dirty_: return false
+  if data_ != null and data_.is-dirty_: return false
+  return true
+
+ materialize-header_ -> Header:
+  if header_ == null:
+    header-data := Data.from-bytes-at bytes_ 5
+    header_ = Header message-length_ message-type_ header-data
+  return header_
+
+ materialize-data_ -> Data:
+  if data_ == null:
+    data-offset := 1 + raw-header-size_
+    data_ = Data.from-bytes-at bytes_ data-offset
+  return data_
+
+ header-size_ -> int:
+  if header_ != null: return header_.size
+  return raw-header-size_
+
+ raw-header-size_ -> int:
+  return 4 + (serialized-size-at bytes_ 5)
+
+ header-data-has_ dataType/int -> bool:
+  if raw-bytes-valid_: return data-has-at_ bytes_ 5 dataType
+  return materialize-header_.data.has-data dataType
+
+ header-data-uint_ dataType/int -> int:
+  if raw-bytes-valid_: return data-uint-at_ bytes_ 5 dataType
+  return materialize-header_.data.get-data-uint dataType
+
+ header-data-int_ dataType/int -> int:
+  if raw-bytes-valid_: return data-int-at_ bytes_ 5 dataType
+  return materialize-header_.data.get-data-intn dataType
+
+ data-field-start-at_ bytes/ByteArray offset/int dataType/int -> int:
+  fields := LITTLE-ENDIAN.uint16 bytes offset
+  data-index := offset + 2 + fields
+  for i := 0; i < fields; i++:
+    length := bytes[data-index]
+    if bytes[offset + 2 + i] == dataType:
+      return data-index
+    data-index += 1 + length
+  return -1
+
+ data-has-at_ bytes/ByteArray offset/int dataType/int -> bool:
+  return (data-field-start-at_ bytes offset dataType) >= 0
+
+ data-uint-at_ bytes/ByteArray offset/int dataType/int -> int:
+  start := data-field-start-at_ bytes offset dataType
+  if start < 0: return 0
+  size := bytes[start]
+  return LITTLE-ENDIAN.read-uint bytes size (start + 1)
+
+ data-int-at_ bytes/ByteArray offset/int dataType/int -> int:
+  start := data-field-start-at_ bytes offset dataType
+  if start < 0: return 0
+  size := bytes[start]
+  return LITTLE-ENDIAN.read-int bytes size (start + 1)

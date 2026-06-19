@@ -5,6 +5,10 @@ import coordinate show Coordinate
 class Data:
   dataTypes_ /ByteArray := ?
   data_ /ByteArray := ?
+  source_ /ByteArray? := null
+  source-offset_ /int := 0
+  data-start_ /int := 0
+  dirty_ /bool := false
   fields_ /int := 0
   data-size_ /int := 0
   serialized-size_ /int := 2
@@ -12,6 +16,10 @@ class Data:
   constructor:
     dataTypes_ = #[]
     data_ = #[]
+    source_ = null
+    source-offset_ = 0
+    data-start_ = 0
+    dirty_ = false
     fields_ = 0
     data-size_ = 0
     serialized-size_ = 2
@@ -19,6 +27,10 @@ class Data:
   constructor.from-data data/Data:
     dataTypes_ = data.dataTypes_
     data_ = data.data_
+    source_ = data.source_
+    source-offset_ = data.source-offset_
+    data-start_ = data.data-start_
+    dirty_ = data.dirty_
     fields_ = data.fields_
     data-size_ = data.data-size_
     serialized-size_ = data.serialized-size_
@@ -26,6 +38,10 @@ class Data:
   constructor.from-bytes bytes/ByteArray:
     dataTypes_ = #[]
     data_ = #[]
+    source_ = null
+    source-offset_ = 0
+    data-start_ = 0
+    dirty_ = false
     fields_ = 0
     data-size_ = 0
     serialized-size_ = 2
@@ -34,6 +50,10 @@ class Data:
   constructor.from-bytes-at bytes/ByteArray offset/int:
     dataTypes_ = #[]
     data_ = #[]
+    source_ = null
+    source-offset_ = 0
+    data-start_ = 0
+    dirty_ = false
     fields_ = 0
     data-size_ = 0
     serialized-size_ = 2
@@ -45,7 +65,6 @@ class Data:
     fields := LITTLE-ENDIAN.uint16 bytes offset
     if bytes.size < offset + 2 + fields:
       throw "V3 OOB: For data types, expected $(offset + 2 + fields) got $bytes.size"
-    dataTypes_ = bytes[offset + 2..offset + 2 + fields]
     // read data (each is a uint8 length, then that number of bytes)
     index := offset + 2 + fields
     for i := 0; i < fields; i++:
@@ -56,16 +75,20 @@ class Data:
       if index + length > bytes.size:
         throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
       index += length
-    data-start := offset + 2 + fields
-    data_ = bytes[data-start..index]
+    data-start_ = offset + 2 + fields
+    source_ = bytes
+    source-offset_ = offset
+    dataTypes_ = #[]
+    data_ = #[]
+    dirty_ = false
     fields_ = fields
-    data-size_ = data_.size
+    data-size_ = index - data-start_
     serialized-size_ = 2 + fields + data-size_
 
   stringify -> string:
     s := ""
     for i := 0; i < fields_; i++:
-      s += dataTypes_[i].stringify + ": " + (field-data_ i).stringify + ", "
+      s += (data-type_ i).stringify + ": " + (field-data_ i).stringify + ", "
     return s
   
   add-data-string dataType/int data/string -> none:
@@ -137,7 +160,7 @@ class Data:
   has-data dataType/int -> bool:
     e := catch:
       for i := 0; i < fields_; i++:
-        if dataTypes_[i] == dataType:
+        if (data-type_ i) == dataType:
           return true
       return false
     if e:
@@ -145,6 +168,8 @@ class Data:
     return false
 
   remove-data dataType/int -> none:
+    if source_ != null: materialize_ 
+    dirty_ = true
     e := catch:
       for i := 0; i < fields_; i++:
         if dataTypes_[i] == dataType:
@@ -154,13 +179,13 @@ class Data:
 
           new-data-types := ByteArray fields_ - 1
           new-data-types.replace 0 dataTypes_ 0 i
-          new-data-types.replace i dataTypes_ (i + 1) (fields_ - i - 1)
+          new-data-types.replace i dataTypes_ (i + 1) fields_
           dataTypes_ = new-data-types
 
           new-data-size := data-size_ - (1 + field-size)
           new-data := ByteArray new-data-size
           new-data.replace 0 data_ 0 field-start
-          new-data.replace field-start data_ field-end (data-size_ - field-end)
+          new-data.replace field-start data_ field-end data-size_
           data_ = new-data
 
           fields_ -= 1
@@ -175,7 +200,7 @@ class Data:
   get-data dataType/int -> ByteArray:
     e := catch:
       for i := 0; i < fields_; i++:
-        if dataTypes_[i] == dataType:
+        if (data-type_ i) == dataType:
           return field-data_ i
       return #[]
     if e:
@@ -187,27 +212,27 @@ class Data:
     return data.to-string
 
   get-data-uint8 dataType/int -> int:
-    data := get-data dataType
-    if data.size == 0:
+    start := field-start-for-data-type_ dataType
+    if start < 0:
       log.warn "No data for datatype $(dataType)"
       return 0
-    return LITTLE-ENDIAN.uint8 data 0
+    return LITTLE-ENDIAN.uint8 (field-source_) (start + 1)
 
   get-data-uint16 dataType/int -> int:
-    return LITTLE-ENDIAN.uint16 (get-data dataType) 0
+    return LITTLE-ENDIAN.uint16 (field-source_) ((field-start-for-data-type_ dataType) + 1)
 
   get-data-uint32 dataType/int -> int:
-    return LITTLE-ENDIAN.uint32 (get-data dataType) 0
+    return LITTLE-ENDIAN.uint32 (field-source_) ((field-start-for-data-type_ dataType) + 1)
 
   get-data-int32 dataType/int -> int:
-    return LITTLE-ENDIAN.int32 (get-data dataType) 0
+    return LITTLE-ENDIAN.int32 (field-source_) ((field-start-for-data-type_ dataType) + 1)
 
   get-data-uint64 dataType/int -> int:
-    data := get-data dataType
-    if data.size < 8:
+    start := field-start-for-data-type_ dataType
+    if start < 0 or (field-source_)[start] < 8:
       log.warn "No data for datatype $(dataType)"
       return 0
-    return LITTLE-ENDIAN.read-uint data 8 0
+    return LITTLE-ENDIAN.read-uint (field-source_) 8 (start + 1)
 
   add-data-list-uint16 dataType/int data/List -> none:
     b := ByteArray data.size * 2
@@ -285,35 +310,31 @@ class Data:
     return get-data-float32 dataType
 
   get-data-float32 dataType/int -> float:
-    d := get-data dataType
-    return LITTLE-ENDIAN.float32 d 0
+    return LITTLE-ENDIAN.float32 (field-source_) ((field-start-for-data-type_ dataType) + 1)
 
   get-data-uint dataType/int -> int:
-    // read the data for the type, and decide which size it fits in
-    // ie 1 bytes is unint8
-    // 2 bytes is uint16
-    // 3 bytes should be 32, as should 4 bytes
-    // etc
-    data := get-data dataType
-    if data.size == 0:
+    start := field-start-for-data-type_ dataType
+    if start < 0:
       log.warn "No data for datatype $(dataType)"
       return 0
-    if data.size <= 8:
-      return LITTLE-ENDIAN.read-uint data data.size 0
-    log.error "Data size too large for uintn: $(data.size)"
+    size := (field-source_)[start]
+    if size <= 8:
+      return LITTLE-ENDIAN.read-uint (field-source_) size (start + 1)
+    log.error "Data size too large for uintn: $(size)"
     return 0
 
   get-data-int dataType/int -> int:
     return get-data-intn dataType
 
   get-data-intn dataType/int -> int:
-    data := get-data dataType
-    if data.size == 0:
+    start := field-start-for-data-type_ dataType
+    if start < 0:
       log.warn "No data for datatype $(dataType)"
       return 0
-    if data.size <= 8:
-      return LITTLE-ENDIAN.read-int data data.size 0
-    log.error "Data size too large for intn: $(data.size)"
+    size := (field-source_)[start]
+    if size <= 8:
+      return LITTLE-ENDIAN.read-int (field-source_) size (start + 1)
+    log.error "Data size too large for intn: $(size)"
     return 0
 
   size -> int:
@@ -334,14 +355,22 @@ class Data:
     LITTLE-ENDIAN.put-uint16 target offset dfc
     // then data types
     bi := offset + 2
-    target.replace bi dataTypes_ 0 dfc
+    if is-view_:
+      target.replace bi source_ (source-offset_ + 2) (source-offset_ + 2 + dfc)
+    else:
+      target.replace bi dataTypes_ 0 dfc
     bi += dfc
     // then data
-    target.replace bi data_ 0 data-size_
+    if is-view_:
+      target.replace bi source_ data-start_ (data-start_ + data-size_)
+    else:
+      target.replace bi data_ 0 data-size_
     bi += data-size_
     return bi
 
   add-data-space_ dataType/int size/int -> int:
+    if source_ != null: materialize_
+    dirty_ = true
     if size > 255:
       throw "V3 protocol can't have data field of over 255 bytes"
     ensure-data-types-capacity_ fields_ + 1
@@ -371,18 +400,64 @@ class Data:
     data_ = new-data
 
   field-start_ index/int -> int:
-    offset := 0
+    offset := is-view_ ? data-start_ : 0
     index.repeat:
-      offset += 1 + data_[offset]
+      offset += 1 + (field-source_)[offset]
     return offset
 
   field-data_ index/int -> ByteArray:
     start := field-start_ index
-    size := data_[start]
-    return data_[start + 1..start + 1 + size]
+    size := (field-source_)[start]
+    source := field-source_
+    return source[start + 1..start + 1 + size]
+
+  data-type_ index/int -> int:
+    if is-view_: return source_[source-offset_ + 2 + index]
+    return dataTypes_[index]
+
+  field-source_ -> ByteArray:
+    if is-view_: return source_
+    return data_
+
+  field-start-for-data-type_ dataType/int -> int:
+    for i := 0; i < fields_; i++:
+      if (data-type_ i) == dataType:
+        return field-start_ i
+    return -1
+
+  is-view_ -> bool:
+    return source_ != null
+
+  materialize_ -> none:
+    if source_ == null: return
+    dataTypes_ = source_[source-offset_ + 2..source-offset_ + 2 + fields_]
+    data_ = source_[data-start_..data-start_ + data-size_]
+    source_ = null
+    source-offset_ = 0
+    data-start_ = 0
+
+  is-dirty_ -> bool:
+    return dirty_
 
 list-to-byte-array l/List -> ByteArray:
   b := ByteArray l.size
   for i := 0; i < l.size; i++:
     b[i] = l[i]
   return b
+
+serialized-size-at bytes/ByteArray offset/int -> int:
+  if bytes.size < offset + 2:
+    throw "V3 OOB: For fields, expected $(offset + 2) got $bytes.size"
+  fields := LITTLE-ENDIAN.uint16 bytes offset
+  if bytes.size < offset + 2 + fields:
+    throw "V3 OOB: For data types, expected $(offset + 2 + fields) got $bytes.size"
+  index := offset + 2 + fields
+  for i := 0; i < fields; i++:
+    if index >= bytes.size:
+      throw "V3 OOB: For data length, expected $index got $bytes.size"
+    length := bytes[index]
+    index += 1
+    if index + length > bytes.size:
+      throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
+    index += length
+  return index - offset
