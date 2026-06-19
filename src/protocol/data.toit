@@ -3,29 +3,39 @@ import log
 import coordinate show Coordinate
 
 class Data:
-  dataTypes_ /List := ?
-  data_ /List := ?
+  dataTypes_ /ByteArray := ?
+  data_ /ByteArray := ?
+  fields_ /int := 0
+  data-size_ /int := 0
   serialized-size_ /int := 2
 
   constructor:
-    dataTypes_ = []
-    data_ = []
+    dataTypes_ = #[]
+    data_ = #[]
+    fields_ = 0
+    data-size_ = 0
     serialized-size_ = 2
   
   constructor.from-data data/Data:
     dataTypes_ = data.dataTypes_
     data_ = data.data_
+    fields_ = data.fields_
+    data-size_ = data.data-size_
     serialized-size_ = data.serialized-size_
   
   constructor.from-bytes bytes/ByteArray:
-    dataTypes_ = []
-    data_ = []
+    dataTypes_ = #[]
+    data_ = #[]
+    fields_ = 0
+    data-size_ = 0
     serialized-size_ = 2
     this.parse-into bytes 0
 
   constructor.from-bytes-at bytes/ByteArray offset/int:
-    dataTypes_ = []
-    data_ = []
+    dataTypes_ = #[]
+    data_ = #[]
+    fields_ = 0
+    data-size_ = 0
     serialized-size_ = 2
     this.parse-into bytes offset
 
@@ -35,16 +45,9 @@ class Data:
     fields := LITTLE-ENDIAN.uint16 bytes offset
     if bytes.size < offset + 2 + fields:
       throw "V3 OOB: For data types, expected $(offset + 2 + fields) got $bytes.size"
-    // read data types
-    for i := 0; i < fields; i++:
-      dataType := bytes[offset + 2 + i]
-      if i < dataTypes_.size:
-        dataTypes_[i] = dataType
-      else:
-        dataTypes_.add dataType
+    dataTypes_ = bytes[offset + 2..offset + 2 + fields]
     // read data (each is a uint8 length, then that number of bytes)
     index := offset + 2 + fields
-    data-length := 0
     for i := 0; i < fields; i++:
       if index >= bytes.size:
         throw "V3 OOB: For data length, expected $index got $bytes.size"
@@ -52,25 +55,17 @@ class Data:
       index += 1
       if index + length > bytes.size:
         throw "V3 OOB: For data, expected $(index + length) got $bytes.size"
-      field := bytes[index..index + length]
-      data-length += 1 + length
-      if i < data_.size:
-        data_[i] = field
-      else:
-        data_.add field
       index += length
-
-    while dataTypes_.size > fields:
-      dataTypes_.remove --at=(dataTypes_.size - 1)
-    while data_.size > fields:
-      data_.remove --at=(data_.size - 1)
-
-    serialized-size_ = 2 + fields + data-length
+    data-start := offset + 2 + fields
+    data_ = bytes[data-start..index]
+    fields_ = fields
+    data-size_ = data_.size
+    serialized-size_ = 2 + fields + data-size_
 
   stringify -> string:
     s := ""
-    for i := 0; i < dataTypes_.size; i++:
-      s += dataTypes_[i].stringify + ": " + data_[i].stringify + ", "
+    for i := 0; i < fields_; i++:
+      s += dataTypes_[i].stringify + ": " + (field-data_ i).stringify + ", "
     return s
   
   add-data-string dataType/int data/string -> none:
@@ -128,8 +123,13 @@ class Data:
   add-data dataType/int data/ByteArray -> none:
     if data.size > 255:
       throw "V3 protocol can't have data field of over 255 bytes"
-    data_.add data
-    dataTypes_.add dataType
+    ensure-data-types-capacity_ fields_ + 1
+    dataTypes_[fields_] = dataType
+    ensure-data-capacity_ data-size_ + 1 + data.size
+    data_[data-size_] = data.size
+    data_.replace (data-size_ + 1) data 0 data.size
+    fields_ += 1
+    data-size_ += 1 + data.size
     serialized-size_ += 2 + data.size
 
   add-data-bool dataType/int data/bool -> none:
@@ -143,7 +143,7 @@ class Data:
 
   has-data dataType/int -> bool:
     e := catch:
-      for i := 0; i < dataTypes_.size; i++:
+      for i := 0; i < fields_; i++:
         if dataTypes_[i] == dataType:
           return true
       return false
@@ -153,12 +153,26 @@ class Data:
 
   remove-data dataType/int -> none:
     e := catch:
-      for i := 0; i < dataTypes_.size; i++:
+      for i := 0; i < fields_; i++:
         if dataTypes_[i] == dataType:
-          removed-size := data_[i].size
-          dataTypes_.remove --at=i
-          data_.remove --at=i
-          serialized-size_ -= 2 + removed-size
+          field-start := field-start_ i
+          field-size := data_[field-start]
+          field-end := field-start + 1 + field-size
+
+          new-data-types := ByteArray fields_ - 1
+          new-data-types.replace 0 dataTypes_ 0 i
+          new-data-types.replace i dataTypes_ (i + 1) (fields_ - i - 1)
+          dataTypes_ = new-data-types
+
+          new-data-size := data-size_ - (1 + field-size)
+          new-data := ByteArray new-data-size
+          new-data.replace 0 data_ 0 field-start
+          new-data.replace field-start data_ field-end (data-size_ - field-end)
+          data_ = new-data
+
+          fields_ -= 1
+          data-size_ = new-data-size
+          serialized-size_ -= 2 + field-size
           return
     if e:
       log.warn "Failed to remove data: $(e)"
@@ -167,9 +181,9 @@ class Data:
   // will never throw an error
   get-data dataType/int -> ByteArray:
     e := catch:
-      for i := 0; i < dataTypes_.size; i++:
+      for i := 0; i < fields_; i++:
         if dataTypes_[i] == dataType:
-          return data_[i]
+          return field-data_ i
       return #[]
     if e:
       log.warn "Failed to get data: $(e)"
@@ -350,7 +364,7 @@ class Data:
     return serialized-size_
   
   data-field-count -> int:
-    return dataTypes_.size
+    return fields_
   
   bytes-for-protocol -> ByteArray:
     b := ByteArray serialized-size_
@@ -358,25 +372,46 @@ class Data:
     return b
 
   write-bytes-for-protocol-into target/ByteArray offset/int -> int:
-    dfc := dataTypes_.size
+    dfc := fields_
 
     // first, datafield count uint16 LE
     target[offset] = dfc & 0xFF
     target[offset + 1] = dfc >> 8
     // then data types
     bi := offset + 2
-    for i := 0; i < dfc; i++:
-      target[bi] = dataTypes_[i]
-      bi += 1
+    target.replace bi dataTypes_ 0 dfc
+    bi += dfc
     // then data
-    for i := 0; i < dfc; i++:
-      fieldData := data_[i]
-      fieldSize := fieldData.size
-      target[bi] = fieldSize
-      bi += 1
-      target.replace bi fieldData 0 fieldSize
-      bi += fieldSize
+    target.replace bi data_ 0 data-size_
+    bi += data-size_
     return bi
+
+  ensure-data-types-capacity_ required/int -> none:
+    if dataTypes_.size >= required: return
+    new-size := dataTypes_.size * 2
+    if new-size < 8: new-size = 8
+    if new-size < required: new-size = required
+    new-data-types := ByteArray new-size
+    new-data-types.replace 0 dataTypes_ 0 fields_
+    dataTypes_ = new-data-types
+
+  ensure-data-capacity_ required/int -> none:
+    if data_.size >= required: return
+    new-size := required + 16
+    new-data := ByteArray new-size
+    new-data.replace 0 data_ 0 data-size_
+    data_ = new-data
+
+  field-start_ index/int -> int:
+    offset := 0
+    index.repeat:
+      offset += 1 + data_[offset]
+    return offset
+
+  field-data_ index/int -> ByteArray:
+    start := field-start_ index
+    size := data_[start]
+    return data_[start + 1..start + 1 + size]
 
 list-to-byte-array l/List -> ByteArray:
   b := ByteArray l.size
