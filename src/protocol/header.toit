@@ -1,6 +1,12 @@
 import io.byte-order show LITTLE-ENDIAN
 import .data show *
 
+/**
+Deprecated for new hot-path code. Prefer Message.header-* helpers for header
+field reads/writes; parsed messages can answer those without allocating this
+Header view. This class remains for compatibility and explicit materialized
+header access.
+*/
 class Header:
   // Header data types
   static TYPE_MESSAGE_ID := 1             // ID that can be used by receiver to ACK, and client to track for various responses, or re-sends

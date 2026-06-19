@@ -9,12 +9,18 @@ import ..util.bytes show stringify-all-bytes
 
 class Message:
  protocol-version_ /int := 3
- header_ /Header? := null
  data_ /Data? := null
  bytes_ /ByteArray? := null
  message-length_ /int := 0
  message-type_ /int := 0
  checksum_ /int := 0
+
+ // Deprecated for new hot-path code. Prefer Message.header-* helpers for header
+ // field reads/writes; parsed messages can answer those without allocating this
+ // Header view. This class remains for compatibility and explicit materialized
+ // header access.
+ // Scheduled for removal in the 2nd half of 2026.
+ header_ /Header? := null 
 
  constructor messageType/int:
   message-type_ = messageType
@@ -58,37 +64,109 @@ class Message:
 
  static with-method messageType/int method/int data/Data?=Data -> Message:
   msg := Message.with-data messageType data
-  msg.header.data.add-data-uint8 Header.TYPE-MESSAGE-METHOD method
+  msg.header-add-data-uint8 Header.TYPE-MESSAGE-METHOD method
   return msg
 
  msgId -> int?:
-  if header-data-has_ Header.TYPE_MESSAGE_ID: return header-data-uint_ Header.TYPE_MESSAGE_ID
+  if header-has-data Header.TYPE_MESSAGE_ID: return header-get-data-uint Header.TYPE_MESSAGE_ID
   return null
 
  response-to -> int?:
-  if header-data-has_ Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header-data-uint_ Header.TYPE-RESPONSE-TO-MESSAGE-ID
+  if header-has-data Header.TYPE-RESPONSE-TO-MESSAGE-ID: return header-get-data-uint Header.TYPE-RESPONSE-TO-MESSAGE-ID
   return null
 
  msgType -> int:
   return type
 
  msg-status -> int?:
-  if header-data-has_ Header.TYPE_MESSAGE_STATUS: return header-data-int_ Header.TYPE_MESSAGE_STATUS
+  if header-has-data Header.TYPE_MESSAGE_STATUS: return header-get-data-int Header.TYPE_MESSAGE_STATUS
   return null
 
  msg-ok -> bool:
-  return not (header-data-has_ Header.TYPE_MESSAGE_STATUS) or (header-data-int_ Header.TYPE_MESSAGE_STATUS) <= Header.STATUS_OK
+  return not (header-has-data Header.TYPE_MESSAGE_STATUS) or (header-get-data-int Header.TYPE_MESSAGE_STATUS) <= Header.STATUS_OK
 
  msg-status-id status/int -> bool:
-  return (header-data-has_ Header.TYPE_MESSAGE_STATUS) and (header-data-int_ Header.TYPE_MESSAGE_STATUS) == status
+  return (header-has-data Header.TYPE_MESSAGE_STATUS) and (header-get-data-int Header.TYPE_MESSAGE_STATUS) == status
 
  was-forwarded -> bool:
-  return (header-data-has_ Header.TYPE_FORWARDED_FOR) or (header-data-has_ Header.TYPE_FORWARDED_FOR_TYPE)
+  return (header-has-data Header.TYPE_FORWARDED_FOR) or (header-has-data Header.TYPE_FORWARDED_FOR_TYPE)
 
  forwarded-for -> int?:
-  if header-data-has_ Header.TYPE_FORWARDED_FOR:
-    return header-data-uint_ Header.TYPE_FORWARDED_FOR
+  if header-has-data Header.TYPE_FORWARDED_FOR:
+    return header-get-data-uint Header.TYPE_FORWARDED_FOR
   return null
+
+ header-has-data dataType/int -> bool:
+  return header-data-has_ dataType
+
+ header-get-data dataType/int -> ByteArray:
+  return materialize-header_.data.get-data dataType
+
+ header-get-data-ascii dataType/int -> string:
+  return materialize-header_.data.get-data-ascii dataType
+
+ header-get-data-uint8 dataType/int -> int:
+  if raw-bytes-valid_: return header-data-uint_ dataType
+  return materialize-header_.data.get-data-uint8 dataType
+
+ header-get-data-uint16 dataType/int -> int:
+  if raw-bytes-valid_: return header-data-uint_ dataType
+  return materialize-header_.data.get-data-uint16 dataType
+
+ header-get-data-uint32 dataType/int -> int:
+  if raw-bytes-valid_: return header-data-uint_ dataType
+  return materialize-header_.data.get-data-uint32 dataType
+
+ header-get-data-uint dataType/int -> int:
+  return header-data-uint_ dataType
+
+ header-get-data-int dataType/int -> int:
+  return header-data-int_ dataType
+
+ header-get-data-intn dataType/int -> int:
+  return header-get-data-int dataType
+
+ header-add-data-string dataType/int data/string -> none:
+  materialize-header_.data.add-data-string dataType data
+
+ header-add-data-ascii dataType/int data/string -> none:
+  materialize-header_.data.add-data-ascii dataType data
+
+ header-add-data-uint8 dataType/int data/int -> none:
+  materialize-header_.data.add-data-uint8 dataType data
+
+ header-add-data-uint16 dataType/int data/int -> none:
+  materialize-header_.data.add-data-uint16 dataType data
+
+ header-add-data-uint32 dataType/int data/int -> none:
+  materialize-header_.data.add-data-uint32 dataType data
+
+ header-add-data-int8 dataType/int data/int -> none:
+  materialize-header_.data.add-data-int8 dataType data
+
+ header-add-data-int32 dataType/int data/int -> none:
+  materialize-header_.data.add-data-int32 dataType data
+
+ header-add-data-uint64 dataType/int data/int -> none:
+  materialize-header_.data.add-data-uint64 dataType data
+
+ header-add-data-uint dataType/int data/int -> none:
+  materialize-header_.data.add-data-uint dataType data
+
+ header-add-data-float dataType/int data/float -> none:
+  materialize-header_.data.add-data-float dataType data
+
+ header-add-data-float32 dataType/int data/float -> none:
+  materialize-header_.data.add-data-float32 dataType data
+
+ header-add-data dataType/int data/ByteArray -> none:
+  materialize-header_.data.add-data dataType data
+
+ header-add-data-bool dataType/int data/bool -> none:
+  materialize-header_.data.add-data-bool dataType data
+
+ header-remove-data dataType/int -> none:
+  materialize-header_.data.remove-data dataType
 
  header -> Header:
   return materialize-header_  
@@ -174,12 +252,16 @@ class Message:
   return b
 
  raw-bytes-valid_ -> bool:
+  if not header-bytes-valid_: return false
+  if data_ != null and data_.is-dirty_: return false
+  return true
+
+ header-bytes-valid_ -> bool:
   if bytes_ == null: return false
   if header_ != null:
     if header_.messageLength_ != message-length_: return false
     if header_.messageType_ != message-type_: return false
     if header_.data.is-dirty_: return false
-  if data_ != null and data_.is-dirty_: return false
   return true
 
  materialize-header_ -> Header:
@@ -202,15 +284,15 @@ class Message:
   return 4 + (serialized-size-at bytes_ 5)
 
  header-data-has_ dataType/int -> bool:
-  if raw-bytes-valid_: return data-has-at_ bytes_ 5 dataType
+  if header-bytes-valid_: return data-has-at_ bytes_ 5 dataType
   return materialize-header_.data.has-data dataType
 
  header-data-uint_ dataType/int -> int:
-  if raw-bytes-valid_: return data-uint-at_ bytes_ 5 dataType
+  if header-bytes-valid_: return data-uint-at_ bytes_ 5 dataType
   return materialize-header_.data.get-data-uint dataType
 
  header-data-int_ dataType/int -> int:
-  if raw-bytes-valid_: return data-int-at_ bytes_ 5 dataType
+  if header-bytes-valid_: return data-int-at_ bytes_ 5 dataType
   return materialize-header_.data.get-data-intn dataType
 
  data-field-start-at_ bytes/ByteArray offset/int dataType/int -> int:

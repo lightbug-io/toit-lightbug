@@ -32,11 +32,11 @@ class BLEHandler implements MessageHandler:
       return false
     
     // Check if this is a GET request (scan request)
-    if not msg.header.data.has-data protocol.Header.TYPE-MESSAGE-METHOD:
+    if not msg.header-has-data protocol.Header.TYPE-MESSAGE-METHOD:
       logger_.warn "BLE message missing method type"
       return false
     
-    method := msg.header.data.get-data-uint protocol.Header.TYPE-MESSAGE-METHOD
+    method := msg.header-get-data-uint protocol.Header.TYPE-MESSAGE-METHOD
     if method != protocol.Header.METHOD_SUBSCRIBE:
       logger_.debug "BLE message with non-SUBSCRUBE method: $method"
       return false
@@ -62,8 +62,8 @@ class BLEHandler implements MessageHandler:
    * Returns default duration if not specified.
    */
   extract-scan-duration msg/protocol.Message -> int:
-    if msg.header.data.has-data protocol.Header.TYPE-SUBSCRIPTION-DURATION:
-      duration := msg.header.data.get-data-uint protocol.Header.TYPE-SUBSCRIPTION-DURATION
+    if msg.header-has-data protocol.Header.TYPE-SUBSCRIPTION-DURATION:
+      duration := msg.header-get-data-uint protocol.Header.TYPE-SUBSCRIPTION-DURATION
       logger_.debug "BLE scan duration from header: $(duration)ms"
       return duration
     else:
@@ -87,22 +87,22 @@ class BLEHandler implements MessageHandler:
         send-device-response result request-msg-id request-msg-forwarded-for
 
       expired-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
-      expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
+      expired-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
       if request-msg-id != null:
-        expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+        expired-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
       if request-msg-forwarded-for != null:
-        expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
+        expired-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
       device_.comms.send expired-msg
       
       logger_.debug "All BLE device responses sent"
     
     if e:
       error-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
-      error-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
+      error-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
       if request-msg-id != null:
-        error-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+        error-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
       if request-msg-forwarded-for != null:
-        error-msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
+        error-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
       device_.comms.send error-msg
       logger_.error "Error during BLE scan: $e"
   
@@ -122,9 +122,9 @@ class BLEHandler implements MessageHandler:
     // Construct a protocol message and set response-to header so it ties back to the request.
     response-msg := protocol.Message.with-data messages.BLEScan.MT response-data
     if request-msg-id != null:
-      response-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+      response-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
     if request-msg-forwarded-for != null:
-      response-msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
+      response-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
 
     // Send the response
     device_.comms.send response-msg

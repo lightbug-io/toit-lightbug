@@ -41,7 +41,7 @@ validate-parsed-mutation label/string message/protocol.Message -> none:
   encoded := message.bytes-for-protocol
   parsed := protocol.Message.from-bytes encoded
 
-  parsed.header.data.add-data-uint16 protocol.Header.TYPE-MESSAGE_STATUS protocol.Header.STATUS_FAILED_WILL_RETRY
+  parsed.header-add-data-uint16 protocol.Header.TYPE-MESSAGE_STATUS protocol.Header.STATUS_FAILED_WILL_RETRY
   parsed.data.add-data-uint32 77 0x12345678
 
   mutated := parsed.bytes-for-protocol
@@ -56,7 +56,7 @@ validate-parsed-remove label/string message/protocol.Message -> none:
   encoded := message.bytes-for-protocol
   parsed := protocol.Message.from-bytes encoded
 
-  parsed.header.data.remove-data protocol.Header.TYPE-MESSAGE_ID
+  parsed.header-remove-data protocol.Header.TYPE-MESSAGE_ID
   parsed.data.remove-data 1
 
   mutated := parsed.bytes-for-protocol
@@ -66,6 +66,23 @@ validate-parsed-remove label/string message/protocol.Message -> none:
   assert-eq-int "$label removed-payload" (reparsed.data.has-data 1 ? 1 : 0) 0
   assert-eq-int "$label remove-length" (length-from-header mutated) mutated.size
   assert-eq-int "$label remove-checksum" (reparsed.checksum-calc) (checksum-from-trailer mutated)
+
+validate-header-helpers label/string message/protocol.Message -> none:
+  parsed := protocol.Message.from-bytes message.bytes-for-protocol
+
+  assert-eq-int "$label helper-has" (parsed.header-has-data protocol.Header.TYPE-MESSAGE_ID ? 1 : 0) 1
+  assert-eq-int "$label helper-uint" (parsed.header-get-data-uint protocol.Header.TYPE-MESSAGE_ID) 55
+  assert-eq-int "$label helper-uint16" (parsed.header-get-data-uint16 protocol.Header.TYPE-FORWARDED_FOR) 99
+
+  parsed.header-add-data-uint8 protocol.Header.TYPE-MESSAGE_STATUS protocol.Header.STATUS_OK
+  parsed.header-add-data-ascii 50 "hdr"
+  assert-eq-int "$label helper-status" parsed.msg-status protocol.Header.STATUS_OK
+  assert-eq-int "$label helper-ascii-has" (parsed.header-has-data 50 ? 1 : 0) 1
+
+  encoded := parsed.bytes-for-protocol
+  reparsed := protocol.Message.from-bytes encoded
+  assert-eq-int "$label helper-reparsed-status" reparsed.msg-status protocol.Header.STATUS_OK
+  assert-eq-int "$label helper-reparsed-ascii" ((reparsed.header-get-data-ascii 50) == "hdr" ? 1 : 0) 1
 
 main:
   empty := protocol.Message.with-data 0 (protocol.Data)
@@ -78,9 +95,9 @@ main:
   header-heavy-data.add-data-uint32 42 0x89ABCDEF
 
   header-heavy := protocol.Message.with-method 222 protocol.Header.METHOD-SUBSCRIBE header-heavy-data
-  header-heavy.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE_ID 34567
-  header-heavy.header.data.add-data-uint16 protocol.Header.TYPE-SUBSCRIPTION_INTERVAL 500
-  header-heavy.header.data.add-data-uint16 protocol.Header.TYPE-SUBSCRIPTION_DURATION 600
+  header-heavy.header-add-data-uint32 protocol.Header.TYPE-MESSAGE_ID 34567
+  header-heavy.header-add-data-uint16 protocol.Header.TYPE-SUBSCRIPTION_INTERVAL 500
+  header-heavy.header-add-data-uint16 protocol.Header.TYPE-SUBSCRIPTION_DURATION 600
   validate-built-message "header-heavy" header-heavy
   validate-direct-writer-offset "header-heavy" header-heavy
 
@@ -91,12 +108,13 @@ main:
   payload.add-data 4 #[10, 11, 12, 13, 14, 15, 16]
 
   mixed := protocol.Message.with-data 19 payload
-  mixed.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE_TO_MESSAGE_ID 1234567
-  mixed.header.data.add-data-uint16 protocol.Header.TYPE-FORWARDED_FOR 99
-  mixed.header.data.add-data-uint16 protocol.Header.TYPE-MESSAGE_ID 55
+  mixed.header-add-data-uint32 protocol.Header.TYPE-RESPONSE_TO_MESSAGE_ID 1234567
+  mixed.header-add-data-uint16 protocol.Header.TYPE-FORWARDED_FOR 99
+  mixed.header-add-data-uint16 protocol.Header.TYPE-MESSAGE_ID 55
   validate-built-message "mixed" mixed
   validate-direct-writer-offset "mixed" mixed
   validate-parsed-mutation "mixed" mixed
   validate-parsed-remove "mixed" mixed
+  validate-header-helpers "mixed" mixed
 
   print "✅ Message build tests passed"

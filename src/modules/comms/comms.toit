@@ -5,7 +5,6 @@ import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
 import ...util.idgen show IdGenerator SequentialIdGenerator
 import ...util.bytes show stringify-all-bytes byte-array-to-list
-import crypto.crc
 import .message-handler show MessageHandler
 import .message-tracker show MessageTracker BoundedTrackerMap
 import io.reader show Reader
@@ -162,11 +161,8 @@ class Comms:
     while not device_.in.try-ensure-buffered 3:
       logger_.trace "Inbound reader waiting for 3 bytes"
       yield
-    // Peek all 3 bytes, which is protocol + message length
-    b3 := device_.in.peek-bytes 3
-
     // last to bytes of b3 are the uint16 LE message length
-    messageLength := (b3[2] << 8) + b3[1]
+    messageLength := ((device_.in.peek-byte 2) << 8) + (device_.in.peek-byte 1)
     // If the msgLength looks too long (over 1000, just advance, as its probably garbage)
     if messageLength > 1000:
         logger_.error "Message length probably too long, skipping: $(messageLength)"
@@ -193,16 +189,11 @@ class Comms:
       // And parse it as a protocol.Message directly from the ByteArray
       v3 := protocol.Message.from-bytes messageBytes
 
-      // Calculate the checksum directly over the message bytes, excluding the trailing checksum bytes.
-      // This avoids allocating temporary buffers/byte-lists in the hot inbound path.
-      checksum := crc.Crc16Xmodem
-      checksum.add messageBytes 0 (messageLength - 2)
-      calculatedChecksum := checksum.get-as-int
+      calculatedChecksum := v3.checksum-calc
 
       // if they match, we have a message, return it
       if expectedChecksum == calculatedChecksum:
-          // read the bytes we peeked
-          device_.in.read-bytes messageLength
+          device_.in.skip messageLength
           return v3
       else:
         logger_.error "Checksum mismatch, skipping message"
@@ -268,33 +259,33 @@ class Comms:
         inbox.send msg
 
     // Find waiting lambdas, based on the response
-    isResponse := msg.header.data.has-data protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
-    isAck := msg.header.message-type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
+    respondingTo := msg.response-to
+    isResponse := respondingTo != null
+    isAck := msg.type == messages.MSGTYPE_GENERAL_ACK // Otherwise it is a response
 
     // Ack messages that are not a response or an ack, and have a msg id
     // In the future, we likely want to push some of the ack decisions, and types of ack to the message handlers (when defined?!)
     if msg.msgId and not isResponse and not isAck:
       // ACK these messages...
       ack-msg := messages.ACK.msg --data=null
-      ack-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID msg.msgId
-      ack-msg.header.data.add-data-uint8 protocol.Header.TYPE_MESSAGE_STATUS protocol.Header.STATUS_OK
+      ack-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID msg.msgId
+      ack-msg.header-add-data-uint8 protocol.Header.TYPE_MESSAGE_STATUS protocol.Header.STATUS_OK
       send-via-outbox ack-msg
 
-    isBad := msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS and msg.msg-status > 0
+    msgStatus := msg.msg-status
+    isBad := msgStatus != null and msgStatus > 0
 
     // If the device returned a non-OKish message status, emit a concise warning.
     logger_.with-level log.WARN-LEVEL:
       if isBad:
         statusNumStr := "n/a"
         statusName := "unknown"
-        if msg.header.data.has-data protocol.Header.TYPE-MESSAGE-STATUS:
-          statusNum := msg.msg-status
-          statusNumStr = "$(statusNum)"
-          statusName = protocol.Header.STATUS_MAP.get statusNum --if-absent=(: "unknown")
+        if msgStatus != null:
+          statusNumStr = "$(msgStatus)"
+          statusName = protocol.Header.STATUS_MAP.get msgStatus --if-absent=(: "unknown")
         logger_.warn "Received non-OKish message: status=$(statusNumStr) ($(statusName)) $(msg)"
 
     if isResponse:
-      respondingTo := msg.header.data.get-data-uint protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID
       tracker := trackers_.get respondingTo
       if tracker:
         lambda := null
@@ -337,8 +328,8 @@ class Comms:
       --timeout/Duration = (Duration --s=60) -> monitor.Latch?:
   
     // Ensure the message has a known message id
-    if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+    if not (msg.header-has-data protocol.Header.TYPE-MESSAGE-ID):
+      msg.header-add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "SEND: $(msg)"
@@ -379,8 +370,8 @@ class Comms:
       --timeout/Duration = (Duration --s=60)
       --onTimeout/Lambda? = null -> protocol.Message?:
     // Ensure the message has a known message id.
-    if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+    if not (msg.header-has-data protocol.Header.TYPE-MESSAGE-ID):
+      msg.header-add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "SEND: $(msg)"
@@ -402,8 +393,8 @@ class Comms:
       --timeout/Duration = (Duration --s=60)
       --onTimeout/Lambda? = null -> monitor.Latch?:
     // Ensure the message has a known message id.
-    if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
-      msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+    if not (msg.header-has-data protocol.Header.TYPE-MESSAGE-ID):
+      msg.header-add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "SEND: $(msg)"
@@ -427,11 +418,18 @@ class Comms:
     // TODO don't call this on both the outbox and regular paths, as it is messy
     if now:
       // Ensure the message has a known message id
-      if not (msg.header.data.has-data protocol.Header.TYPE-MESSAGE-ID):
-        msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
+      if not (msg.header-has-data protocol.Header.TYPE-MESSAGE-ID):
+        msg.header-add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
 
       // Only allocate a combined buffer when there is a prefix to prepend.
-      m := LBSyncBytes_.is-empty ? msg.bytes : LBSyncBytes_ + msg.bytes
+      m := ?
+      if LBSyncBytes_.is-empty:
+        m = msg.bytes
+      else:
+        message-size := msg.size
+        m = ByteArray LBSyncBytes_.size + message-size
+        m.replace 0 LBSyncBytes_ 0 LBSyncBytes_.size
+        msg.write-bytes-for-protocol-into m LBSyncBytes_.size
 
       // Send the message
       device_.out.write m --flush=true

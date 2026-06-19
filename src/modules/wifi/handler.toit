@@ -28,11 +28,11 @@ class WiFiHandler implements MessageHandler:
     if msg.type != MESSAGE-TYPE:
       return false
 
-    if not msg.header.data.has-data protocol.Header.TYPE-MESSAGE-METHOD:
+    if not msg.header-has-data protocol.Header.TYPE-MESSAGE-METHOD:
       logger_.warn "WiFi message missing method type"
       return false
 
-    method := msg.header.data.get-data-uint protocol.Header.TYPE-MESSAGE-METHOD
+    method := msg.header-get-data-uint protocol.Header.TYPE-MESSAGE-METHOD
     if method != protocol.Header.METHOD-SUBSCRIBE:
       logger_.debug "WiFi message with non-SUBSCRIBE method: $method"
       return false
@@ -53,8 +53,8 @@ class WiFiHandler implements MessageHandler:
     return true
 
   extract-scan-duration msg/protocol.Message -> int:
-    if msg.header.data.has-data DURATION-HEADER-FIELD:
-      duration := msg.header.data.get-data-uint DURATION-HEADER-FIELD
+    if msg.header-has-data DURATION-HEADER-FIELD:
+      duration := msg.header-get-data-uint DURATION-HEADER-FIELD
       logger_.debug "WiFi scan duration from header: $(duration)ms"
       return duration
     else:
@@ -74,22 +74,22 @@ class WiFiHandler implements MessageHandler:
         send-ap-response ap request-msg-id request-msg-forwarded-for
       
       expired-msg := protocol.Message.with-data messages.WiFiScan.MT messages.WiFiScan.data
-      expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
+      expired-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
       if request-msg-id != null:
-        expired-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+        expired-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
       if request-msg-forwarded-for != null:
-        expired-msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
+        expired-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
       device_.comms.send expired-msg
 
       logger_.debug "All WiFi AP responses sent"
 
     if e:
       error-msg := protocol.Message.with-data messages.WiFiScan.MT messages.WiFiScan.data
-      error-msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
+      error-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS_GENERIC_ERROR
       if request-msg-id != null:
-        error-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+        error-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
       if request-msg-forwarded-for != null:
-        error-msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
+        error-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
       device_.comms.send error-msg
       logger_.error "Error during WiFi scan: $e"
 
@@ -114,9 +114,9 @@ class WiFiHandler implements MessageHandler:
 
     response-msg := protocol.Message.with-data messages.WiFiScan.MT response-data
     if request-msg-id != null:
-      response-msg.header.data.add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+      response-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
     if request-msg-forwarded-for != null:
-      response-msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
+      response-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
     device_.comms.send response-msg
 
     mac := bytes.format-mac bssid
