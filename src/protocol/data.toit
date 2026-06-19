@@ -75,10 +75,14 @@ class Data:
     add-data dataType data.to-byte-array
 
   add-data-uint8 dataType/int data/int -> none:
-    add-data dataType #[data]
+    b := ByteArray 1
+    LITTLE-ENDIAN.put-uint8 b 0 data
+    add-data dataType b
 
   add-data-uint16 dataType/int data/int -> none:
-    add-data dataType #[data & 0xFF, data >> 8]
+    b := ByteArray 2
+    LITTLE-ENDIAN.put-uint16 b 0 data
+    add-data dataType b
 
   add-data-uint32 dataType/int data/int -> none:
     b := #[0,0,0,0]
@@ -86,7 +90,9 @@ class Data:
     add-data dataType b
 
   add-data-int8 dataType/int data/int -> none:
-    add-data dataType #[data]
+    b := ByteArray 1
+    LITTLE-ENDIAN.put-int8 b 0 data
+    add-data dataType b
 
   add-data-int32 dataType/int data/int -> none:
     b := #[0,0,0,0]
@@ -194,12 +200,11 @@ class Data:
     return data.to-string
 
   get-data-uint8 dataType/int -> int:
-    // TODO use LITTLE-ENDIAN? (When we have a byte array not a list?)
     data := get-data dataType
     if data.size == 0:
       log.warn "No data for datatype $(dataType)"
       return 0
-    return data[0]
+    return LITTLE-ENDIAN.uint8 data 0
 
   get-data-uint16 dataType/int -> int:
     return LITTLE-ENDIAN.uint16 (get-data dataType) 0
@@ -215,7 +220,7 @@ class Data:
     if data.size < 8:
       log.warn "No data for datatype $(dataType)"
       return 0
-    return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
+    return LITTLE-ENDIAN.read-uint data 8 0
 
   add-data-list-uint16 dataType/int data/List -> none:
     b := ByteArray data.size * 2
@@ -297,7 +302,6 @@ class Data:
     return LITTLE-ENDIAN.float32 d 0
 
   get-data-uint dataType/int -> int:
-    // TODO use LITTLE-ENDIAN more consistently
     // read the data for the type, and decide which size it fits in
     // ie 1 bytes is unint8
     // 2 bytes is uint16
@@ -307,23 +311,8 @@ class Data:
     if data.size == 0:
       log.warn "No data for datatype $(dataType)"
       return 0
-    if data.size == 1:
-      return LITTLE-ENDIAN.uint8 data 0
-    if data.size == 2:
-      return LITTLE-ENDIAN.uint16 data 0
-    if data.size == 3:
-        return (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 4:
-      return LITTLE-ENDIAN.uint32 data 0
-    if data.size == 5:
-        return (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 6:
-        return (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 7:
-        return (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 8:
-        // toit doesnt actually support uint64, so this will always be represented as int64
-        return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
+    if data.size <= 8:
+      return LITTLE-ENDIAN.read-uint data data.size 0
     log.error "Data size too large for uintn: $(data.size)"
     return 0
 
@@ -331,32 +320,12 @@ class Data:
     return get-data-intn dataType
 
   get-data-intn dataType/int -> int:
-    // read the data for the type, and decide which size it fits in
-    // ie 1 byte is int8
-    // 2 bytes is int16
-    // 3 bytes should be 32, as should 4 bytes
-    // etc
     data := get-data dataType
     if data.size == 0:
-        log.warn "No data for datatype $(dataType)"
-        return 0
-    if data.size == 1:
-        return LITTLE-ENDIAN.int8 data 0
-    if data.size == 2:
-        return LITTLE-ENDIAN.int16 data 0
-    if data.size == 3:
-            return (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 4:
-        return LITTLE-ENDIAN.int32 data 0
-    if data.size == 5:
-            return (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 6:
-            return (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 7:
-            return (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
-    if data.size == 8:
-            // toit doesnt actually support int64, so this will always be represented as int64
-            return (data[7] << 56) + (data[6] << 48) + (data[5] << 40) + (data[4] << 32) + (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0]
+      log.warn "No data for datatype $(dataType)"
+      return 0
+    if data.size <= 8:
+      return LITTLE-ENDIAN.read-int data data.size 0
     log.error "Data size too large for intn: $(data.size)"
     return 0
 
@@ -375,8 +344,7 @@ class Data:
     dfc := fields_
 
     // first, datafield count uint16 LE
-    target[offset] = dfc & 0xFF
-    target[offset + 1] = dfc >> 8
+    LITTLE-ENDIAN.put-uint16 target offset dfc
     // then data types
     bi := offset + 2
     target.replace bi dataTypes_ 0 dfc
