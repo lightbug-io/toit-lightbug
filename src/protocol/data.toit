@@ -75,34 +75,28 @@ class Data:
     add-data dataType data.to-byte-array
 
   add-data-uint8 dataType/int data/int -> none:
-    b := ByteArray 1
-    LITTLE-ENDIAN.put-uint8 b 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 1
+    LITTLE-ENDIAN.put-uint8 data_ offset data
 
   add-data-uint16 dataType/int data/int -> none:
-    b := ByteArray 2
-    LITTLE-ENDIAN.put-uint16 b 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 2
+    LITTLE-ENDIAN.put-uint16 data_ offset data
 
   add-data-uint32 dataType/int data/int -> none:
-    b := #[0,0,0,0]
-    LITTLE-ENDIAN.put-uint32 b 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 4
+    LITTLE-ENDIAN.put-uint32 data_ offset data
 
   add-data-int8 dataType/int data/int -> none:
-    b := ByteArray 1
-    LITTLE-ENDIAN.put-int8 b 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 1
+    LITTLE-ENDIAN.put-int8 data_ offset data
 
   add-data-int32 dataType/int data/int -> none:
-    b := #[0,0,0,0]
-    LITTLE-ENDIAN.put-int32 b 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 4
+    LITTLE-ENDIAN.put-int32 data_ offset data
 
   add-data-uint64 dataType/int data/int -> none:
-    b := #[0,0,0,0,0,0,0,0]
-    LITTLE-ENDIAN.put-uint b 8 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 8
+    LITTLE-ENDIAN.put-uint data_ 8 offset data
   
   add-data-uint dataType/int data/int -> none:
     if data < 256:
@@ -122,21 +116,14 @@ class Data:
     add-data-float32 dataType data
 
   add-data-float32 dataType/int data/float -> none:
-    b := #[0,0,0,0]
-    LITTLE-ENDIAN.put-float32 b 0 data
-    add-data dataType b
+    offset := add-data-space_ dataType 4
+    LITTLE-ENDIAN.put-float32 data_ offset data
 
   add-data dataType/int data/ByteArray -> none:
     if data.size > 255:
       throw "V3 protocol can't have data field of over 255 bytes"
-    ensure-data-types-capacity_ fields_ + 1
-    dataTypes_[fields_] = dataType
-    ensure-data-capacity_ data-size_ + 1 + data.size
-    data_[data-size_] = data.size
-    data_.replace (data-size_ + 1) data 0 data.size
-    fields_ += 1
-    data-size_ += 1 + data.size
-    serialized-size_ += 2 + data.size
+    offset := add-data-space_ dataType data.size
+    data_.replace offset data 0 data.size
 
   add-data-bool dataType/int data/bool -> none:
     if data:
@@ -353,6 +340,19 @@ class Data:
     target.replace bi data_ 0 data-size_
     bi += data-size_
     return bi
+
+  add-data-space_ dataType/int size/int -> int:
+    if size > 255:
+      throw "V3 protocol can't have data field of over 255 bytes"
+    ensure-data-types-capacity_ fields_ + 1
+    dataTypes_[fields_] = dataType
+    ensure-data-capacity_ data-size_ + 1 + size
+    data_[data-size_] = size
+    offset := data-size_ + 1
+    fields_ += 1
+    data-size_ += 1 + size
+    serialized-size_ += 2 + size
+    return offset
 
   ensure-data-types-capacity_ required/int -> none:
     if dataTypes_.size >= required: return

@@ -78,12 +78,9 @@ class Header:
     this.parse-into bytes offset
 
   parse-into bytes/ByteArray offset/int -> none:
-    // First is uint16 LE message length
     messageLength_ = LITTLE-ENDIAN.uint16 bytes offset
-    // Second is uint16 LE message type
     messageType_ = LITTLE-ENDIAN.uint16 bytes (offset + 2)
-    // Third is data.
-    data_.parse-into bytes (offset + 4)
+    data_.parse-into bytes (offset + 4) // data
 
   stringify -> string:
     return "messageLength: " + messageLength_.stringify + ", messageType: " + messageType_.stringify + ", header data: " + data_.stringify
@@ -104,11 +101,6 @@ class Header:
     return b
 
   write-bytes-for-protocol-into target/ByteArray offset/int -> int:
-    // length is uint16 LE
-    target[offset] = messageLength_ & 0xFF
-    target[offset + 1] = messageLength_ >> 8
-    // type is uint 16 LE
-    target[offset + 2] = messageType_ & 0xFF
-    target[offset + 3] = messageType_ >> 8
-    // data
-    return data_.write-bytes-for-protocol-into target (offset + 4)
+    LITTLE-ENDIAN.put-uint16 target offset messageLength_
+    LITTLE-ENDIAN.put-uint16 target (offset + 2) messageType_
+    return data_.write-bytes-for-protocol-into target (offset + 4) // data

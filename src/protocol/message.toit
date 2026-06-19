@@ -32,7 +32,7 @@ class Message:
   // header starts at offset 1
   header_.parse-into bytes 1
   data_.parse-into bytes (1 + header_.size)
-  checksum_ = (bytes[bytes.size - 1] << 8) + bytes[bytes.size - 2]
+  checksum_ = LITTLE-ENDIAN.uint16 bytes (bytes.size - 2)
 
  constructor.from-message msg/Message:
   header_ = Header.fromHeader msg.header
@@ -101,25 +101,22 @@ class Message:
   return bytes-for-protocol
 
  bytes-for-protocol -> ByteArray:
-  // first prep the message to be rendered as bytes
-  // set the message length in the header
-  header-size := 2 + 2 + header_.data_.size
-  message-size := 1 + header-size + data_.size + 2
+  message-size := size
+  b := ByteArray message-size
+  write-bytes-for-protocol-into b 0
+  return b
+
+ write-bytes-for-protocol-into target/ByteArray offset/int -> int:
+  message-size := size
   header_.messageLength_ = message-size
 
-  b := ByteArray message-size
-  // first byte is protocol version
-  b[0] = protocol-version_
-  // then header and main data
-  write-offset := header_.write-bytes-for-protocol-into b 1
-  data_.write-bytes-for-protocol-into b write-offset
+  target[offset] = protocol-version_
+  write-offset := header_.write-bytes-for-protocol-into target (offset + 1)
+  write-offset = data_.write-bytes-for-protocol-into target write-offset
 
-  // Calculate CRC16 XMODEM over the bytes (without the last 2 which will be checksum)
-  checksum_ = checksum-calc-bytes_ b
-  // add checksum which is uint16 LE
-  b[b.size - 2] = checksum_ & 0xFF
-  b[b.size - 1] = checksum_ >> 8
-  return b
+  checksum_ = checksum-calc-range_ target offset message-size
+  LITTLE-ENDIAN.put-uint16 target (offset + message-size - 2) checksum_
+  return offset + message-size
 
  checksum-calc -> int:
   pre-csum := bytes-early_
@@ -127,8 +124,11 @@ class Message:
   return checksum-calc-bytes_ pre-csum
 
  checksum-calc-bytes_ bytes/ByteArray -> int:
+  return checksum-calc-range_ bytes 0 bytes.byte-size
+
+ checksum-calc-range_ bytes/ByteArray offset/int size/int -> int:
   checksum := crc.Crc16Xmodem
-  checksum.add bytes 0 (bytes.byte-size - 2)
+  checksum.add bytes offset (size - 2)
   return checksum.get-as-int
 
  // byteListEarly_ is a byteList, without length of checksum calculated
@@ -144,5 +144,5 @@ class Message:
   write-offset := header_.write-bytes-for-protocol-into b 1
   data_.write-bytes-for-protocol-into b write-offset
   // add checksum which is uint16 LE
-  b.replace b.size - 2 #[checksum_ & 0xFF, checksum_ >> 8] 0 2
+  LITTLE-ENDIAN.put-uint16 b (b.size - 2) checksum_
   return b
