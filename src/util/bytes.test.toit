@@ -1,8 +1,10 @@
-import .bytes show stringify-all-bytes
+import .bytes show stringify-all-bytes stringify-all-bytes-compact-hex
 
 main:
     test-stringify-short
     test-stringify-long
+    test-stringify-compact-hex
+    test-stringify-compact-hex-long
 
 test-stringify-short:
     shortBytes := #[0,1,2,3,4,5,6,7,8,9]
@@ -21,3 +23,20 @@ test-stringify-long:
       print "❌ Expected '#[0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09]', got '$s'"
     else:
       print "✅ test-stringify-long passed"
+
+test-stringify-compact-hex:
+    bytes := #[0x00, 0x03, 0x99, 0x35, 0x02, 0x9d, 0xc7, 0x83, 0x00, 0x00, 0x24, 0x0b, 0x05]
+    s := stringify-all-bytes-compact-hex bytes
+    if s != "00039935029dc7830000240b05":
+      print "❌ Expected '00039935029dc7830000240b05', got '$s'"
+    else:
+      print "✅ test-stringify-compact-hex passed"
+
+test-stringify-compact-hex-long:
+    shortBytes := #[0,1,2,3,4,5,6,7,8,9]
+    longBytes := shortBytes + shortBytes + shortBytes + shortBytes + shortBytes + shortBytes
+    s := stringify-all-bytes-compact-hex longBytes
+    if s != "000102030405060708090001020304050607080900010203040506070809000102030405060708090001020304050607080900010203040506070809":
+      print "❌ Expected compact hex for all bytes, got '$s'"
+    else:
+      print "✅ test-stringify-compact-hex-long passed"

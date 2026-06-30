@@ -48,6 +48,30 @@ stringify-all-bytes bytes/ByteArray-> string:
   buffer.write "]"
   return buffer.to-string
 
+stringify-all-bytes-compact-hex bytes/ByteArray -> string:
+  buffer := io.Buffer.with-capacity (bytes.size * 2)
+
+  for i := 0; i < bytes.size; i += 50:
+    end := i + 50
+    if end > bytes.size: end = bytes.size
+
+    chunk := bytes[i..end]
+    chunk-str := "$chunk"
+
+    end-idx := chunk-str.size - 1
+    if chunk-str.ends-with ", ...]":
+      end-idx = chunk-str.size - 6
+
+    j := 2
+    while j < end-idx:
+      if chunk-str[j] == '0' and j + 3 < end-idx and chunk-str[j + 1] == 'x':
+        buffer.write chunk-str[j + 2..j + 4]
+        j += 4
+      else:
+        j += 1
+
+  return buffer.to-string
+
 byte-array-to-list ba/ByteArray -> List:
   l := []
   ba.do: | byte |
