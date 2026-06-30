@@ -3,7 +3,7 @@ import ..messages.messages_gen as messages
 import ..modules.comms.generic-handler show GenericHandler
 import ..modules.eink.menu-selection show MenuSelection
 import ..protocol as protocol
-import ..util.bytes show stringify-all-bytes
+import ..util.bytes show stringify-all-bytes-compact-hex
 import log
 import watchdog show Watchdog
 import .apps show Apps
@@ -12,8 +12,8 @@ import .survey.strobe-once show strobe-once
 TOP-PAD := 26
 TEXT-SPACING := 12
 MAX-MESSAGES := 6
-LORA-LISTEN-MS := 10000
-LORA-LISTEN-REFRESH-MS := 10000
+LORA-LISTEN-MS := 3000
+LORA-LISTEN-REFRESH-MS := 3000
 STROBE-FLASH-MS := 25
 
 class LoraApp:
@@ -44,6 +44,7 @@ class LoraApp:
   lora-listening_/bool := false
   position-handler_/GenericHandler? := null
   position-subscribed_/bool := false
+  lora-page-drawn_/bool := false
 
   menu-selection/MenuSelection? := null
   send-mode_/string := SEND-ID
@@ -84,6 +85,7 @@ class LoraApp:
     parent_.start
     parent_.show-home
     showing-page_ = 0
+    lora-page-drawn_ = false
 
   feed:
     e := catch: dog_.feed
@@ -116,9 +118,9 @@ class LoraApp:
       if is-running_ and a-msg.type == messages.LORA.MT:
         lora := messages.LORA.from-data a-msg.data
         if lora.has-data messages.LORA.PAYLOAD:
+          flash-green_
           text := payload-to-text_ lora.payload
           logger_.info "LoRa rx: $text"
-          flash-green_
           feed
           add-received-message_ text
           handle-received-payload_ text
@@ -211,23 +213,20 @@ class LoraApp:
       logger_.warn "Failed to unsubscribe from position: $e"
     position-subscribed_ = false
 
-  show-lora:
+  show-lora --full/bool=false:
     logger_.info "Showing LoRa page"
+    redraw-type := messages.BasePage.REDRAW-TYPE_PARTIALREDRAW
+    if full or showing-page_ != PAGE-LORA or not lora-page-drawn_:
+      redraw-type = messages.BasePage.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR
     showing-page_ = PAGE-LORA
+    trim-received-messages_
     start-lora-listening_
     device_.eink.batch --important:
       draw-button-row_
-
-      i := 0
-      while i < MAX-MESSAGES:
-        text := ""
-        if i < received-messages_.size:
-          text = received-messages_[i]
-        draw-line_ i text
-        i += 1
-
+      draw-message-lines_
       draw-title_
-      device_.eink.draw-page --page-id=PAGE-LORA --status-bar-enable=true --redraw-type=messages.BasePage.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR
+      device_.eink.draw-page --page-id=PAGE-LORA --status-bar-enable=true --redraw-type=redraw-type
+      lora-page-drawn_ = true
 
   draw-title_:
     device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=0 --text="LoRa App" --fontsize=1 --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
@@ -241,6 +240,15 @@ class LoraApp:
 
   draw-line_ index/int text/string:
     device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=(TOP-PAD + TEXT-SPACING * index) --text=text --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=screen-width --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+
+  draw-message-lines_:
+    i := 0
+    while i < MAX-MESSAGES:
+      text := ""
+      if i < received-messages_.size:
+        text = received-messages_[i]
+      draw-line_ i text
+      i += 1
 
   send-button-text_ -> string:
     if send-mode_ == SEND-PING:
@@ -280,10 +288,25 @@ class LoraApp:
 
   add-received-message_ text/string:
     received-messages_.insert text --at=0
+    trim-received-messages_
+    if showing-page_ == PAGE-LORA:
+      screen-on-received-message_
+
+  trim-received-messages_:
     while received-messages_.size > MAX-MESSAGES:
       received-messages_.remove --at=(received-messages_.size - 1)
-    if showing-page_ == PAGE-LORA:
-      show-lora
+
+  screen-on-received-message_:
+    device_.eink.batch --important:
+      if showing-page_ == PAGE-LORA:
+        draw-message-lines_
+        device_.eink.draw-page --page-id=PAGE-LORA --status-bar-enable=true --redraw-type=messages.BasePage.REDRAW-TYPE_PARTIALREDRAW
+
+  screen-on-button-row-change_:
+    device_.eink.batch --important:
+      if showing-page_ == PAGE-LORA:
+        draw-button-row_
+        device_.eink.draw-page --page-id=PAGE-LORA --status-bar-enable=true --redraw-type=messages.BasePage.REDRAW-TYPE_PARTIALREDRAW
 
   payload-to-text_ payload/ByteArray -> string:
     if payload.size == 0:
@@ -291,7 +314,7 @@ class LoraApp:
     e := catch:
       return payload.to-string
     logger_.warn "LoRa payload was not valid UTF-8: $e"
-    return "bytes:$(stringify-all-bytes payload)"
+    return stringify-all-bytes-compact-hex payload
 
   send-current:
     payload := payload-for-current-mode_
@@ -305,13 +328,13 @@ class LoraApp:
     e := catch:
       feed
       logger_.info "LoRa tx: $payload"
+      flash-white_
       data := messages.LORA.data --payload=payload.to-byte-array --receive-ms=LORA-LISTEN-MS
       msg := messages.LORA.msg --data=data
       response := device_.comms.send-new msg --timeout=(Duration --ms=(LORA-LISTEN-MS + 2000))
       if response and not response.msg-ok:
         logger_.warn "LoRa tx response not OK: $(response)"
       feed
-      flash-white_
     if e:
       logger_.warn "Failed to send LORA: $e"
       show-lora
@@ -320,14 +343,17 @@ class LoraApp:
     parts := split-payload_ text
     sender := parts[0]
     body := parts[1]
+    logger_.info "LoRa rx parsed sender='$sender' body='$body'"
     if body == "ping":
       if sender != "" and device-id_ != null and sender == "$(device-id_)":
+        logger_.info "LoRa ping from self ignored"
         return
       response := prefixed-payload_ "pong"
       if response:
         logger_.info "LoRa auto-pong: $response"
-        add-received-message_ "tx $response"
         task:: send-lora-payload_ response
+      else:
+        logger_.warn "LoRa auto-pong skipped: no device id"
 
   flash-white_:
     task::
@@ -366,7 +392,7 @@ class LoraApp:
         device-id_ = ids.id
         logger_.info "Device id: $(device-id_)"
         if showing-page_ == PAGE-LORA:
-          show-lora
+          screen-on-button-row-change_
     if e:
       logger_.warn "Failed to read device id: $e"
 
@@ -397,19 +423,10 @@ class LoraApp:
     return "$(device-id_):$body"
 
   split-payload_ text/string -> List:
-    sender := ""
-    body := ""
-    seen-colon := false
-    text.do: |ch|
-      if not seen-colon and ch == ':':
-        seen-colon = true
-      else if seen-colon:
-        body += "$ch"
-      else:
-        sender += "$ch"
-    if not seen-colon:
+    idx := text.index-of ":"
+    if idx == -1:
       return ["", text]
-    return [sender, body]
+    return [text[0..idx], text[idx + 1..text.size]]
 
   cycle-send-mode_:
     if send-mode_ == SEND-ID:
@@ -424,7 +441,7 @@ class LoraApp:
     if showing-page_ == PAGE-MENU:
       update-menu
     else:
-      show-lora
+      screen-on-button-row-change_
 
   handle-button-press button-data/messages.ButtonPress:
     if not is-running_:
@@ -447,7 +464,7 @@ class LoraApp:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID_ACTION:
         selected := menu-options_[menu-selection.current]
         if selected == MENU-TEXT-BACK:
-          show-lora
+          show-lora --full=true
         else if selected == MENU-TEXT-EXIT:
           stop
         else:
