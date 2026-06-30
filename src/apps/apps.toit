@@ -2,6 +2,7 @@ import ..devices
 import ..services
 import ..messages.messages_gen as messages
 import .survey
+import .lora
 import .qc
 import ..modules.eink.menu-selection show MenuSelection
 import .survey.strobe-once show strobe-once
@@ -20,14 +21,16 @@ class Apps:
 
   MENU-OPTIONS := [
     "Survey",
+    "LoRa",
     "QC",
     "Reboot",
     "Go Back",
     ]
   MENU-OPTION-SURVEY := 0
-  MENU-OPTION-QC:= 1
-  MENU-OPTION-REBOOT:= 2
-  MENU-OPTION-GO-BACK := 3
+  MENU-OPTION-LORA := 1
+  MENU-OPTION-QC:= 2
+  MENU-OPTION-REBOOT:= 3
+  MENU-OPTION-GO-BACK := 4
 
   PAGE-HOME := 1
   PAGE-MENU := 20
@@ -79,6 +82,8 @@ class Apps:
               if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
                 if menu-selection.current == MENU-OPTION-SURVEY:
                   task:: open-survey-app
+                else if menu-selection.current == MENU-OPTION-LORA:
+                  task:: open-lora-app
                 else if menu-selection.current == MENU-OPTION-QC:
                   task:: open-qc-app
                 else if menu-selection.current == MENU-OPTION-REBOOT:
@@ -106,6 +111,11 @@ class Apps:
     // logger_.info "OPEN SURVEY"
     stop
     app_ = SurveyApp device_ this dog_
+    app_.start
+
+  open-lora-app:
+    stop
+    app_ = LoraApp device_ this dog_
     app_.start
   
   open-qc-app:

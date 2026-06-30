@@ -26,10 +26,19 @@ shouldDocsBeLocal/bool? := null
 shouldDocsBeLocal_ -> bool:
   if shouldDocsBeLocal != null:
     return shouldDocsBeLocal
+  defines := jag-defines
+  shouldDocsBeLocal = defines.get "lb-localdocs" --if-absent=(:false) --if-present=(:true)
+  return shouldDocsBeLocal
+
+// Returns defines passed with `jag run/container -D key=value`.
+jag-defines -> Map:
   defines := assets.decode.get "jag.defines"
     --if-present=: tison.decode it
     --if-absent=: {:}
   if defines is not Map:
     throw "defines are malformed"
-  shouldDocsBeLocal = defines.get "lb-localdocs" --if-absent=(:false) --if-present=(:true)
-  return shouldDocsBeLocal
+  return defines
+
+// Returns a define value, or null when the define was not provided.
+jag-define key/string -> any?:
+  return jag-defines.get key --if-absent=(: null)

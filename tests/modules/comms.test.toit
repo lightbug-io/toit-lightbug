@@ -19,6 +19,8 @@ class TestReader extends io.Reader with io.InMixin:
 main:
   testProcessInboundMessage
   testProcessInboundMessageWithPrefix
+  testProcessInboundSkipsTooShortFrame
+  testProcessInboundSkipsIncompleteFrame
 
 testProcessInboundMessage:
   // Build a simple protocol message using the library
@@ -92,3 +94,51 @@ testProcessInboundMessageWithPrefix:
     print "❌ Parsed message after prefix differs"
     print "expected: $(msg.bytes)"
     print "actual:   $(m2.bytes)"
+
+testProcessInboundSkipsTooShortFrame:
+  msg := protocol.Message.with-data 0x0B (protocol.Data)
+  // Starts like a v3 frame, but length=3 is too short to contain a valid
+  // message. The parser should skip it and recover on the next real frame.
+  bad := #[0x03, 0x03, 0x00]
+  reader := TestReader --bytes=(bad + msg.bytes)
+
+  dev := devices.Fake --open=true --in=reader
+  c := comms_mod.Comms --device=dev --startInbound=false --open=false
+
+  parsed := null
+  4.repeat:
+    if parsed == null:
+      parsed = c.processInboundOnce_
+
+  if not parsed:
+    print "❌ Expected parser to recover after short malformed frame"
+    return
+
+  if parsed.bytes == msg.bytes:
+    print "✅ Comms skipped short malformed frame and recovered"
+  else:
+    print "❌ Parser recovered with unexpected message bytes"
+
+testProcessInboundSkipsIncompleteFrame:
+  msg := protocol.Message.with-data 0x0B (protocol.Data)
+  // Starts like a v3 frame with a plausible length, but does not provide the
+  // full frame. The parser should eventually skip it and recover.
+  bad := #[0x03, 0x20, 0x00, 0xff]
+  reader := TestReader --bytes=(bad + msg.bytes)
+
+  dev := devices.Fake --open=true --in=reader
+  c := comms_mod.Comms --device=dev --startInbound=false --open=false
+
+  parsed := null
+  8.repeat:
+    if parsed == null:
+      parsed = c.processInboundOnce_
+
+  if not parsed:
+    print "❌ Expected parser to recover after incomplete malformed frame"
+    return
+
+  if parsed.bytes == msg.bytes:
+    print "✅ Comms skipped incomplete malformed frame and recovered"
+  else:
+    print "❌ Parser recovered with unexpected message bytes after incomplete frame"

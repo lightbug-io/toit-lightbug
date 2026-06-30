@@ -17,6 +17,9 @@ import monitor show Channel
 import .heartbeats show Heartbeats CommsHeartbeats
 
 class Comms:
+  static MIN-MESSAGE-LENGTH ::= 11
+  static MAX-INBOUND-WAIT-YIELDS ::= 100
+
   logger_/log.Logger
   device_ /devices.Device
   msgIdGenerator /IdGenerator
@@ -158,11 +161,20 @@ class Comms:
       return null
 
     // Wait for a total of 3 bytes, which would also give us the length
+    wait-yields := 0
     while not device_.in.try-ensure-buffered 3:
       logger_.trace "Inbound reader waiting for 3 bytes"
+      wait-yields++
+      if wait-yields > MAX-INBOUND-WAIT-YIELDS:
+        logger_.debug "Timed out waiting for message length bytes"
+        return null
       yield
     // last to bytes of b3 are the uint16 LE message length
     messageLength := ((device_.in.peek-byte 2) << 8) + (device_.in.peek-byte 1)
+    if messageLength < MIN-MESSAGE-LENGTH:
+        logger_.debug "Message length too short, skipping: $(messageLength)"
+        device_.in.read-byte
+        return null
     // If the msgLength looks too long (over 1000, just advance, as its probably garbage)
     if messageLength > 1000:
         logger_.error "Message length probably too long, skipping: $(messageLength)"
@@ -170,8 +182,14 @@ class Comms:
         return null
 
     // Try and make sure that we have enough bytes buffered to read the full potential message
+    wait-yields = 0
     while not device_.in.try-ensure-buffered messageLength:
       logger_.trace "Inbound reader waiting for message length: $(messageLength)"
+      wait-yields++
+      if wait-yields > MAX-INBOUND-WAIT-YIELDS:
+        logger_.debug "Timed out waiting for message length: $(messageLength), skipping"
+        device_.in.read-byte
+        return null
       yield
 
     messageBytes := device_.in.peek-bytes messageLength
