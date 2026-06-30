@@ -107,7 +107,6 @@ class Apps:
     stop
     app_ = SurveyApp device_ this dog_
     app_.start
-    app_.show-survey
   
   open-qc-app:
     stop

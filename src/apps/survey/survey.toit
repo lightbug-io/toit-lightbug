@@ -118,33 +118,8 @@ class SurveyApp:
   start:
     dog_.start --s=30
     is-running_ = true
-    init-button-subscription_
-    init-position-handler_
 
-    rhash_ba := sha1 "$(Time.now.stringify)$(random 999999999)"
-    rhash_hex := ""
-    rhash_ba.do: |b|
-      rhash_hex += "$(%02x b)" // TODO just limit to 10 here
-    last-share-code_ = "$(rhash_hex)"[0..10] // share code is 10 chars of this hash for now
-
-    task::
-      request-chasm-link // todo probably just FAF this one... (Or do we want to close it on close too?)
-
-    if not has-wifi-configured:
-      logger_.info "No WiFi, start AP"
-      // NO configured wifi, so we assume we are in production, and will want an AP, so set it up now...
-      // TODO consider using the device ID..?!
-      network_ = wifi.establish
-        --ssid=AP-NAME
-        --password=AP-PASS
-      last-selected-wifi_ = WIFI-AP
-    else:
-      logger_.info "WiFi, start CL"
-      last-selected-wifi_ = WIFI-CLIENT
-      network_ = net.open
-
-    init-webserver_
-
+    init-share-code_
     menu-selection = null
     last-selected-rtk_ = MENU-TEXT-RTK-ON
     last-selected-mode_ = MENU-TEXT-MODE-ON-Button
@@ -164,6 +139,50 @@ class SurveyApp:
       MENU-TEXT-STOP,
       MENU-TEXT-EXIT,
     ]
+
+    show-survey
+    init-button-subscription_
+    init-position-handler_
+
+    task::
+      if is-running_:
+        request-chasm-link // todo probably just FAF this one... (Or do we want to close it on close too?)
+
+    task:: init-network-and-webserver_
+
+  init-share-code_:
+    rhash_ba := sha1 "$(Time.now.stringify)$(random 999999999)"
+    rhash_hex := ""
+    rhash_ba.do: |b|
+      rhash_hex += "$(%02x b)" // TODO just limit to 10 here
+    last-share-code_ = "$(rhash_hex)"[0..10] // share code is 10 chars of this hash for now
+
+  init-network-and-webserver_:
+    if not is-running_:
+      return
+
+    e := catch --trace:
+      if not has-wifi-configured:
+        logger_.info "No WiFi, start AP"
+        // NO configured wifi, so we assume we are in production, and will want an AP, so set it up now...
+        // TODO consider using the device ID..?!
+        network_ = wifi.establish
+          --ssid=AP-NAME
+          --password=AP-PASS
+        last-selected-wifi_ = WIFI-AP
+      else:
+        logger_.info "WiFi, start CL"
+        last-selected-wifi_ = WIFI-CLIENT
+        network_ = net.open
+
+      if is-running_:
+        init-webserver_
+        feed
+      else if network_:
+        network_.close
+        network_ = null
+    if e:
+      logger_.warn "Failed to initialize survey network: $e"
 
   stop:
     dog_.stop
