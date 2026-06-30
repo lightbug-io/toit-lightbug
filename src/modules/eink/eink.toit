@@ -37,10 +37,40 @@ operation. Also provides a convenience method to send menu pages.
 class Eink:
   logger_/log.Logger
   device_/devices.Device?
+  batch-sem_/monitor.Semaphore := monitor.Semaphore --count=1 --limit=1
+  batch-last-draw-at_/Time? := null
 
   constructor --device/devices.Device?=null --logger/log.Logger=(log.default.with-name "lb-eink"):
     device_ = device
     logger_ = logger
+
+  /**
+  Run a group of e-ink commands without interleaving with another batch.
+
+  Important batches wait for any active batch and always run. Non-important
+  batches are intended for live refreshes: they are skipped if another batch is
+  active or if the screen was updated within the given interval.
+  */
+  batch --important/bool=false --min-interval-ms/int=1000 [block] -> bool:
+    if not important:
+      if batch-sem_.count == 0:
+        return false
+
+      if batch-last-draw-at_ != null:
+        wait-until := batch-last-draw-at_ + (Duration --ms=min-interval-ms)
+        if wait-until >= Time.now:
+          return false
+
+    batch-sem_.down
+    ok := true
+    e := catch:
+      block.call
+    if e:
+      logger_.warn "Eink batch failed: $e"
+      ok = false
+    batch-last-draw-at_ = Time.now
+    batch-sem_.up
+    return ok
 
   // Compute redraw-type from friendly flags when an explicit redraw-type is
   // not provided. Returns null if nothing is selected so callers can keep

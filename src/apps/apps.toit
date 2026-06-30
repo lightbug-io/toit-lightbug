@@ -4,7 +4,6 @@ import ..messages.messages_gen as messages
 import .survey
 import .qc
 import ..modules.eink.menu-selection show MenuSelection
-import .survey.eink-batch show eink-do-batch
 import .survey.strobe-once show strobe-once
 import log
 import watchdog show Watchdog
@@ -39,13 +38,13 @@ class Apps:
     self := this
 
   show-home:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       // logger_.info "HOME"
       device_.eink.show-preset --page-id=PAGE-HOME
       menu-selection = null
 
   show_menu:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       // logger_.info "MENU"
       device_.eink.send-menu --page-id=PAGE-MENU --items=MENU-OPTIONS --selected-item=0
       menu-selection = MenuSelection --start=0 --size=MENU-OPTIONS.size

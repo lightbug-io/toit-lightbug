@@ -15,7 +15,6 @@ import system.firmware
 import system.api.network show NetworkService NetworkServiceClient
 import watchdog show Watchdog
 
-import .eink-batch show eink-do-batch
 import .strobe-once show strobe-once
 import ..apps show Apps
 
@@ -428,18 +427,18 @@ class SurveyApp:
       http_task_ = null
 
   show-actions-menu:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       showing-page_ = PAGE-MENU-ACTIONS
       device_.eink.send-menu --page-id=PAGE-MENU-ACTIONS  --items=action-menu-options_ --selected-item=0
       menu-selection = MenuSelection --start=0 --size=action-menu-options_.size
   
   update-actions-menu:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       if showing-page_ == PAGE-MENU-ACTIONS:
         device_.eink.send-menu --page-id=PAGE-MENU-ACTIONS --items=action-menu-options_ --selected-item=menu-selection.current
 
   show-info-page:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       device-ip := "Unknown"
       wifi-ssid := "Unknown"
       conn-type := "Unknown"
@@ -537,7 +536,7 @@ class SurveyApp:
     device_.gnss.set-gps-control --corrections-enabled=messages.GPSControl.CORRECTIONS-ENABLED_DISABLED
 
   show-survey:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       // Buttons
       device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=(screen-width / 3) --x=0 --y=(screen-height - 15) --text=device-button-left --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
       device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=(screen-width / 3) --x=(screen-width / 3) --y=(screen-height - 15) --text=device-button-middle --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
@@ -558,21 +557,21 @@ class SurveyApp:
       showing-page_ = PAGE-SURVEY
 
   screen-on-button-change:
-    eink-do-batch --important:
+    device_.eink.batch --important:
       if showing-page_ == PAGE-SURVEY:
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=(screen-width / 3) --x=0 --y=(screen-height - 15) --text=device-button-left --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=(screen-width / 3) --x=(screen-width / 3) --y=(screen-height - 15) --text=device-button-middle --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=(screen-width / 3) --x=((screen-width * 2 ) / 3) --y=(screen-height - 15) --text=device-button-right --redraw-type=messages.DrawElement.REDRAW-TYPE-PARTIALREDRAW
 
   screen-on-new-pos pos/messages.Position:
-    eink-do-batch: // not a --important eink update..
+    device_.eink.batch: // not an important eink update.
       if showing-page_ == PAGE-SURVEY:
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=(TOP-PAD + NORMAL-TEXT-SPACING + SMALL-TEXT-SPACING*3) --text=text-for-fix-line --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=screen-width --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=(TOP-PAD + NORMAL-TEXT-SPACING) --text=text-for-curr-line --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=screen-width --redraw-type=messages.DrawElement.REDRAW-TYPE-PARTIALREDRAW
 
   // Updates the Last, prev and metric lines on the page, when a new value is stored
   screen-on-new-store:
-    eink-do-batch --important: // Important, as this is after a user action (on button press). We could afford to skip some in cont mode?
+    device_.eink.batch --important: // Important, as this is after a user action (on button press). We could afford to skip some in cont mode?
       if showing-page_ == PAGE-SURVEY and is-surveying_:
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=(TOP-PAD + NORMAL-TEXT-SPACING + SMALL-TEXT-SPACING*1) --text=text-for-last-line --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=screen-width --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
         device_.eink.draw-element --page-id=PAGE-SURVEY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=(TOP-PAD + NORMAL-TEXT-SPACING + SMALL-TEXT-SPACING*2) --text=text-for-prev-line --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=screen-width --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY

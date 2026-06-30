@@ -10,9 +10,6 @@ import system.firmware
 import watchdog show Watchdog
 import ..apps show Apps
 
-// TODO put this somewhere reusable
-import ..survey.eink-batch show eink-do-batch
-
 class QCApp:
 
   // TODO put these somewhere reusable..
