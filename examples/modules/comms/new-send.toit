@@ -10,6 +10,8 @@ main:
 
   // Do not send an open or heartbeat messages
   device := devices.I2C --open=false
+  open-msg := messages.Open.msg
+  open-callback := :: |result| handle-open-async result
 
   while true:
     /**
@@ -17,13 +19,8 @@ main:
     The call to send is non-blocking, and the callback will be called when the response is received within the --timeout
     */
     log.info "Calling send-new (async)..."
-    latch := device.comms.send-new messages.Open.msg --async --callback=:: |result|
-      if result and result.msg-ok:
-        log.info "Device opened successfully (async): $result"
-      else if result:
-        log.error "Failed to open device (async): $result.msg-status"
-      else:
-          log.error "Failed to open device (async), no response received"
+    device.comms.refresh-message-id open-msg
+    latch := device.comms.send-new open-msg --async --callback=open-callback
     log.info "Called send-new (async), waiting for response..."
 
     // We don't have to wait for this, but we will do it anyway, so we don't conflict with the sync example below
@@ -34,7 +31,8 @@ main:
     This will block until the response is received or the --timeout is reached.
     */
     log.info "Calling send-new (sync)..."
-    result := device.comms.send-new messages.Open.msg
+    device.comms.refresh-message-id open-msg
+    result := device.comms.send-new open-msg
     if result and result.msg-ok:
       log.info "Device opened successfully (sync): $result"
     else if result:
@@ -42,3 +40,11 @@ main:
     else:
         log.error "Failed to open device (sync), no response received"
     log.info "Called send-new (sync)..."
+
+handle-open-async result:
+  if result and result.msg-ok:
+    log.info "Device opened successfully (async): $result"
+  else if result:
+    log.error "Failed to open device (async): $result.msg-status"
+  else:
+    log.error "Failed to open device (async), no response received"

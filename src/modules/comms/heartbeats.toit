@@ -60,9 +60,11 @@ class CommsHeartbeats implements Heartbeats:
     return running_
 
   send-heartbeats_:
+    heartbeat-msg := messages.Heartbeat.msg --data=null
     while running_:
       // Send a heartbeat message
-      if not (comms_.send (messages.Heartbeat.msg --data=null) --withLatch=true).get:
+      comms_.refresh-message-id heartbeat-msg
+      if not (comms_.send heartbeat-msg --withLatch=true).get:
         logger_.error "Failed to send heartbeat"
       else:
         logger_.debug "Sent heartbeat"

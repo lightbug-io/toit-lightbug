@@ -15,9 +15,11 @@ main:
 
   print "Looping to update the page counter every second"
   startTime := Time.now
+  lines := [null, null, null, ""]
   sleep --ms=1000
   while true:
     i := (Time.now.s-since-epoch - startTime.s-since-epoch)
     print "💬 Sending counter update $i"
-    device.eink.text-page --lines=[null, null, null, ("$i")]
+    lines[3] = "$i"
+    device.eink.text-page --lines=lines
     sleep --ms=1000

@@ -125,6 +125,12 @@ class Comms:
       throw "Failed to open device link"
     logger_.info "Opened device link"
 
+  refresh-message-id msg/protocol.Message -> int:
+    msg.header-remove-data protocol.Header.TYPE-MESSAGE-ID
+    id := msgIdGenerator.next
+    msg.header-add-data-uint32 protocol.Header.TYPE-MESSAGE-ID id
+    return id
+
   // Creates or gets an inbox by name
   // A single inbox will only deliver messages once
   inbox name/string --size/int? = 15 -> Channel:

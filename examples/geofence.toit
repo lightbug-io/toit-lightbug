@@ -121,9 +121,11 @@ mainLoop:
   inbox := io.inbox "lb/fence-demo" --size=20
 
   // Request device status updates
+  device-status-msg := messages.DeviceStatus.get-msg
   task::
     while true:
-      io.send (messages.DeviceStatus.get-msg) --now=true
+      io.refresh-message-id device-status-msg
+      io.send device-status-msg --now=true
         --timeout=(Duration --ms=15000)
       sleep --ms=15000
 

@@ -39,43 +39,53 @@ main:
       print "📍 Position: Sats: $data.satellites CN0: $data.cn0 Accuracy: $data.accuracy"
 
   // Alternate the screen between black and clear every 4 seconds
+  eink-complete := :: |response| print "onComplete $(response.response-to)"
+  eink-error := :: |error| print "onError $(error)"
+  eink-timeout := :: |id| print "onTimeout $(id)"
   task:: while true:
-    fill-screen device true
+    fill-screen device true --onComplete=eink-complete --onError=eink-error --onTimeout=eink-timeout
     sleep --ms=4000
 
-    fill-screen device false
+    fill-screen device false --onComplete=eink-complete --onError=eink-error --onTimeout=eink-timeout
     sleep --ms=4000 // left at 1:10
   
   // Send a message to the device every 25ms
+  other-msg := spam-message 8765
+  other-timeout := :: |id| timeout-spam id
   task:: while true:
     sleep --ms=1200
 
-    msg := protocol.Message.with-data 8765 (protocol.Data)
-    msg.data.add-data-string 99 "hello"
-    msg.data.add-data-string 98 "from"
-    msg.data.add-data-string 97 "alternate-plus.toit!"
-    msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID device.comms.msgIdGenerator.next
-
-    print "send other: $(msg.msgId)"
-    device.comms.send-new msg --timeout=(Duration --s=2) --onTimeout=(:: |id|
-      print "Timeout sending spam msg: $id"
-    )
+    id := prepare-reused-message device other-msg
+    print "send other: $id"
+    device.comms.send-new other-msg --timeout=(Duration --s=2) --onTimeout=other-timeout
   
   // And forward a message to the cloud link every 100ms
+  cloud-msg := spam-message 8766 --forward=true
+  fwd-timeout := :: |id| timeout-fwd id
   task:: while true:
     sleep --ms=100
 
-    msg := protocol.Message.with-data 8766 (protocol.Data)
-    msg.data.add-data-string 99 "hello"
-    msg.data.add-data-string 98 "from"
-    msg.data.add-data-string 97 "alternate-plus.toit!"
-    msg.header.data.add-data-uint32 protocol.Header.TYPE-MESSAGE-ID device.comms.msgIdGenerator.next
-    msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO 0 // chasm
-
-    print "send cloud: $(msg.msgId)"
-    device.comms.send-new msg --timeout=(Duration --s=2) --onTimeout=(:: |id|
-      print "Timeout sending fwd msg: $id"
-    )
+    id := prepare-reused-message device cloud-msg
+    print "send cloud: $id"
+    device.comms.send-new cloud-msg --timeout=(Duration --s=2) --onTimeout=fwd-timeout
   
   while true:
     sleep --ms=10000
+
+spam-message type/int --forward/bool=false -> protocol.Message:
+  msg := protocol.Message.with-data type (protocol.Data)
+  msg.data.add-data-string 99 "hello"
+  msg.data.add-data-string 98 "from"
+  msg.data.add-data-string 97 "alternate-plus.toit!"
+  if forward:
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-FORWARD-TO 0 // chasm
+  return msg
+
+prepare-reused-message device/devices.Device msg/protocol.Message -> int:
+  return device.comms.refresh-message-id msg
+
+timeout-spam id/int:
+  print "Timeout sending spam msg: $id"
+
+timeout-fwd id/int:
+  print "Timeout sending fwd msg: $id"

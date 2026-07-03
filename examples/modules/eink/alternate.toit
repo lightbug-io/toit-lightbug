@@ -17,7 +17,7 @@ create-bitmap-chunk fill-byte/int rows/int -> ByteArray:
   size := rows * BYTES-PER-ROW
   return ByteArray size: fill-byte
 
-fill-screen device fill-black/bool:
+fill-screen device fill-black/bool --onComplete/Lambda?=null --onError/Lambda?=null --onTimeout/Lambda?=null:
   fill-byte := fill-black ? 0xFF : 0x00
   color-name := fill-black ? "black" : "clear"
   color-emoji := fill-black ? "⬛" : "⬜"
@@ -54,27 +54,24 @@ fill-screen device fill-black/bool:
         --width=SCREEN-WIDTH
         --height=rows-this-chunk
         --bitmap=(create-bitmap-chunk fill-byte rows-this-chunk)
-        --onComplete=(:: | response |
-          print "onComplete $(response.response-to)"
-        )
-        --onError=(:: | error |
-          print "onError $(error)"
-        )
-        --onTimeout=(:: | id |
-          print "onTimeout $(id)"
-        )
+        --onComplete=onComplete
+        --onError=onError
+        --onTimeout=onTimeout
     
     message-count++
     y += rows-this-chunk
 
 main:
   device := devices.I2C --background=false// --log-level=devices.DEBUG-LEVEL
+  on-complete := :: |response| print "onComplete $(response.response-to)"
+  on-error := :: |error| print "onError $(error)"
+  on-timeout := :: |id| print "onTimeout $(id)"
   
   sleep --ms=2000
 
   task:: while true:
-    fill-screen device true
+    fill-screen device true --onComplete=on-complete --onError=on-error --onTimeout=on-timeout
     sleep --ms=4000
 
-    fill-screen device false
+    fill-screen device false --onComplete=on-complete --onError=on-error --onTimeout=on-timeout
     sleep --ms=4000 // left at 1:10
