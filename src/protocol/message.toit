@@ -201,6 +201,7 @@ class Message:
   message-size := size
   b := ByteArray message-size
   write-bytes-for-protocol-into b 0
+  cache-protocol-bytes_ b message-size
   return b
 
  write-bytes-for-protocol-into target/ByteArray offset/int -> int:
@@ -218,6 +219,16 @@ class Message:
   checksum_ = checksum-calc-range_ target offset message-size
   LITTLE-ENDIAN.put-uint16 target (offset + message-size - 2) checksum_
   return offset + message-size
+
+ cache-protocol-bytes_ bytes/ByteArray message-size/int -> none:
+  bytes_ = bytes
+  message-length_ = message-size
+  if header_ != null:
+    header_.messageLength_ = message-size
+    header_.messageType_ = message-type_
+    header_.data.mark-clean_
+  if data_ != null:
+    data_.mark-clean_
 
  checksum-calc -> int:
   if raw-bytes-valid_:

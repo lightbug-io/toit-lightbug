@@ -442,6 +442,9 @@ class Data:
   is-dirty_ -> bool:
     return dirty_
 
+  mark-clean_ -> none:
+    dirty_ = false
+
 list-to-byte-array l/List -> ByteArray:
   b := ByteArray l.size
   for i := 0; i < l.size; i++:
