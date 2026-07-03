@@ -131,3 +131,19 @@ class BoundedTrackerMap:
       remove key
       removed++
     return removed
+
+  /** Remove timed-out entries and call the block with each removed tracker. */
+  remove-timed-out [block] -> int:
+    removed := 0
+    i := 0
+    while i < keys_.size:
+      key := keys_[i]
+      tracker := map_.get key
+      if tracker and tracker.is-timed-out:
+        map_.remove key
+        keys_.remove --at=i
+        removed++
+        block.call key tracker
+      else:
+        i++
+    return removed

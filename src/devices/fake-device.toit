@@ -26,11 +26,13 @@ class Fake implements Device:
   lora_ /LoraRadio? := null
   eink_ /Eink? := null
   open_ /bool
+  start-inbound_ /bool
   in_/io.Reader? := ?
   out_/io.Writer? := ?
 
-  constructor --open/bool=true --in/io.Reader? = null --out/io.Writer? = null:
+  constructor --open/bool=true --start-inbound/bool=true --in/io.Reader? = null --out/io.Writer? = null:
     open_ = open
+    start-inbound_ = start-inbound
     in_ = in
     out_ = out
 
@@ -43,6 +45,7 @@ class Fake implements Device:
       comms_ = Comms 
           --device=this
           --open=open_
+          --startInbound=start-inbound_
     return comms_
   buttons -> Buttons:
     if not buttons_:

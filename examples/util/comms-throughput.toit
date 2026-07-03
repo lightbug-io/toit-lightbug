@@ -127,6 +127,8 @@ main:
 
   run-rx-phase "RX small" small-bytes rx-count
   print ""
+  run-rx-phase "RX small async handlers" small-bytes rx-count --async-handlers=true
+  print ""
   run-rx-phase "RX large" large-bytes rx-count
   print ""
   run-tx-phase "TX small" small-msg small-bytes tx-count
@@ -141,7 +143,7 @@ main:
 //  RX phase: stream N serialised messages through Comms and count deliveries.
 // ---------------------------------------------------------------------------
 
-run-rx-phase label/string msg-bytes/ByteArray count/int -> none:
+run-rx-phase label/string msg-bytes/ByteArray count/int --async-handlers/bool=false -> none:
   print "--- $label ---"
   total-bytes := msg-bytes.size * count
 
@@ -159,7 +161,7 @@ run-rx-phase label/string msg-bytes/ByteArray count/int -> none:
       --open=false
       --reinitOnStart=false
       --startInbound=true
-      --asyncHandlerDispatch=false
+      --asyncHandlerDispatch=async-handlers
       --background=true
 
   // Background feeder: push one message-sized chunk at a time.

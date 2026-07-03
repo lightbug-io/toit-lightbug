@@ -27,13 +27,13 @@ class Comms:
 
   outbox_ /Channel
   outboxTaskStarted_ /bool := false
+  awaitTimeoutsTaskStarted_ /bool := false
   inboxesEnabled_ /bool := false
   heartbeats_ /Heartbeats? := null
   messageHandlers_ /List/*<MessageHandler>*/ := []  // List of message handlers
 
-  // Dispatch message handlers in background tasks (safe default).
-  // Set false for maximum throughput.
-  // This may become the default in the future.
+  // Dispatch message handlers inline by default to avoid one task allocation
+  // per handler per inbound message. Set true for slow or isolating handlers.
   asyncHandlerDispatch_ /bool
 
   LBSyncBytes_ /ByteArray
@@ -58,7 +58,7 @@ class Comms:
       --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
       --open/bool = true // Send Open message and heartbeats to keep connection alive
       --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
-      --asyncHandlerDispatch/bool = true // Dispatch message handlers in background tasks (safe default). Set false for maximum throughput.
+      --asyncHandlerDispatch/bool = false // Set true to dispatch each message handler in a background task.
       --background/bool = true // Run primairy tasks as background (non-blocking) tasks
       
       --logger=(log.default.with-name "lb-comms"):
@@ -111,8 +111,6 @@ class Comms:
       task --background=background_:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
     if startOutbox:
       task --background=background_:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
-    task --background=background_:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
-
     // In order for the Lightbug device to talk back to us, we have to open the conn
     // and keep it open with heartbeats
     if sendOpen:
@@ -355,11 +353,10 @@ class Comms:
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "SEND: $(msg)"
 
-    latch := monitor.Latch
-
     // Create consolidated tracker if any callbacks are provided or latch needed.
     shouldTrack := onAck != null or onNack != null or onResponse != null or onError != null or onTimeout != null or withLatch
     if shouldTrack:
+      latch := monitor.Latch
       tracker := MessageTracker
           --latch=latch
           --on-good-ack=onAck
@@ -368,11 +365,21 @@ class Comms:
           --on-bad-response=onError
           --on-timeout=onTimeout
           --timeout=timeout
+      ensure-await-timeouts-task_
       evicted := trackers_.set msg.msgId tracker
       // If an old tracker was evicted, call its timeout callback.
       if evicted:
         logger_.warn "Evicted tracker for message due to capacity limit"
         handle-evicted-tracker_ evicted
+      if preSend != null:
+        preSend.call msg
+
+      sendSwitching_ msg --now=now
+
+      if postSend != null:
+        postSend.call msg
+
+      return latch
     
     if preSend != null:
       preSend.call msg
@@ -382,8 +389,6 @@ class Comms:
     if postSend != null:
       postSend.call msg
 
-    if shouldTrack:
-      return latch
     return null
 
   send-new msg/protocol.Message
@@ -399,6 +404,7 @@ class Comms:
 
     latch := monitor.Latch
     tracker := MessageTracker --latch=latch --on-timeout=onTimeout --timeout=timeout
+    ensure-await-timeouts-task_
     evicted := trackers_.set msg.msgId tracker
     if evicted:
       logger_.warn "Evicted tracker for message due to capacity limit"
@@ -422,6 +428,7 @@ class Comms:
 
     latch := monitor.Latch
     tracker := MessageTracker --latch=latch --on-timeout=onTimeout --timeout=timeout
+    ensure-await-timeouts-task_
     evicted := trackers_.set msg.msgId tracker
     if evicted:
       logger_.warn "Evicted tracker for message due to capacity limit"
@@ -478,6 +485,12 @@ class Comms:
     // We don't log the send here, as it will be sent later when the outbox is processed
     outbox_.send msg
 
+  ensure-await-timeouts-task_:
+    if awaitTimeoutsTaskStarted_:
+      return
+    awaitTimeoutsTaskStarted_ = true
+    task --background=background_:: catch-and-restart "processAwaitTimeouts_" (:: processAwaitTimeouts_) --logger=logger_
+
   // Send raw bytes, without any protocol wrapping
   send-raw-bytes bytes/ByteArray --flush=true:
     device_.out.write bytes --flush=flush
@@ -511,23 +524,14 @@ class Comms:
     while true:
       yield
       sleep TimeoutCheckEvery_
-      // Collect timed-out trackers first to avoid modification during iteration.
-      timed-out := []
-      trackers_.do: | key tracker |
-        if tracker.is-timed-out:
-          timed-out.add [key, tracker]
-
-      timed-out.do: | entry |
-        key := entry[0]
-        tracker := entry[1]
+      trackers_.remove-timed-out: | key tracker |
         logger_.debug "Timeout for message: $(key)"
 
         // Capture callbacks before clearing
         timeout-callback := tracker.on-timeout
         latch := tracker.latch
 
-        // Remove and clear early to prevent races
-        trackers_.remove key
+        // Clear early to prevent races and help GC.
         tracker.clear
 
         // Call timeout callback if it is set
