@@ -22,7 +22,7 @@ logger := log.default.with-name "lora-positions"
 
 class LoraPositionsApp:
   device_/devices.Device
-  dog_/any
+  dog_/anydevice_
   position-handler_/GenericHandler? := null
   buttons-subscriber-id_/int? := null
   running_/bool := false
@@ -118,18 +118,18 @@ class LoraPositionsApp:
       maybe-refresh-stats_
       return
 
-    payload := id-prefixed_ last-position-text_
+    payload := position-payload-bytes_ position
     if payload == null:
       skipped-count_ += 1
       maybe-refresh-stats_
       return
 
     e := catch:
-      device_.lora.send-payload payload --now=true
+      device_.lora.send-payload-bytes payload --now=true
       last-tx-at_ = now
-      last-tx-text_ = payload
+      last-tx-text_ = "$(device-id_):$last-position-text_"
       tx-count_ += 1
-      logger.info "LoRa position tx: $payload"
+      logger.info "LoRa position tx: $last-tx-text_"
     if e:
       skipped-count_ += 1
       logger.warn "Failed to send LoRa position: $e"
@@ -137,6 +137,14 @@ class LoraPositionsApp:
 
   position-text_ position/messages.Position -> string:
     return "$(position.latitude.to-string --precision=6),$(position.longitude.to-string --precision=6)"
+
+  position-payload-bytes_ position/messages.Position -> ByteArray?:
+    init-device-id_
+    if device-id_ == null:
+      return null
+    msg := protocol.Message.with-data messages.Position.MT position
+    msg.header-add-data-uint32 protocol.Header.TYPE_CLIENT_ID device-id_
+    return msg.bytes-for-protocol
 
   id-prefixed_ body/string -> string?:
     init-device-id_

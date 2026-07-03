@@ -4,6 +4,7 @@ import ..modules.comms.generic-handler show GenericHandler
 import ..modules.eink.menu-selection show MenuSelection
 import ..protocol as protocol
 import ..util.bytes show stringify-all-bytes-compact-hex
+import io.byte-order show LITTLE-ENDIAN
 import log
 import watchdog show Watchdog
 import .apps show Apps
@@ -127,9 +128,12 @@ class LoraApp:
       if is-running_ and a-msg.type == messages.LoRa.MT:
         lora := messages.LoRa.from-data a-msg.data
         if lora.has-data messages.LoRa.PAYLOAD:
-          text := payload-to-text_ lora.payload
+          payload := lora.payload
+          v3-msg := payload-to-v3-message_ payload
+          text := payload-to-display-text_ payload v3-msg
           flash-green_
-          handle-received-payload_ text
+          if v3-msg == null:
+            handle-received-payload_ text
           logger_.info "LoRa rx: $text"
           feed
           add-received-message_ text
@@ -308,6 +312,42 @@ class LoraApp:
       return payload.to-string
     logger_.warn "LoRa payload was not valid UTF-8: $e"
     return stringify-all-bytes-compact-hex payload
+
+  payload-to-display-text_ payload/ByteArray v3-msg/protocol.Message? -> string:
+    if v3-msg:
+      return v3-message-to-text_ v3-msg
+    return payload-to-text_ payload
+
+  payload-to-v3-message_ payload/ByteArray -> protocol.Message?:
+    if payload.size < 7 or payload[0] != 3:
+      return null
+    message-length := LITTLE-ENDIAN.uint16 payload 1
+    if message-length != payload.size:
+      return null
+    e := catch:
+      msg := protocol.Message.from-bytes payload
+      checksum := LITTLE-ENDIAN.uint16 payload (payload.size - 2)
+      if msg.checksum-calc != checksum:
+        return null
+      return msg
+    if e:
+      logger_.debug "LoRa payload was not a valid V3 message: $e"
+    return null
+
+  v3-message-to-text_ msg/protocol.Message -> string:
+    client := v3-message-client-text_ msg
+    if msg.type == messages.Position.MT:
+      position := messages.Position.from-data msg.data
+      return "$client $(msg.type) $(position.latitude.to-string --precision=6) $(position.longitude.to-string --precision=6) $(position.accuracy.to-string --precision=2)"
+    // TODO: render other V3 message types using a generated priority list of compact fields.
+    return "$client $(msg.type) $(msg.size)"
+
+  v3-message-client-text_ msg/protocol.Message -> string:
+    if msg.header-has-data protocol.Header.TYPE_CLIENT_ID:
+      return "$(msg.header-get-data-uint protocol.Header.TYPE_CLIENT_ID)"
+    if msg.header-has-data protocol.Header.TYPE_FORWARDED_FOR:
+      return "$(msg.header-get-data-uint protocol.Header.TYPE_FORWARDED_FOR)"
+    return "-"
 
   send-current:
     payload := payload-for-current-mode_

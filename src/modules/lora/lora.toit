@@ -27,6 +27,9 @@ class LoraRadio:
   send-payload payload/string --now/bool=true --config-slot/int?=null:
     device_.comms.send (msg --payload=payload --config-slot=config-slot) --now=now
 
+  send-payload-bytes payload/ByteArray --now/bool=true --config-slot/int?=null:
+    device_.comms.send (msg --payload-bytes=payload --config-slot=config-slot) --now=now
+
   send-payload payload/string --await --timeout/Duration=(Duration --s=5) --config-slot/int?=null -> protocol.Message?:
     return device_.comms.send-new (msg --payload=payload --config-slot=config-slot) --timeout=timeout
 
