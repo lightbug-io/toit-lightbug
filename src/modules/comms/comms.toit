@@ -142,6 +142,9 @@ class Comms:
       logger_.warn "Tried to get already created inbox $(name), now with different size"
     return inboxesByName[name]
 
+  remove-inbox name/string:
+    inboxesByName.remove name
+
   // Prints a report on the state and usage of inboxes
   // Can be useful for debugging inbox usage
   inbox-report:

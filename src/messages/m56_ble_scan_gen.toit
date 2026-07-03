@@ -9,6 +9,7 @@ class BLEScan extends protocol.Data:
   static ADVERTISING-DATA := 1
   static MAC := 2
   static RSSI := 3
+  static NAME := 4
 
   constructor:
     super
@@ -24,11 +25,12 @@ class BLEScan extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --name/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if advertising-data != null: data.add-data ADVERTISING-DATA advertising-data
     if mac != null: data.add-data MAC mac
     if rssi != null: data.add-data-int8 RSSI rssi
+    if name != null: data.add-data-ascii NAME name
     return data
 
   // Subscribe to a message with an optional interval in milliseconds
@@ -62,9 +64,16 @@ class BLEScan extends protocol.Data:
   rssi -> int:
     return get-data-int RSSI
 
+  /**
+   * Device name, if available
+   */
+  name -> string:
+    return get-data-ascii NAME
+
   stringify -> string:
     return {
       "advertisingData": advertising-data,
       "mac": mac,
       "rssi": rssi,
+      "name": name,
     }.stringify

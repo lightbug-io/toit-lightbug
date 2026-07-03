@@ -10,6 +10,18 @@ class GSMControl extends protocol.Data:
   static DURATION := 2
   static GSM-ACTIVE := 3
   static REQUEST-CONTROL := 4
+  static START-SEARCH := 5
+  static START-SEARCH_FULL := 0
+  static START-SEARCH_AUTO := 1
+
+  static START-SEARCH_STRINGS := {
+    0: "Full",
+    1: "Auto",
+  }
+
+  static start-search-from-int value/int -> string:
+    return START-SEARCH_STRINGS.get value --if-absent=(: "unknown")
+
 
   constructor:
     super
@@ -25,11 +37,12 @@ class GSMControl extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --flight-mode/bool?=null --duration/int?=null --request-control/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --flight-mode/bool?=null --duration/int?=null --request-control/bool?=null --start-search/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if flight-mode != null: data.add-data-bool FLIGHT-MODE flight-mode
     if duration != null: data.add-data-uint DURATION duration
     if request-control != null: data.add-data-bool REQUEST-CONTROL request-control
+    if start-search != null: data.add-data-uint START-SEARCH start-search
     return data
 
   /**
@@ -74,10 +87,22 @@ class GSMControl extends protocol.Data:
   request-control -> bool:
     return get-data-bool REQUEST-CONTROL
 
+  /**
+   * Trigger a network search. When present, takes priority over flight mode / duration fields.
+   *
+   *
+   * Valid values:
+   * - START-SEARCH_FULL (0): Full network scan.
+   * - START-SEARCH_AUTO (1): Automatic search using the last known band.
+   */
+  start-search -> int:
+    return get-data-uint START-SEARCH
+
   stringify -> string:
     return {
       "flightMode": flight-mode,
       "duration": duration,
       "gsmActive": gsm-active,
       "requestControl": request-control,
+      "startSearch": start-search,
     }.stringify

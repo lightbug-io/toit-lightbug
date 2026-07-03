@@ -22,7 +22,7 @@ class Haptics:
   // Send a haptics control with explicit pattern and intensity.
   send --pattern/int --intensity/int:
     // Build payload using generated helper to ensure field numbers/constants are correct.
-    msg := messages.HapticsControl.msg --data=(messages.HapticsControl.data --pattern=pattern --intensity=intensity)
+    msg := messages.HapticsControl.set-msg --base-data=(messages.HapticsControl.data --pattern=pattern --intensity=intensity)
     device_.comms.send msg --now=true
 
   // Convenience named presets for patterns and intensities using generated constants.

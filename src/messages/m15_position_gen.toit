@@ -22,6 +22,8 @@ class Position extends protocol.Data:
   static TYPE_STANDALONE := 3
   static TYPE_RTK-FLOAT := 4
   static TYPE_RTK-FIX := 5
+  static TYPE_WIFI := 10
+  static TYPE_GSM := 11
 
   static TYPE_STRINGS := {
     0: "invalid",
@@ -30,6 +32,8 @@ class Position extends protocol.Data:
     3: "standalone",
     4: "rtk-float",
     5: "rtk-fix",
+    10: "wifi",
+    11: "gsm",
   }
 
   static type-from-int value/int -> string:
@@ -38,16 +42,21 @@ class Position extends protocol.Data:
   static SOURCE := 11
   static SOURCE_GPS := 0
   static SOURCE_RTK := 1
+  static SOURCE_OS := 2
+  static SOURCE_IP := 3
 
   static SOURCE_STRINGS := {
     0: "gps",
     1: "rtk",
+    2: "os",
+    3: "ip",
   }
 
   static source-from-int value/int -> string:
     return SOURCE_STRINGS.get value --if-absent=(: "unknown")
 
   static CORRECTION-AGE := 12
+  static SEND-REASON := 98
 
   constructor:
     super
@@ -63,7 +72,10 @@ class Position extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
+  static data --send-reason/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+    data := base-data
+    if send-reason != null: data.add-data-uint SEND-REASON send-reason
+    return data
 
   /**
    * Creates a GET Request message for Position.
@@ -178,6 +190,8 @@ class Position extends protocol.Data:
    * - TYPE_STANDALONE (3): standalone 3d fix
    * - TYPE_RTK-FLOAT (4): rtk-float
    * - TYPE_RTK-FIX (5): rtk-fix
+   * - TYPE_WIFI (10): wifi
+   * - TYPE_GSM (11): gsm
    */
   type -> int:
     return get-data-uint TYPE
@@ -188,6 +202,8 @@ class Position extends protocol.Data:
    * Valid values:
    * - SOURCE_GPS (0): Position has come from a GPS module.
    * - SOURCE_RTK (1): Position has come from an RTK module. This does not mean the position is RTK corrected.
+   * - SOURCE_OS (2): Position determined by OS-level location services.
+   * - SOURCE_IP (3): Position inferred from public IP geolocation.
    */
   source -> int:
     return get-data-uint SOURCE
@@ -199,6 +215,12 @@ class Position extends protocol.Data:
   // Raw value for Correction Age before conversion (division by 10)
   correction-age-raw -> int:
     return get-data-uint CORRECTION-AGE
+
+  /**
+   * Send reason code for this position.
+   */
+  send-reason -> int:
+    return get-data-uint SEND-REASON
 
   stringify -> string:
     return {
@@ -214,4 +236,5 @@ class Position extends protocol.Data:
       "type": type,
       "source": source,
       "correctionAge": correction-age,
+      "sendReason": send-reason,
     }.stringify

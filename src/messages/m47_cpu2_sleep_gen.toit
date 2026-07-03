@@ -6,8 +6,21 @@ class CPU2Sleep extends protocol.Data:
   static MT := 47
   static MT_NAME := "CPU2Sleep"
 
-  static INTERVAL := 1
   static WAKE-ON-EVENT := 2
+  static WIFI-OVERRIDE-MODE := 10
+  static WIFI-OVERRIDE-MODE_FORCE-OFF := 0
+  static WIFI-OVERRIDE-MODE_FORCE-ON := 1
+  static WIFI-OVERRIDE-MODE_CLEAR-OVERRIDE := 2
+
+  static WIFI-OVERRIDE-MODE_STRINGS := {
+    0: "Force Off",
+    1: "Force On",
+    2: "Clear Override",
+  }
+
+  static wifi-override-mode-from-int value/int -> string:
+    return WIFI-OVERRIDE-MODE_STRINGS.get value --if-absent=(: "unknown")
+
 
   constructor:
     super
@@ -23,31 +36,27 @@ class CPU2Sleep extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --interval/int?=null --wake-on-event/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --wake-on-event/bool?=null --wifi-override-mode/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
-    if interval != null: data.add-data-uint INTERVAL interval
     if wake-on-event != null: data.add-data-bool WAKE-ON-EVENT wake-on-event
+    if wifi-override-mode != null: data.add-data-uint WIFI-OVERRIDE-MODE wifi-override-mode
     return data
 
   /**
-   * Creates a CPU2 Sleep message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
+   * Creates a GET Request message for CPU2 Sleep.
    *
    * Returns: A Message ready to be sent
    */
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
 
   /**
-   * Interval in ms to turn off the CPU2 for, before turning it back on
+   * Creates a SET Request message for CPU2 Sleep.
+   *
+   * Returns: A Message ready to be sent
    */
-  interval -> int:
-    return get-data-uint INTERVAL
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
    * Should CPU1 wake up CPU2 on new events / messages
@@ -55,8 +64,19 @@ class CPU2Sleep extends protocol.Data:
   wake-on-event -> bool:
     return get-data-bool WAKE-ON-EVENT
 
+  /**
+   * Forced WiFi override mode.
+   *
+   * Valid values:
+   * - WIFI-OVERRIDE-MODE_FORCE-OFF (0): Force WiFi off for the Duration timeout (or indefinitely if Duration is omitted).
+   * - WIFI-OVERRIDE-MODE_FORCE-ON (1): Force WiFi on for the Duration timeout (or indefinitely if Duration is omitted).
+   * - WIFI-OVERRIDE-MODE_CLEAR-OVERRIDE (2): Clear any forced WiFi override and return to normal WiFi power behavior.
+   */
+  wifi-override-mode -> int:
+    return get-data-uint WIFI-OVERRIDE-MODE
+
   stringify -> string:
     return {
-      "interval": interval,
       "wakeOnEvent": wake-on-event,
+      "wifiOnOff": wifi-override-mode,
     }.stringify

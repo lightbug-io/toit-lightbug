@@ -10,6 +10,7 @@ class ProtectionLevel extends protocol.Data:
   static LATITUDE := 2
   static LONGITUDE := 3
   static ALTITUDE := 4
+  static PROBABILITY := 6
 
   constructor:
     super
@@ -25,12 +26,13 @@ class ProtectionLevel extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --valid/int?=null --latitude/int?=null --longitude/int?=null --altitude/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --valid/int?=null --latitude/int?=null --longitude/int?=null --altitude/int?=null --probability/float?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if valid != null: data.add-data-uint VALID valid
     if latitude != null: data.add-data-uint LATITUDE latitude
     if longitude != null: data.add-data-uint LONGITUDE longitude
     if altitude != null: data.add-data-uint ALTITUDE altitude
+    if probability != null: data.add-data-float PROBABILITY probability
     return data
 
   /**
@@ -40,6 +42,27 @@ class ProtectionLevel extends protocol.Data:
    */
   static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
     return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
+
+  // Subscribe to a message with an optional interval in milliseconds
+  static subscribe-msg --interval/int?=null --duration/int?=null --timeout/int?=null -> protocol.Message:
+    msg := protocol.Message MT
+    msg.header.data.add-data-uint8 protocol.Header.TYPE-MESSAGE-METHOD protocol.Header.METHOD-SUBSCRIBE
+    // Subscription header options - only add when provided
+    if interval != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-INTERVAL interval
+    if duration != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-DURATION duration
+    if timeout != null:
+      msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-TIMEOUT timeout
+    return msg
+
+  /**
+   * Creates a UNSUBSCRIBE Request message for Protection Level.
+   *
+   * Returns: A Message ready to be sent
+   */
+  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
    * Indicates if the protection level data is valid
@@ -71,10 +94,18 @@ class ProtectionLevel extends protocol.Data:
   altitude -> int:
     return get-data-uint ALTITUDE
 
+  /**
+   * Protection level probability as a float32.
+   * For UBX NAV-PL this is computed from TMIR coefficient/exponent as coeff * 10^exp.
+   */
+  probability -> float:
+    return get-data-float PROBABILITY
+
   stringify -> string:
     return {
       "valid": valid,
       "lat": latitude,
       "lon": longitude,
       "alt": altitude,
+      "probability": probability,
     }.stringify

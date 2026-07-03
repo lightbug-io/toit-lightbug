@@ -32,18 +32,20 @@ class LEDControl extends protocol.Data:
     return data
 
   /**
-   * Creates a LED Control message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
+   * Creates a GET Request message for LED Control.
    *
    * Returns: A Message ready to be sent
    */
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
+  static get-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-GET base-data
+
+  /**
+   * Creates a SET Request message for LED Control.
+   *
+   * Returns: A Message ready to be sent
+   */
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
    * Red LED intensity (0-255) PWM value

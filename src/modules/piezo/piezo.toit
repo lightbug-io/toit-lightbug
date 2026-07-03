@@ -21,7 +21,7 @@ class Piezo:
 
   // Play a single tone by specifying frequency in KHz (float) and duration in ms (int).
   play-tone --khz/float --ms/int:
-    msg := messages.BuzzerControl.msg --data=(messages.BuzzerControl.data --duration=ms --frequency=khz)
+    msg := messages.BuzzerControl.set-msg --base-data=(messages.BuzzerControl.data --duration=ms --frequency=khz)
     device_.comms.send msg --now=true
 
   // Shortcut tones: low, med, high. Default duration 100 ms.
@@ -34,7 +34,7 @@ class Piezo:
 
   // Control buzzer using duration (ms), sound-type and intensity (e.g., ambulance preset)
   control --ms/int --sound-type/int?=null --intensity/int?=null:
-    msg := messages.BuzzerControl.msg --data=(messages.BuzzerControl.data --duration=ms --sound-type=sound-type --intensity=intensity)
+    msg := messages.BuzzerControl.set-msg --base-data=(messages.BuzzerControl.data --duration=ms --sound-type=sound-type --intensity=intensity)
     device_.comms.send msg --now=true
 
   // Play a sequence of frequencies (float KHz) and timings (int ms list).
@@ -45,7 +45,7 @@ class Piezo:
     data.add-data-list-float32 messages.BuzzerSequence.FREQUENCIES frequencies
     // timings expected as list of uint16
     data.add-data-list-uint16 messages.BuzzerSequence.TIMINGS timings
-    msg := messages.BuzzerSequence.msg --data=data
+    msg := messages.BuzzerSequence.set-msg --base-data=data
     device_.comms.send msg --now=true
 
   // Convenience methods for common presets using the generated SOUND-TYPE constants

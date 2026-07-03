@@ -30,18 +30,12 @@ class BuzzerSequence extends protocol.Data:
     return data
 
   /**
-   * Creates a Buzzer Sequence message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
+   * Creates a SET Request message for Buzzer Sequence.
    *
    * Returns: A Message ready to be sent
    */
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   /**
    * Array of frequencies in Hz as floats

@@ -9,6 +9,7 @@ class ChargerSettings extends protocol.Data:
   static INPUT-CURRENT-LIMIT := 1
   static CHARGE-CURRENT-LIMIT := 2
   static CHARGE-TERMINATION-VOLTAGE := 3
+  static DISABLE-PFM := 4
 
   constructor:
     super
@@ -24,11 +25,12 @@ class ChargerSettings extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --input-current-limit/int?=null --charge-current-limit/int?=null --charge-termination-voltage/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --input-current-limit/int?=null --charge-current-limit/int?=null --charge-termination-voltage/int?=null --disable-pfm/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if input-current-limit != null: data.add-data-uint INPUT-CURRENT-LIMIT input-current-limit
     if charge-current-limit != null: data.add-data-uint CHARGE-CURRENT-LIMIT charge-current-limit
     if charge-termination-voltage != null: data.add-data-uint CHARGE-TERMINATION-VOLTAGE charge-termination-voltage
+    if disable-pfm != null: data.add-data-bool DISABLE-PFM disable-pfm
     return data
 
   /**
@@ -71,9 +73,16 @@ class ChargerSettings extends protocol.Data:
   charge-termination-voltage -> int:
     return get-data-uint CHARGE-TERMINATION-VOLTAGE
 
+  /**
+   * Disable Pulse-Frequency Modulation mode on the charger IC. Reduces switching noise at light load. Only supported on Viper5 (BQ25622)
+   */
+  disable-pfm -> bool:
+    return get-data-bool DISABLE-PFM
+
   stringify -> string:
     return {
       "inputCurrentLimit": input-current-limit,
       "chargeCurrentLimit": charge-current-limit,
       "chargeTerminationVoltage": charge-termination-voltage,
+      "disablePfm": disable-pfm,
     }.stringify
