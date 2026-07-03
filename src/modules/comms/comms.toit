@@ -537,7 +537,7 @@ class Comms:
         timeout-callback := tracker.on-timeout
         latch := tracker.latch
 
-        // Clear early to prevent races and help GC.
+        // Clear early to release references before callbacks run.
         tracker.clear
 
         // Call timeout callback if it is set

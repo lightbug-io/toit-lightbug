@@ -1,4 +1,5 @@
 import monitor
+import io.byte-order show LITTLE-ENDIAN
 
 /**
 Tracking state for a single message awaiting response.
@@ -52,98 +53,132 @@ class MessageTracker:
 /**
 A bounded map for tracking messages awaiting responses.
 
-When the map reaches capacity, the oldest entries (by insertion order) are
-evicted to make room for new ones. This prevents unbounded memory growth.
+Message IDs are stored in fixed slots using key % capacity. With the default
+sequential message id generator this evicts the matching old slot after the
+bounded window wraps, avoiding unbounded memory growth without a Map/List pair.
 */
 class BoundedTrackerMap:
-  map_/Map := {:}
-  keys_/List := []  // Track insertion order for LRU eviction.
   capacity_/int
+  ids_/ByteArray
+  occupied_/ByteArray
+  trackers_/List := []
+  count_/int := 0
 
   constructor --capacity/int=64:
     capacity_ = capacity
+    ids_ = ByteArray capacity * 4
+    occupied_ = ByteArray capacity
+    for i := 0; i < capacity_; i++:
+      trackers_.add null
 
   /** Get a tracker by message ID. Returns null if not found. */
   get key/int -> MessageTracker?:
-    return map_.get key
+    index := find-index_ key
+    if index < 0:
+      return null
+    return trackers_[index]
 
   /** Check if a key exists. */
   contains key/int -> bool:
-    return map_.contains key
+    return (find-index_ key) >= 0
 
   /** Number of tracked messages. */
   size -> int:
-    return map_.size
+    return count_
 
   /**
-  Add or update a tracker. Evicts oldest if at capacity.
+  Add or update a tracker. Evicts the existing tracker in the target slot.
   Returns any evicted tracker (for cleanup) or null.
   */
   set key/int value/MessageTracker -> MessageTracker?:
     evicted/MessageTracker? := null
 
     // If key already exists, just update value (no change to order).
-    if map_.contains key:
-      map_[key] = value
+    index := slot-for_ key
+    if occupied_[index] != 0 and (id-at_ index) == key:
+      trackers_[index] = value
       return null
 
-    // Evict oldest if at capacity.
-    if map_.size >= capacity_ and keys_.size > 0:
-      oldest-key := keys_.remove --at=0
-      evicted = map_.get oldest-key
-      map_.remove oldest-key
+    if occupied_[index] != 0:
+      evicted = trackers_[index]
+      clear-index_ index
+      count_--
 
-    map_[key] = value
-    keys_.add key
+    set-id_ index key
+    occupied_[index] = 1
+    trackers_[index] = value
+    count_++
     return evicted
 
   /** Remove a tracker by key. Returns the removed tracker or null. */
   remove key/int -> MessageTracker?:
-    tracker := map_.get key
-    if tracker:
-      map_.remove key
-      // Remove from keys list (linear scan, but list is bounded).
-      idx := keys_.index-of key
-      if idx >= 0:
-        keys_.remove --at=idx
+    idx := find-index_ key
+    if idx < 0:
+      return null
+    tracker := trackers_[idx]
+    clear-index_ idx
+    count_--
     return tracker
 
   /** Iterate over all entries. Block receives (key, tracker). */
   do [block] -> none:
-    // Copy keys to avoid modification during iteration.
-    keys := keys_.copy
-    keys.do: | key |
-      tracker := map_.get key
+    for i := 0; i < capacity_; i++:
+      if occupied_[i] == 0:
+        continue
+      key := id-at_ i
+      tracker := trackers_[i]
       if tracker:
         block.call key tracker
 
   /** Remove all entries matching a predicate. Returns removed count. */
   remove-where [predicate] -> int:
     removed := 0
-    // Collect keys to remove first to avoid modification during iteration.
-    to-remove := []
-    keys_.do: | key |
-      tracker := map_.get key
+    for i := 0; i < capacity_; i++:
+      if occupied_[i] == 0:
+        continue
+      key := id-at_ i
+      tracker := trackers_[i]
       if tracker and (predicate.call key tracker):
-        to-remove.add key
-
-    to-remove.do: | key |
-      remove key
-      removed++
+        clear-index_ i
+        count_--
+        removed++
     return removed
 
   /** Remove timed-out entries and call the block with each removed tracker. */
   remove-timed-out [block] -> int:
     removed := 0
-    i := 0
-    while i < keys_.size:
-      key := keys_[i]
-      tracker := map_.get key
+    for i := 0; i < capacity_; i++:
+      if occupied_[i] == 0:
+        continue
+      key := id-at_ i
+      tracker := trackers_[i]
       if tracker and tracker.is-timed-out:
-        map_.remove key
-        keys_.remove --at=i
+        clear-index_ i
+        count_--
         removed++
         block.call key tracker
-      else:
-        i++
     return removed
+
+  id-at_ index/int -> int:
+    return LITTLE-ENDIAN.uint32 ids_ (index * 4)
+
+  set-id_ index/int key/int -> none:
+    LITTLE-ENDIAN.put-uint32 ids_ (index * 4) key
+
+  clear-index_ index/int -> none:
+    occupied_[index] = 0
+    trackers_[index] = null
+
+  find-index_ key/int -> int:
+    index := slot-for_ key
+    if occupied_[index] != 0 and (id-at_ index) == key:
+      return index
+    return -1
+
+  slot-for_ key/int -> int:
+    if capacity_ <= 0:
+      return 0
+    slot := key % capacity_
+    if slot < 0:
+      slot = -slot
+    return slot
