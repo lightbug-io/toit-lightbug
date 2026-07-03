@@ -7,14 +7,13 @@ import ..util.bytes show stringify-all-bytes-compact-hex
 import log
 import watchdog show Watchdog
 import .apps show Apps
-import .survey.strobe-once show strobe-once
 
 TOP-PAD := 26
 TEXT-SPACING := 12
 MAX-MESSAGES := 6
-LORA-LISTEN-MS := 3000
-LORA-LISTEN-REFRESH-MS := 3000
-STROBE-FLASH-MS := 25
+LORA-RX-INDEFINITE := 0
+STROBE-FLASH-MS := 15
+WATCHDOG-FEED-MS := 10000
 
 class LoraApp:
   static screen-width ::= 250
@@ -27,9 +26,9 @@ class LoraApp:
   static SEND-PING ::= "ping"
   static SEND-LOCATION ::= "location"
 
-  static MENU-TEXT-SENDING-ID ::= "SendingID"
-  static MENU-TEXT-SENDING-PING ::= "SendingPing"
-  static MENU-TEXT-SENDING-LOCATION ::= "SendingLocation"
+  static MENU-TEXT-SEND-ID ::= "SendID"
+  static MENU-TEXT-SEND-PING ::= "SendPing"
+  static MENU-TEXT-SEND-LOCATION ::= "SendLocation"
   static MENU-TEXT-BACK ::= "Go Back"
   static MENU-TEXT-EXIT ::= "Exit"
 
@@ -42,12 +41,13 @@ class LoraApp:
   buttons-subscriber-id_/int? := null
   lora-handler_/GenericHandler? := null
   lora-listening_/bool := false
+  watchdog-feeding_/bool := false
   position-handler_/GenericHandler? := null
   position-subscribed_/bool := false
   lora-page-drawn_/bool := false
 
   menu-selection/MenuSelection? := null
-  send-mode_/string := SEND-ID
+  send-mode_/string := SEND-PING
   menu-options_/List := []
   received-messages_/List := []
   last-position_/messages.Position? := null
@@ -63,20 +63,20 @@ class LoraApp:
   start:
     dog_.start --s=60
     is-running_ = true
+    start-watchdog-feed_
     update-menu-options_
-    show-lora
-    init-device-id_
     init-button-subscription_
     init-lora-handler_
-    subscribe-lora_
     start-lora-listening_
+    show-lora
+    init-device-id_
     logger_.info "LoRa app started"
 
   stop:
-    dog_.stop
     is-running_ = false
+    watchdog-feeding_ = false
+    dog_.stop
     stop-lora-listening_
-    unsubscribe-lora_
     unsubscribe-position_
     deinit-button-subscriber_
     deinit-lora-handler_
@@ -91,6 +91,15 @@ class LoraApp:
     e := catch: dog_.feed
     if e:
       logger_.warn "DOG fail: $e"
+
+  start-watchdog-feed_:
+    if watchdog-feeding_:
+      return
+    watchdog-feeding_ = true
+    task::
+      while is-running_ and watchdog-feeding_:
+        feed
+        sleep --ms=WATCHDOG-FEED-MS
 
   is-running -> bool:
     return is-running_
@@ -115,15 +124,15 @@ class LoraApp:
 
   init-lora-handler_:
     lora-handler_ = GenericHandler --callback=(:: |a-msg|
-      if is-running_ and a-msg.type == messages.LORA.MT:
-        lora := messages.LORA.from-data a-msg.data
-        if lora.has-data messages.LORA.PAYLOAD:
-          flash-green_
+      if is-running_ and a-msg.type == messages.LoRa.MT:
+        lora := messages.LoRa.from-data a-msg.data
+        if lora.has-data messages.LoRa.PAYLOAD:
           text := payload-to-text_ lora.payload
+          flash-green_
+          handle-received-payload_ text
           logger_.info "LoRa rx: $text"
           feed
           add-received-message_ text
-          handle-received-payload_ text
         else:
           logger_.info "LoRa update without payload"
     )
@@ -155,40 +164,24 @@ class LoraApp:
   start-lora-listening_:
     if lora-listening_:
       return
-    lora-listening_ = true
-    task::
-      logger_.info "LoRa listen loop started"
-      while is-running_ and lora-listening_:
-        e := catch:
-          feed
-          data := messages.LORA.data --payload=listen-payload_.to-byte-array --receive-ms=LORA-LISTEN-MS
-          response := device_.comms.send-new (messages.LORA.msg --data=data) --timeout=(Duration --ms=(LORA-LISTEN-MS + 2000))
-          if response and not response.msg-ok:
-            logger_.warn "LoRa listen response not OK: $(response)"
-          feed
-        if e:
-          logger_.warn "Failed to keep LORA listening: $e"
-        sleep --ms=LORA-LISTEN-REFRESH-MS
-      logger_.info "LoRa listen loop stopped"
+    lora-listening_ = subscribe-lora_
 
   stop-lora-listening_:
     lora-listening_ = false
-    e := catch:
-      data := messages.LORA.data --sleep=true
-      device_.comms.send (messages.LORA.set-msg --base-data=data) --now=true
-    if e:
-      logger_.warn "Failed to stop LORA listening: $e"
+    unsubscribe-lora_
 
-  subscribe-lora_:
+  subscribe-lora_ -> bool:
     e := catch:
-      device_.comms.send messages.LORA.subscribe-msg --now=true
+      device_.comms.send (messages.LoRa.subscribe-msg --duration=LORA-RX-INDEFINITE) --now=true
       logger_.info "LoRa subscribed"
     if e:
       logger_.warn "Failed to subscribe to LORA: $e"
+      return false
+    return true
 
   unsubscribe-lora_:
     e := catch:
-      device_.comms.send messages.LORA.unsubscribe-msg --now=true
+      device_.comms.send messages.LoRa.unsubscribe-msg --now=true
       logger_.info "LoRa unsubscribed"
     if e:
       logger_.warn "Failed to unsubscribe from LORA: $e"
@@ -235,8 +228,8 @@ class LoraApp:
     third := screen-width / 3
     y := screen-height - 15
     device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=0 --y=y --text="Menu" --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=third --y=y --text=device-id-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=(third * 2) --y=y --text=send-button-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=third --y=y --text=send-button-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=(third * 2) --y=y --text=device-id-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
 
   draw-line_ index/int text/string:
     device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=0 --y=(TOP-PAD + TEXT-SPACING * index) --text=text --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=screen-width --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
@@ -275,11 +268,11 @@ class LoraApp:
         device_.eink.send-menu --page-id=PAGE-MENU --items=menu-options_ --selected-item=menu-selection.current
 
   update-menu-options_:
-    sending := MENU-TEXT-SENDING-ID
+    sending := MENU-TEXT-SEND-ID
     if send-mode_ == SEND-PING:
-      sending = MENU-TEXT-SENDING-PING
+      sending = MENU-TEXT-SEND-PING
     else if send-mode_ == SEND-LOCATION:
-      sending = MENU-TEXT-SENDING-LOCATION
+      sending = MENU-TEXT-SEND-LOCATION
     menu-options_ = [
       sending,
       MENU-TEXT-BACK,
@@ -324,14 +317,22 @@ class LoraApp:
 
     send-lora-payload_ payload
 
+  send-id:
+    payload := id-payload_
+    if payload == null:
+      show-lora
+      return
+
+    send-lora-payload_ payload
+
   send-lora-payload_ payload/string:
     e := catch:
       feed
       logger_.info "LoRa tx: $payload"
       flash-white_
-      data := messages.LORA.data --payload=payload.to-byte-array --receive-ms=LORA-LISTEN-MS
-      msg := messages.LORA.msg --data=data
-      response := device_.comms.send-new msg --timeout=(Duration --ms=(LORA-LISTEN-MS + 2000))
+      data := messages.LoRa.data --payload=payload.to-byte-array
+      msg := messages.LoRa.msg --data=data
+      response := device_.comms.send-new msg --timeout=(Duration --s=5)
       if response and not response.msg-ok:
         logger_.warn "LoRa tx response not OK: $(response)"
       feed
@@ -339,35 +340,36 @@ class LoraApp:
       logger_.warn "Failed to send LORA: $e"
       show-lora
 
+  send-lora-payload-now_ payload/string:
+    e := catch:
+      data := messages.LoRa.data --payload=payload.to-byte-array
+      device_.comms.send (messages.LoRa.msg --data=data) --now=true
+      feed
+    if e:
+      logger_.warn "Failed to send LORA immediately: $e"
+
   handle-received-payload_ text/string:
     parts := split-payload_ text
     sender := parts[0]
     body := parts[1]
-    logger_.info "LoRa rx parsed sender='$sender' body='$body'"
     if body == "ping":
       if sender != "" and device-id_ != null and sender == "$(device-id_)":
         logger_.info "LoRa ping from self ignored"
         return
       response := prefixed-payload_ "pong"
       if response:
+        send-lora-payload-now_ response
+        flash-white_
         logger_.info "LoRa auto-pong: $response"
-        task:: send-lora-payload_ response
       else:
         logger_.warn "LoRa auto-pong skipped: no device id"
+    logger_.info "LoRa rx parsed sender='$sender' body='$body'"
 
   flash-white_:
-    task::
-      strobe-once:
-        device_.strobe.white
-        sleep --ms=STROBE-FLASH-MS
-        device_.strobe.off
+    device_.strobe.flash-white --ms=STROBE-FLASH-MS
 
   flash-green_:
-    task::
-      strobe-once:
-        device_.strobe.green
-        sleep --ms=STROBE-FLASH-MS
-        device_.strobe.off
+    device_.strobe.flash-green --ms=STROBE-FLASH-MS
 
   payload-for-current-mode_ -> string?:
     if send-mode_ == SEND-PING:
@@ -455,8 +457,10 @@ class LoraApp:
     if showing-page_ == PAGE-LORA:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         show-menu
-      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN_RIGHT:
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_ACTION:
         send-current
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN_RIGHT:
+        send-id
 
     else if showing-page_ == PAGE-MENU:
       if menu-selection == null:

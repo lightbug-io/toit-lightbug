@@ -23,18 +23,12 @@ class Reset extends protocol.Data:
   static data --base-data/protocol.Data?=protocol.Data -> protocol.Data: return base-data
 
   /**
-   * Creates a Reset message without a specific method.
-   *
-   * This is used for messages that don't require a specific method type
-   * (like GET, SET, SUBSCRIBE) but still need to carry data.
-   *
-   * Parameters:
-   * - data: Optional protocol.Data object containing message payload
+   * Creates a SET Request message for Reset.
    *
    * Returns: A Message ready to be sent
    */
-  static msg --data/protocol.Data?=protocol.Data -> protocol.Message:
-    return protocol.Message.with-data MT data
+  static set-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-SET base-data
 
   stringify -> string:
     return {

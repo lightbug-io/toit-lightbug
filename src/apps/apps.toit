@@ -88,7 +88,7 @@ class Apps:
                   task:: open-qc-app
                 else if menu-selection.current == MENU-OPTION-REBOOT:
                   log.info "Rebooting device"
-                  device_.comms.send messages.Reset.msg
+                  device_.comms.send messages.Reset.set-msg
                 else if menu-selection.current == MENU-OPTION-GO-BACK:
                   show-home
               else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:

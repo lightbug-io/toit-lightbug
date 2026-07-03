@@ -5,6 +5,11 @@ Some devices support a strobe light.
 This light is one or more RGB LEDs that can be controlled to display different colors.
 */
 abstract class Strobe:
+  current-color_/List := [false, false, false]
+  flash-restore-color_/List := [false, false, false]
+  flash-generation_/int := 0
+  flash-active_/bool := false
+
   /**
   Set the strobe to be the requested RGB colour mix
   Will stop any sequence that is running
@@ -60,8 +65,32 @@ abstract class Strobe:
   off:
     set OFF[0] OFF[1] OFF[2]
 
+  flash color/List --ms/int=25:
+    if not flash-active_:
+      flash-restore-color_ = current-color_
+    flash-active_ = true
+    flash-generation_ += 1
+    generation := flash-generation_
+    set color[0] color[1] color[2]
+    task --background=true::
+      sleep --ms=ms
+      if flash-active_ and generation == flash-generation_:
+        restore := flash-restore-color_
+        flash-active_ = false
+        set restore[0] restore[1] restore[2]
+
+  flash-red --ms/int=25:
+    flash RED --ms=ms
+  flash-green --ms/int=25:
+    flash GREEN --ms=ms
+  flash-blue --ms/int=25:
+    flash BLUE --ms=ms
+  flash-white --ms/int=25:
+    flash WHITE --ms=ms
+
 class FakeStrobe extends Strobe:
   set r/bool g/bool b/bool:
+    current-color_ = [r, g, b]
     print "Strobe: Setting R:$r G:$g B:$b"
   sequence --speed-ms/int=100 --colors/List?=null:
     print "Starting strobe sequence"
@@ -70,6 +99,7 @@ class NoStrobe extends Strobe:
   available -> bool:
     return false
   set r/bool g/bool b/bool:
+    current-color_ = [r, g, b]
   sequence --speed-ms/int=100 --colors/List?=null:
 
 /**
@@ -93,6 +123,7 @@ class GpioBasedStrobe extends Strobe:
   */
   set r/bool g/bool b/bool:
     stop-sequence_
+    current-color_ = [r, g, b]
     set_ r g b
 
   set_ r/bool g/bool b/bool:
@@ -119,9 +150,11 @@ class GpioBasedStrobe extends Strobe:
             r := color[0]
             g := color[1]
             b := color[2]
+            current-color_ = [r, g, b]
             set_ r g b
             sleep (Duration --ms=speed-ms)
       finally:
+        current-color_ = OFF
         set_ OFF[0] OFF[1] OFF[2]  // Turn off when done.
 
   /**

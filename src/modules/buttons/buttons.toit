@@ -343,3 +343,4 @@ class Buttons:
       task_.cancel
       task_ = null
     inbox_ = null
+    comms_.remove-inbox "buttons"

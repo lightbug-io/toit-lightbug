@@ -117,6 +117,9 @@ class Data:
     offset := add-data-space_ dataType 4
     LITTLE-ENDIAN.put-int32 data_ offset data
 
+  add-data-int dataType/int data/int -> none:
+    add-data-int32 dataType data
+
   add-data-uint64 dataType/int data/int -> none:
     offset := add-data-space_ dataType 8
     LITTLE-ENDIAN.put-uint data_ 8 offset data

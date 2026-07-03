@@ -5,18 +5,13 @@ import ...protocol as protocol
 SCREEN-WIDTH := 250
 SCREEN-HEIGHT := 122
 
-// Helper function to create LORA data with payload and receive time
+// Helper function to create LoRa transmit data with payload
 create-lora-data payload/string -> protocol.Data:
-  data := protocol.Data
-  data.add-data-ascii messages.LORA.PAYLOAD payload
-  data.add-data-uint32 messages.LORA.RECEIVE-MS 10000
-  return data
+  return messages.LoRa.data --payload=payload.to-byte-array
 
 // Helper function to create CPU2Sleep data
 create-cpu2sleep-data interval/int wake-on-event/bool -> protocol.Data:
-  data := protocol.Data
-  data.add-data-uint32 messages.CPU2Sleep.INTERVAL interval
-  data.add-data-uint8 messages.CPU2Sleep.WAKE-ON-EVENT (wake-on-event ? 1 : 0)
+  data := messages.CPU2Sleep.data --wake-on-event=wake-on-event
   return data
 
 // Helper function to create TransmitNow data

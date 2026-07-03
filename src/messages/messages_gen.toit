@@ -23,7 +23,7 @@ import .m44_pressure_gen show Pressure
 import .m45_alarm_gen show Alarm
 import .m46_buzzer_sequence_gen show BuzzerSequence
 import .m47_cpu2_sleep_gen show CPU2Sleep
-import .m48_power_profile_gen show PowerProfile
+import .m48_power_info_gen show PowerInfo
 import .m49_reset_gen show Reset
 import .m50_link_control_gen show LinkControl
 import .m52_led_control_gen show LEDControl
@@ -31,7 +31,8 @@ import .m53_protection_level_gen show ProtectionLevel
 import .m54_charger_settings_gen show ChargerSettings
 import .m55_wifi_scan_gen show WiFiScan
 import .m56_ble_scan_gen show BLEScan
-import .m1004_lora_gen show LORA
+import .m1004_lora_gen show LoRa
+import .m1005_lora_config_gen show LoRaConfig
 import .m10008_base_page_gen show BasePage
 import .m10009_text_page_gen show TextPage
 import .m10010_menu_page_gen show MenuPage
