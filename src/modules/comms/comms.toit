@@ -511,23 +511,14 @@ class Comms:
     while true:
       yield
       sleep TimeoutCheckEvery_
-      // Collect timed-out trackers first to avoid modification during iteration.
-      timed-out := []
-      trackers_.do: | key tracker |
-        if tracker.is-timed-out:
-          timed-out.add [key, tracker]
-
-      timed-out.do: | entry |
-        key := entry[0]
-        tracker := entry[1]
+      trackers_.remove-timed-out: | key tracker |
         logger_.debug "Timeout for message: $(key)"
 
         // Capture callbacks before clearing
         timeout-callback := tracker.on-timeout
         latch := tracker.latch
 
-        // Remove and clear early to prevent races
-        trackers_.remove key
+        // Clear early to release references before callbacks run.
         tracker.clear
 
         // Call timeout callback if it is set
