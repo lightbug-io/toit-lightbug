@@ -25,8 +25,10 @@ class GNSS:
     msg := messages.Position.get-msg --base-data=base-data
     device_.comms.send msg --now=true
 
-  subscribe-position --interval/int?=null --duration/int?=null --timeout/int?=null:
+  subscribe-position --interval/int?=null --duration/int?=null --timeout/int?=null --message-level/int?=null:
     msg := messages.Position.subscribe-msg --interval=interval --duration=duration --timeout=timeout
+    if message-level != null:
+      msg.header-add-data-uint8 protocol.Header.TYPE_MESSAGE_LEVEL message-level
     device_.comms.send msg --now=true
 
   unsubscribe-position --base-data/protocol.Data?=protocol.Data:

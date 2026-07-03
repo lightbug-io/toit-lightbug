@@ -12,6 +12,7 @@ import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
 import ..modules.gnss show GNSS
 import ..modules.eink show Eink
+import ..modules.lora show LoraRadio
 
 // A fake device, that might be useful sometimes while testing
 class Fake implements Device:
@@ -22,6 +23,7 @@ class Fake implements Device:
   piezo_ /Piezo? := null
   haptics_ /Haptics? := null
   gnss_ /GNSS? := null
+  lora_ /LoraRadio? := null
   eink_ /Eink? := null
   open_ /bool
   in_/io.Reader? := ?
@@ -66,6 +68,10 @@ class Fake implements Device:
     if not gnss_:
       gnss_ = GNSS --device=this --logger=(log.default.with-name "lb.gnss")
     return gnss_
+  lora -> LoraRadio:
+    if not lora_:
+      lora_ = LoraRadio --device=this --logger=(log.default.with-name "lb.lora")
+    return lora_
   reinit -> bool:
     return true
   prefix -> bool:

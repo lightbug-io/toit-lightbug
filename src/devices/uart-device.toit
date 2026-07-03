@@ -12,6 +12,7 @@ import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
 import ..modules.gnss show GNSS
 import ..modules.eink show Eink
+import ..modules.lora show LoraRadio
 
 // ESP32-C6 https://docs.espressif.com/projects/esp-at/en/latest/esp32c6/Get_Started/Hardware_connection.html#esp32c6-4mb-series
 // UART0 GPIO17 (RX) GPIO16 (TX) Defaults
@@ -35,6 +36,7 @@ class UART implements Device:
   piezo_ /Piezo? := null
   haptics_ /Haptics? := null
   gnss_ /GNSS? := null
+  lora_ /LoraRadio? := null
   eink_ /Eink? := null
   open_ /bool
 
@@ -76,6 +78,10 @@ class UART implements Device:
     if not gnss_:
       gnss_ = GNSS --device=this --logger=(log.default.with-name "lb.gnss")
     return gnss_
+  lora -> LoraRadio:
+    if not lora_:
+      lora_ = LoraRadio --device=this --logger=(log.default.with-name "lb.lora")
+    return lora_
   eink -> Eink:
     if not eink_:
       eink_ = Eink --device=this --logger=(log.default.with-name "eink")

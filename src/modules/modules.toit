@@ -5,5 +5,6 @@ import .ble.ble
 import .haptics.haptics
 import .eink.eink
 import .gnss.gnss
+import .lora.lora
 
 export *

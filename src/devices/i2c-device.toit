@@ -15,6 +15,7 @@ import ..modules.piezo show Piezo
 import ..modules.haptics show Haptics
 import ..modules.eink show Eink
 import ..modules.gnss show GNSS
+import ..modules.lora show LoraRadio
 import ..messages show *
 import ..protocol as protocol
 import ..modules.comms show Comms
@@ -61,6 +62,7 @@ class I2C implements Device:
   ble_ /BLE? := null
   wifi_ /WiFi? := null
   gnss_ /GNSS? := null
+  lora_ /LoraRadio? := null
   ble-advertisement_ /ble-sdk.Advertisement? := null
 
   constructor
@@ -313,6 +315,11 @@ class I2C implements Device:
     if not gnss_:
       gnss_ = GNSS --device=this --logger=(logger_.with-name "gnss")
     return gnss_
+
+  lora -> LoraRadio:
+    if not lora_:
+      lora_ = LoraRadio --device=this --logger=(logger_.with-name "lora")
+    return lora_
 
 class DeviceDetectionHandler implements MessageHandler:
   device_ /I2C

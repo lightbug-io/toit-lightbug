@@ -39,6 +39,7 @@ class Header:
   static STATUS_FAILED_PERMANENTLY /int ::= 9
   static STATUS_ABANDONED /int ::= 10
   static STATUS_EXPIRED /int ::= 11
+  static STATUS_MISSING_SUBSCRIPTION_PARAMETER /int ::= 12
 
   static STATUS_MAP /Map := {
     // null: "null", // TODO ask toit to fix this, as null cannot be .geted
@@ -53,7 +54,8 @@ class Header:
     STATUS_FAILED_WILL_RETRY: "Failed, will retry",
     STATUS_FAILED_PERMANENTLY: "Failed permanently",
     STATUS_ABANDONED: "Abandoned",
-    STATUS_EXPIRED: "Expired"
+    STATUS_EXPIRED: "Expired",
+    STATUS_MISSING_SUBSCRIPTION_PARAMETER: "Missing subscription parameter"
   }
 
   // For use with TYPE_MESSAGE_METHOD

@@ -13,6 +13,7 @@ import ..modules.ble
 import ..modules.piezo
 import ..modules.haptics
 import ..modules.gnss show GNSS
+import ..modules.lora show LoraRadio
 import ..modules.comms.message-handler show MessageHandler
 import ..modules.ble.handler show BLEHandler
 import ..modules.wifi.handler show WiFiHandler
@@ -43,6 +44,8 @@ interface Device extends HasInOut:
   wifi -> WiFi
   // GNSS service (optional). Use to access GNSS helpers like subscribe/get-position.
   gnss -> GNSS
+  // LoRa radio service.
+  lora -> LoraRadio
   // Reinit the device and communications
   reinit -> bool
   // Should messages be sent with a Lightbug message prefix, LB
