@@ -44,6 +44,7 @@ class BLEHandler implements MessageHandler:
     logger_.info "Handling BLE scan request"
     
     duration := extract-scan-duration msg
+    active := extract-active-scan-request msg
     request-msg-id := msg.msgId
     
     // If the msg was forwarded, extract the msg source too, so we can forward responses correctly
@@ -53,7 +54,7 @@ class BLEHandler implements MessageHandler:
     
     // Perform BLE scan asynchronously
     task --background=true::
-      perform-ble-scan duration request-msg-id forwarded-for
+      perform-ble-scan duration active request-msg-id forwarded-for
     
     return true
   
@@ -70,15 +71,23 @@ class BLEHandler implements MessageHandler:
       default-duration := 3000  // 3 seconds default
       logger_.debug "BLE scan duration not specified, using default: $(default-duration)ms"
       return default-duration
+
+  extract-active-scan-request msg/protocol.Message -> bool:
+    ble-scan := messages.BLEScan.from-data msg.data
+    if ble-scan.has-data messages.BLEScan.ACTIVE-SCAN-REQUEST:
+      active := ble-scan.active-scan-request
+      logger_.debug "BLE active scan requested: $active"
+      return active
+    return false
   
   /**
    * Perform the actual BLE scan and send responses.
    */
-  perform-ble-scan duration/int request-msg-id/int? request-msg-forwarded-for/int?:
-    logger_.info "Starting BLE scan for $(duration)ms"
+  perform-ble-scan duration/int active/bool request-msg-id/int? request-msg-forwarded-for/int?:
+    logger_.info "Starting BLE scan for $(duration)ms (active=$(active))"
     
     e := catch --trace:
-      responses-sent := device_.ble.scan --stream --duration=duration --onSeen=(:: | result |
+      responses-sent := device_.ble.scan --stream --duration=duration --active=active --onSeen=(:: | result |
         send-device-response result request-msg-id request-msg-forwarded-for
       )
       
