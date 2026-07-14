@@ -33,6 +33,7 @@ import .m55_wifi_scan_gen show WiFiScan
 import .m56_ble_scan_gen show BLEScan
 import .m1004_lora_gen show LoRa
 import .m1005_lora_config_gen show LoRaConfig
+import .m2101_file_data_gen show FileData
 import .m10008_base_page_gen show BasePage
 import .m10009_text_page_gen show TextPage
 import .m10010_menu_page_gen show MenuPage

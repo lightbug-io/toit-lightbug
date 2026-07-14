@@ -93,7 +93,7 @@ class SIMsettings extends protocol.Data:
     return get-data-ascii SIM2-APN-PASSWORD
 
   /**
-   * SIM2 ICCID if known, read-only
+   * SIM2 ICCID if known, read-only. This value may be cached from a previous read and stale.
    */
   sim2-iccid -> string:
     return get-data-ascii SIM2-ICCID

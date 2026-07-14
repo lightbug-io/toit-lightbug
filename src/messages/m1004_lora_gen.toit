@@ -241,7 +241,9 @@ class LoRa extends protocol.Data:
     return get-data-uint RX-DURATION
 
   /**
-   * Absolute module-local Timer::millis() target time for RX start.
+   * Absolute module-local target uptime time for RX start in milliseconds.
+   * This is not an absolute timestamp, but rather a module-local uptime time in milliseconds.
+   *
    *
    * Unit: ms
    */
@@ -249,7 +251,9 @@ class LoRa extends protocol.Data:
     return get-data-uint RX-START-TIME
 
   /**
-   * Module-local Timer::millis() at TX/RX/timeout event time.
+   * Absolute module-local target uptime time for TX/RX/timeout event in milliseconds.
+   * This is not an absolute timestamp, but rather a module-local uptime time in milliseconds.
+   *
    *
    * Unit: ms
    */

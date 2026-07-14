@@ -10,6 +10,8 @@ class BLEScan extends protocol.Data:
   static MAC := 2
   static RSSI := 3
   static NAME := 4
+  static SCAN-RESPONSE := 5
+  static ACTIVE-SCAN-REQUEST := 6
 
   constructor:
     super
@@ -25,12 +27,14 @@ class BLEScan extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --name/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --name/string?=null --scan-response/ByteArray?=null --active-scan-request/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if advertising-data != null: data.add-data ADVERTISING-DATA advertising-data
     if mac != null: data.add-data MAC mac
     if rssi != null: data.add-data-int8 RSSI rssi
     if name != null: data.add-data-ascii NAME name
+    if scan-response != null: data.add-data SCAN-RESPONSE scan-response
+    if active-scan-request != null: data.add-data-bool ACTIVE-SCAN-REQUEST active-scan-request
     return data
 
   // Subscribe to a message with an optional interval in milliseconds
@@ -70,10 +74,24 @@ class BLEScan extends protocol.Data:
   name -> string:
     return get-data-ascii NAME
 
+  /**
+   * Raw scan response payload, if available
+   */
+  scan-response -> ByteArray:
+    return get-data SCAN-RESPONSE
+
+  /**
+   * Perform an active scan, valid only for SUBSCRIBE
+   */
+  active-scan-request -> bool:
+    return get-data-bool ACTIVE-SCAN-REQUEST
+
   stringify -> string:
     return {
       "advertisingData": advertising-data,
       "mac": mac,
       "rssi": rssi,
       "name": name,
+      "scanResponse": scan-response,
+      "activeScanRequest": active-scan-request,
     }.stringify
