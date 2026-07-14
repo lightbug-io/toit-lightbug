@@ -157,7 +157,10 @@ class DeviceStatus extends protocol.Data:
     return get-data-uint NETWORK-MCC
 
   /**
-   * Firmware version as a single integer, e.g. 2287
+   * Firmware version
+   * Can be a literal integer, or an encoded version number.
+   * Lightbug devices use a single integer for firmware version, e.g. 2287.
+   * ESP devices encode a semver version into an int, MAJOR*10000 + MINOR*100 + PATCH. `0.18.0 => 1800` and `1.1.1 => 10101`
    */
   firmware-version -> int:
     return get-data-uint FIRMWARE-VERSION

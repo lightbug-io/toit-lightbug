@@ -29,6 +29,79 @@ SNAPSHOT_NAME=$1
 TARGET_FILE=$2
 TOIT_VERSION=$3
 FIRMWARE_TYPE=$4
+FIRMWARE_INFO_FILE="src/firmware_build_info.toit"
+
+encode_semver() {
+    local version="$1"
+    version="${version#v}"
+
+    if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+        echo "Invalid firmware semver: ${version}. Expected MAJOR.MINOR.PATCH" >&2
+        exit 1
+    fi
+
+    local major="${BASH_REMATCH[1]}"
+    local minor="${BASH_REMATCH[2]}"
+    local patch="${BASH_REMATCH[3]}"
+
+    if (( 10#$minor > 99 )); then
+        echo "Firmware minor version must be <= 99 for uint encoding: ${version}" >&2
+        exit 1
+    fi
+    if (( 10#$patch > 99 )); then
+        echo "Firmware patch version must be <= 99 for uint encoding: ${version}" >&2
+        exit 1
+    fi
+
+    local encoded=$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))
+    if (( encoded > 4294967295 )); then
+        echo "Firmware version is out of uint32 range: ${version}" >&2
+        exit 1
+    fi
+
+    echo "${encoded}"
+}
+
+detect_firmware_version() {
+    if [ -n "${LIGHTBUG_FIRMWARE_VERSION}" ]; then
+        echo "${LIGHTBUG_FIRMWARE_VERSION#v}"
+        return
+    fi
+
+    if [[ "${GITHUB_REF_NAME}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "${GITHUB_REF_NAME#v}"
+        return
+    fi
+
+    if git describe --tags --exact-match >/dev/null 2>&1; then
+        local tag
+        tag="$(git describe --tags --exact-match)"
+        if [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "${tag#v}"
+            return
+        fi
+    fi
+
+    echo "0.0.0"
+}
+
+write_firmware_build_info() {
+    local version_string="$1"
+    local version_int="$2"
+    local variant="$3"
+
+    cat > "${FIRMWARE_INFO_FILE}" <<EOF
+// Updated by build/build.sh.
+
+FIRMWARE_VERSION_STRING ::= "${version_string}"
+FIRMWARE_VERSION_INT ::= ${version_int}
+FIRMWARE_VARIANT ::= "${variant}"
+EOF
+}
+
+LIGHTBUG_FIRMWARE_VERSION="$(detect_firmware_version)"
+LIGHTBUG_FIRMWARE_VERSION_INT="$(encode_semver "${LIGHTBUG_FIRMWARE_VERSION}")"
+write_firmware_build_info "${LIGHTBUG_FIRMWARE_VERSION}" "${LIGHTBUG_FIRMWARE_VERSION_INT}" "${SNAPSHOT_NAME}"
 
 # Define output directories
 # Assuming script is run from project root, or we use relative paths for output
@@ -39,6 +112,7 @@ BUILD_DIR="${OUTPUT_BASE}/${SNAPSHOT_NAME}"
 mkdir -p "${BUILD_DIR}"
 
 echo "Output directory: ${BUILD_DIR}"
+echo "Firmware version: ${LIGHTBUG_FIRMWARE_VERSION} (encoded ${LIGHTBUG_FIRMWARE_VERSION_INT})"
 
 # 1. Compile the snapshot
 echo "----------------------------------------------------------------"

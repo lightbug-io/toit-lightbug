@@ -1,5 +1,6 @@
 import log
 import lightbug.devices as devices
+import lightbug.firmware as firmware
 import lightbug.cust.vending show Vending
 import lightbug.cust.vending_updater show VendingUpdater
 
@@ -10,6 +11,7 @@ MIN-RESPONSE-DELAY ::= (Duration --ms=180)
 // and responds with cached temperature/voltage data, which is updated periodically
 // from the device using the VendingUpdater.
 main:
+  firmware.print-startup-line
   device := devices.I2C
     --background=true // So as not to block termination, if the app below fails
     --open=false

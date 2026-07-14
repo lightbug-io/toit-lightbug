@@ -24,6 +24,10 @@ on:
         description: 'Firmware Type'
         required: true
         default: 'esp32c6'
+      firmware_version:
+        description: 'Firmware semver to embed (for example 0.18.0)'
+        required: true
+        default: '0.0.0'
       lightbug_envelope_version:
         description: 'Lightbug envelope release suffix (default matches workflow env)'
         required: true
@@ -66,16 +70,18 @@ jobs:
               --arg path "${{ inputs.target_file }}" \
               --arg version "${{ inputs.toit_version }}" \
               --arg chip "${{ inputs.firmware_type }}" \
+              --arg firmwareVersion "${{ inputs.firmware_version }}" \
               --arg envelopeVersion "${{ inputs.lightbug_envelope_version }}" \
               --arg envelopeUrl "${{ inputs.lightbug_envelope_url }}" \
-              '[{name: $name, path: $path, version: $version, chip: $chip, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}]')
+              '[{name: $name, path: $path, version: $version, chip: $chip, firmwareVersion: $firmwareVersion, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}]')
           else
             # Construct JSON for standard build
             MATRIX_JSON=$(cat .github/variants.json | jq -c \
               --arg version "${{ env.DEFAULT_TOIT_VERSION }}" \
+              --arg firmwareVersion "" \
               --arg envelopeVersion "${{ env.LIGHTBUG_ENVELOPE_VERSION }}" \
               --arg envelopeUrl "" \
-              '.variants | map(. + {version: $version, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl})')
+              '.variants | map(. + {version: $version, firmwareVersion: $firmwareVersion, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl})')
           fi
           
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
@@ -109,8 +115,13 @@ jobs:
         id: build
         run: |
           chmod +x build/build.sh
+          FIRMWARE_VERSION="${{ matrix.firmwareVersion }}"
+          if [ -z "$FIRMWARE_VERSION" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            FIRMWARE_VERSION="${GITHUB_REF_NAME}"
+          fi
           LIGHTBUG_ENVELOPE_VERSION="${{ matrix.envelopeVersion != '' && matrix.envelopeVersion || env.LIGHTBUG_ENVELOPE_VERSION }}" \
           LIGHTBUG_ENVELOPE_URL="${{ matrix.envelopeUrl }}" \
+          LIGHTBUG_FIRMWARE_VERSION="$FIRMWARE_VERSION" \
           ./build/build.sh "${{ matrix.name }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
 
       - name: Upload Artifacts

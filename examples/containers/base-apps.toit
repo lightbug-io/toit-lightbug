@@ -1,4 +1,5 @@
 import lightbug.devices as devices
+import lightbug.firmware as firmware
 import lightbug.messages as messages
 import lightbug.modules.comms.message-handler show MessageHandler
 import lightbug.modules.strobe.strobe show Strobe
@@ -15,6 +16,7 @@ LOG-LEVEL ::= log.WARN-LEVEL
 logger := log.default.with-name "base-apps"
 
 main:
+  firmware.print-startup-line
   provider.main
   client := WatchdogServiceClient
   client.open

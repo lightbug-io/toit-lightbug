@@ -1,9 +1,11 @@
 import ble
+import lightbug.firmware as firmware
 
 // A basic BLE peripheral that advertises a custom name and manufacturer-specific data.
 // Used for testing RH2 certificate functionality.
 // Does not require or make use of any Lightbug specific features.
 main:
+  firmware.print-startup-line
   print "Starting BLE Certificate Test Peripheral"
   adapter := ble.Adapter
   peripheral := adapter.peripheral

@@ -18,6 +18,7 @@ import ..modules.gnss show GNSS
 import ..modules.lora show LoraRadio
 import ..messages show *
 import ..protocol as protocol
+import ..firmware as firmware
 import ..modules.comms show Comms
 import ..util.backoff as backoff
 import ..modules.comms.message-handler show MessageHandler
@@ -222,6 +223,7 @@ class I2C implements Device:
       handlers := [
               // We need to be able to detect the device type, at least once
               DeviceDetectionHandler this --logger=(logger_.with-name "h.detect"),
+              DeviceStatusHandler this --logger=(logger_.with-name "h.status"),
       ]
       if with-default-handlers_:
         handlers = handlers + [
@@ -321,6 +323,36 @@ class I2C implements Device:
       lora_ = LoraRadio --device=this --logger=(logger_.with-name "lora")
     return lora_
 
+class DeviceStatusHandler implements MessageHandler:
+  device_ /I2C
+  logger_ /log.Logger
+
+  constructor device/I2C --logger/log.Logger:
+    device_ = device
+    logger_ = logger
+
+  handle-message msg/protocol.Message -> bool:
+    if msg.type != DeviceStatus.MT:
+      return false
+
+    if not msg.header-has-data protocol.Header.TYPE_MESSAGE_METHOD:
+      return false
+
+    method := msg.header-get-data-uint protocol.Header.TYPE_MESSAGE_METHOD
+    if method != protocol.Header.METHOD_GET:
+      return false
+
+    logger_.info "Handling DeviceStatus GET request"
+
+    response-msg := protocol.Message.with-data DeviceStatus.MT (DeviceStatus.data
+        --firmware-version=firmware.firmware-version-int)
+    if msg.msgId != null:
+      response-msg.header-add-data-uint32 protocol.Header.TYPE_RESPONSE_TO_MESSAGE_ID msg.msgId
+    if msg.was-forwarded and msg.forwarded-for != null:
+      response-msg.header-add-data-uint8 protocol.Header.TYPE_FORWARD_TO msg.forwarded-for
+    device_.comms.send response-msg
+    return true
+
 class DeviceDetectionHandler implements MessageHandler:
   device_ /I2C
   logger_ /log.Logger
@@ -332,6 +364,8 @@ class DeviceDetectionHandler implements MessageHandler:
   
   handle-message msg/protocol.Message -> bool:
     if device_.type-known or (msg.type != Open.MT and msg.type != DeviceStatus.MT):
+      return false
+    if not msg.data.has-data Open.DEVICE-TYPE:
       return false
     // The device type should be in field 10 for both Open and Status messages
     // This is thus an optimization
