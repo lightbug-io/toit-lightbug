@@ -69,7 +69,6 @@ class WiFiHandler implements MessageHandler:
       scan-results := device_.wifi.scan --duration=duration
 
       logger_.info "WiFi scan completed, found $(scan-results.size) access points"
-
       scan-results.do: | ap |
         send-ap-response ap request-msg-id request-msg-forwarded-for
       
@@ -119,5 +118,6 @@ class WiFiHandler implements MessageHandler:
       response-msg.header-add-data-uint8 protocol.Header.TYPE-FORWARD-TO request-msg-forwarded-for
     device_.comms.send response-msg
 
-    mac := bytes.format-mac bssid
-    logger_.debug "Sent WiFi AP response for $(ssid) (BSSID: $(mac) RSSI: $(rssi)dBm)"
+    logger_.with-level log.TRACE-LEVEL:
+      mac := bytes.format-mac bssid
+      logger_.trace "Sent WiFi AP response for $(ssid) (BSSID: $(mac) RSSI: $(rssi)dBm)"

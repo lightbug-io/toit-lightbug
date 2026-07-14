@@ -78,13 +78,11 @@ class BLEHandler implements MessageHandler:
     logger_.info "Starting BLE scan for $(duration)ms"
     
     e := catch --trace:
-      scan-results := device_.ble.scan --duration=duration
-      
-      logger_.info "BLE scan completed, found $(scan-results.size) devices"
-      
-      // Send a response for each device found
-      scan-results.do: | result |
+      responses-sent := device_.ble.scan --stream --duration=duration --onSeen=(:: | result |
         send-device-response result request-msg-id request-msg-forwarded-for
+      )
+      
+      logger_.info "BLE scan completed, found $(responses-sent) devices"
 
       expired-msg := protocol.Message.with-data messages.BLEScan.MT messages.BLEScan.data
       expired-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-EXPIRED
@@ -129,4 +127,5 @@ class BLEHandler implements MessageHandler:
     // Send the response
     device_.comms.send response-msg
 
-    logger_.debug "Sent BLE scan response for $(bytes.format-mac mac-ba) (RSSI: $(rssi)dBm)"
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "Sent BLE scan response for $(bytes.format-mac mac-ba) (RSSI: $(rssi)dBm)"
