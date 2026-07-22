@@ -18,6 +18,8 @@ PYTHON := python
 BITMAP_GENERATOR := $(PYTHON) -m tools.generate_bitmaps
 BITMAP_MANIFEST := tools/bitmaps.json
 BITMAP_TARGET := src/util/bitmaps.toit
+TOIT ?= jag toit
+TOIT_PKG ?= jag pkg
 
 .PHONY: bitmaps
 bitmaps: $(BITMAP_MANIFEST) tools/generate_bitmaps.py
@@ -26,9 +28,9 @@ bitmaps: $(BITMAP_MANIFEST) tools/generate_bitmaps.py
 .PHONY: analyze-examples
 analyze-examples:
 	@echo "Installing example dependencies"
-	@cd examples && jag pkg install
+	@cd examples && $(TOIT_PKG) install
 	@echo "Analyzing examples"
-	@find examples -type d -name '.packages' -prune -o -type f -name '*.toit' -print0 | xargs -0 jag toit analyze --project-root examples
+	@find examples -type d -name '.packages' -prune -o -type f -name '*.toit' -print0 | xargs -0 -n 1 $(TOIT) analyze --project-root examples
 
 # We need a blocking jag run in order for this to work properly for things like BLE scans
 .PHONY: test

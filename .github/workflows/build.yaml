@@ -52,13 +52,8 @@ jobs:
       - uses: toitlang/action-setup@v1.4.0
         with:
           toit-version: ${{ env.DEFAULT_TOIT_VERSION }}
-      - name: Setup Jaguar
-        run: |
-          curl -fsSL https://github.com/toitlang/jaguar/releases/latest/download/jag_linux.tgz | tar -xz -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
-          jag setup
       - run: make test
-      - run: make analyze-examples
+      - run: make analyze-examples TOIT=toit TOIT_PKG="toit pkg"
 
   prepare-matrix:
     name: Prepare Build Matrix
