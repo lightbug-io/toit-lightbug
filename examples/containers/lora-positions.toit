@@ -5,7 +5,7 @@ import lightbug.protocol as protocol
 import log
 
 import watchdog.provider
-import watchdog show WatchdogServiceClient
+import watchdog show Watchdog WatchdogServiceClient
 
 LOG-LEVEL ::= log.WARN-LEVEL
 INFO-WATCH-MESSAGE-LEVEL ::= 1
@@ -22,7 +22,7 @@ logger := log.default.with-name "lora-positions"
 
 class LoraPositionsApp:
   device_/devices.Device
-  dog_/anydevice_
+  dog_/Watchdog
   position-handler_/GenericHandler? := null
   buttons-subscriber-id_/int? := null
   running_/bool := false

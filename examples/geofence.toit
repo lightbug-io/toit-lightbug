@@ -52,7 +52,7 @@ LB_OFFICE_INNER:= [
 USED_FENCE := LB_OFFICE_OUTER
 
 // Global state
-device /devices.RtkHandheld2:= ?
+device /devices.I2C:= ?
 io /modules.Comms := ?
 logLevel := log.INFO-LEVEL
 logger := (log.default.with-level logLevel).with-name "fences"
@@ -68,7 +68,7 @@ TRIPLE_CLICK_WINDOW ::= Duration --ms=2000 // 2 second timeout for triple click 
 main:
   log.set-default (log.default.with-level logLevel) // Set any other loggers to the same level
 
-  device = devices.RtkHandheld2
+  device = devices.I2C
   io = device.comms
 
   logger.info "App initialized, loop starting"
@@ -159,14 +159,14 @@ mainLoop:
             nextAlarmEmit = Time.now // allow immediate alarm if in zone
           else:
             // We will be muting
-            io.send (messages.Alarm.msg --data=(create-alarm-data 0)) --now=true // stop any alarm
+            io.send (messages.Alarm.set-msg --base-data=(create-alarm-data 0)) --now=true // stop any alarm
             isAlarmOff = true
             nextAlarmEmit = Time.now // allow immediate alarm if unmuted again
           muted = not muted // toggle muted
         if pressed == 2: // right
           if isPreset:
             device.strobe.yellow // yellow indicates startup...
-            io.send (messages.Alarm.msg --data=(create-alarm-data 0)) --now=true
+            io.send (messages.Alarm.set-msg --base-data=(create-alarm-data 0)) --now=true
             // Display an initial page
             io.send (messages.TextPage.msg --data=(messages.TextPage.data
               --page-id=2001
@@ -291,30 +291,28 @@ processLastPosition msg/protocol.Message:
           if Time.now >= nextAlarmEmit:
             nextAlarmEmit = Time.now + (Duration --ms=3000) // Emit every 3s
             isAlarmOff = false
-            io.send (messages.Alarm.msg --data=(create-alarm-data 3 4 1)) --now=true //3s siren
+            io.send (messages.Alarm.set-msg --base-data=(create-alarm-data 3 4 1)) --now=true //3s siren
         io.send (messages.TextPage.msg --data=(messages.TextPage.data
           --page-id=2001
           --page-title="Coworkers Ahead!!!"
           --line-1=" Approach with coffee in hand,"
           --line-2=" lookout for paperwork,"
           --line-3=" enter at your own risk!"
-          --line-4=""
-          --line-5=bottomLine
+          --line-4=bottomLine
         )) --now=true
     else:
       if not isPreset:
         if not muted and not isAlarmOff:
           nextAlarmEmit = Time.now
           isAlarmOff = true
-          io.send (messages.Alarm.msg --data=(create-alarm-data 0)) --now=true //alarm off
+          io.send (messages.Alarm.set-msg --base-data=(create-alarm-data 0)) --now=true //alarm off
         io.send (messages.TextPage.msg --data=(messages.TextPage.data
           --page-id=2001
           --page-title="Workplace detection"
           --line-1=" Final moments of freedom,"
           --line-2=" breathe deeply,"
           --line-3=" workplace ahead!"
-          --line-4=""
-          --line-5=bottomLine
+          --line-4=bottomLine
         )) --now=true
 
 create-alarm-data duration/int buzzer-pattern/int?=null buzzer-intensity/int?=null -> protocol.Data:

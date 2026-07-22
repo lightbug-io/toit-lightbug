@@ -8,7 +8,7 @@ main:
       --name="Lightbug"
 
   // Create device with automatic BLE advertising.
-  device := devices.I2C --advertisement=advertisement
+  device := devices.I2C --ble-advertisement=advertisement
 
   print "📡 BLE advertising started with name 'Lightbug'"
   print "Advertising for 30 seconds..."

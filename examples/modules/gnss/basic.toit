@@ -40,11 +40,11 @@ class PositionHandler implements MessageHandler:
       pos := messages.Position.from-data msg.data
 
       // Use the converted float fields (already in human units) and
-      // Float.stringify to format with the desired precision.
-      lat_s := pos.latitude.stringify 6
-      lon_s := pos.longitude.stringify 6
-      alt_s := pos.altitude.stringify 2
-      acc_s := pos.accuracy.stringify 2
+      // Format the converted float fields with the desired precision.
+      lat_s := pos.latitude.to-string --precision=6
+      lon_s := pos.longitude.to-string --precision=6
+      alt_s := pos.altitude.to-string --precision=2
+      acc_s := pos.accuracy.to-string --precision=2
 
       type_name := messages.Position.type-from-int pos.type
 
@@ -57,4 +57,3 @@ class PositionHandler implements MessageHandler:
       return true
 
     return false
-

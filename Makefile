@@ -23,6 +23,13 @@ BITMAP_TARGET := src/util/bitmaps.toit
 bitmaps: $(BITMAP_MANIFEST) tools/generate_bitmaps.py
 	$(BITMAP_GENERATOR) --manifest $(BITMAP_MANIFEST)
 
+.PHONY: analyze-examples
+analyze-examples:
+	@echo "Installing example dependencies"
+	@cd examples && jag pkg install
+	@echo "Analyzing examples"
+	@find examples -type d -name '.packages' -prune -o -type f -name '*.toit' -print0 | xargs -0 jag toit analyze --project-root examples
+
 # We need a blocking jag run in order for this to work properly for things like BLE scans
 .PHONY: test
 test: install-tests
