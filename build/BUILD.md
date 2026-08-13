@@ -14,6 +14,42 @@ Example usage:
 ./build/build.sh basic-ble-cert-test ./examples/basic/ble-cert-test.toit v2.0.0-alpha.190 esp32c6
 ```
 
+## Dockerized builds
+
+If you want to keep your host Jaguar / Toit SDK setup untouched, use the Docker wrapper.
+It builds a small image with a pinned Jaguar release, runs `jag setup` inside the
+container, installs package dependencies, and then calls the same `build/build.sh`
+workflow used by CI.
+
+Example for an application in a different repository:
+
+```sh
+./build/build_in_docker.sh \
+	example-kiosk-app \
+	/workspace/external-app/src/main.toit \
+	esp32c6 \
+	v2.0.0-alpha.191
+```
+
+This writes artifacts to:
+
+```text
+build/out/example-kiosk-app/
+```
+
+Useful environment overrides:
+
+```sh
+JAG_VERSION=v1.63.0
+LIGHTBUG_ENVELOPE_VERSION=lb.20260415-1
+LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope
+LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope
+LIGHTBUG_FIRMWARE_VERSION=0.18.0
+```
+
+If you already have a local envelope built elsewhere, `LIGHTBUG_ENVELOPE_FILE` is the
+most reliable way to avoid SDK / envelope version mismatches.
+
 ### Using a custom local envelope (manual firmware build)
 
 If you need to build against a local envelope instead of a released `toit-envelopes` artifact,
@@ -27,7 +63,7 @@ The envelope source precedence in `build.sh` is:
 Example for `base-vending` with your manual envelope:
 
 ```sh
-LIGHTBUG_ENVELOPE_FILE=/home/adam/dev/lb/io/toit-envelopes/build/variants/esp32c6-console-none-usb-serial-jtag/esp32c6/firmware.envelope \
+LIGHTBUG_ENVELOPE_FILE=/path/to/toit-envelopes/build/variants/esp32c6-console-none-usb-serial-jtag/esp32c6/firmware.envelope \
 ./build/build.sh base-vending ./examples/containers/base-vending.toit v2.0.0-alpha.189 esp32c6
 ```
 

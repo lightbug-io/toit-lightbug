@@ -133,6 +133,7 @@ fi
 ENVELOPE_NAME="${FIRMWARE_TYPE}-single-ota.envelope"
 DOWNLOAD_URL=""
 ENVELOPE_CACHE_DIR="build/cache/envelopes"
+ENVELOPE_CACHE_SCOPE=""
 CUSTOM_ENVELOPE_FILE="${LIGHTBUG_ENVELOPE_FILE}"
 
 if [ -n "${CUSTOM_ENVELOPE_FILE}" ]; then
@@ -147,6 +148,7 @@ elif [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
     echo "Using LIGHTBUG_ENVELOPE_URL override."
     DOWNLOAD_URL="${LIGHTBUG_ENVELOPE_URL}"
     ENVELOPE_NAME="$(basename "${LIGHTBUG_ENVELOPE_URL}")"
+    ENVELOPE_CACHE_SCOPE="url-$(printf '%s' "${LIGHTBUG_ENVELOPE_URL}" | sha256sum | cut -d' ' -f1)"
 else
     if [ -z "${LIGHTBUG_ENVELOPE_VERSION}" ]; then
         echo "LIGHTBUG_ENVELOPE_VERSION is not set. Please set this environment variable to the desired Lightbug envelope release."
@@ -154,6 +156,7 @@ else
     fi
 
     ENVELOPE_RELEASE_TAG="${TOIT_VERSION}.${LIGHTBUG_ENVELOPE_VERSION}"
+    ENVELOPE_CACHE_SCOPE="release-${ENVELOPE_RELEASE_TAG}"
     DOWNLOAD_URL="https://github.com/lightbug-io/toit-envelopes/releases/download/${ENVELOPE_RELEASE_TAG}/${ENVELOPE_NAME}"
 fi
 
@@ -174,8 +177,13 @@ fi
 echo "----------------------------------------------------------------"
 
 if [ -z "${SOURCE_ENVELOPE}" ]; then
-    mkdir -p "${ENVELOPE_CACHE_DIR}"
-    SOURCE_ENVELOPE_PATH="${ENVELOPE_CACHE_DIR}/${ENVELOPE_NAME}"
+    if [ -z "${ENVELOPE_CACHE_SCOPE}" ]; then
+        echo "Failed to determine envelope cache scope."
+        exit 1
+    fi
+
+    SOURCE_ENVELOPE_PATH="${ENVELOPE_CACHE_DIR}/${ENVELOPE_CACHE_SCOPE}/${ENVELOPE_NAME}"
+    mkdir -p "$(dirname "${SOURCE_ENVELOPE_PATH}")"
 
     if [ -f "${SOURCE_ENVELOPE_PATH}" ]; then
         echo "Using cached envelope in build directory: ${SOURCE_ENVELOPE_PATH}"

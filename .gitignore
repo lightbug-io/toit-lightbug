@@ -3,6 +3,7 @@
 *.envelope
 *.bin
 build/out/
+build/cache/
 
 # Ignore Python build/cache artifacts for tools/
 tools/__pycache__/
