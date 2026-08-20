@@ -1,24 +1,48 @@
 {
+  "firmware_profiles": {
+    "191": {
+      "version": "v2.0.0-alpha.191",
+      "artifact_suffix": "191",
+      "envelope_release_tag": "lb.20260819-1",
+      "envelope_asset": "esp32c6-single-ota.191.envelope"
+    },
+    "198": {
+      "version": "v2.0.0-alpha.198",
+      "artifact_suffix": "198",
+      "envelope_release_tag": "lb.20260819-1",
+      "envelope_asset": "esp32c6-single-ota.198.envelope"
+    }
+  },
   "variants": [
     {
       "name": "ble-cert-test",
       "path": "./examples/basic/ble-cert-test.toit",
-      "chip": "esp32c6"
+      "chip": "esp32c6",
+      "profiles": ["198"]
     },
     {
       "name": "base",
       "path": "./examples/containers/base.toit",
-      "chip": "esp32c6"
+      "chip": "esp32c6",
+      "profiles": ["198"]
+    },
+    {
+      "name": "base",
+      "path": "./examples/containers/base-legacy.toit",
+      "chip": "esp32c6",
+      "profiles": ["191"]
     },
     {
       "name": "base-apps",
       "path": "./examples/containers/base-apps.toit",
-      "chip": "esp32c6"
+      "chip": "esp32c6",
+      "profiles": ["191", "198"]
     },
     {
       "name": "base-vending",
       "path": "./examples/containers/base-vending.toit",
-      "chip": "esp32c6"
+      "chip": "esp32c6",
+      "profiles": ["191", "198"]
     }
   ]
 }

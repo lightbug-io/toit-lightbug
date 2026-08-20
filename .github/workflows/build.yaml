@@ -19,7 +19,7 @@ on:
       toit_version:
         description: 'Toit Version'
         required: true
-        default: 'v2.0.0-alpha.191'
+        default: 'v2.0.0-alpha.198'
       firmware_type:
         description: 'Firmware Type'
         required: true
@@ -28,32 +28,41 @@ on:
         description: 'Firmware semver to embed (for example 0.18.0)'
         required: true
         default: '0.0.0'
-      lightbug_envelope_version:
-        description: 'Lightbug envelope release suffix (default matches workflow env)'
+      lightbug_envelope_release_tag:
+        description: 'Lightbug envelope GitHub release tag'
         required: true
-        default: 'lb.20260415-1'
+        default: 'lb.20260819-1'
+      lightbug_envelope_asset:
+        description: 'Envelope asset name in that release'
+        required: true
+        default: 'esp32c6-single-ota.198.envelope'
       lightbug_envelope_url:
         description: 'Optional full URL to download a custom envelope'
         required: false
         default: ''
 
-env:
-  # https://github.com/toitlang/toit/releases
-  DEFAULT_TOIT_VERSION: v2.0.0-alpha.191
-  # https://github.com/lightbug-io/toit-envelopes/releases
-  LIGHTBUG_ENVELOPE_VERSION: lb.20260415-1
-
 jobs:
   test:
-    name: Run Tests
+    name: Run Tests / Toit ${{ matrix.toit_version }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toit_version:
+          - v2.0.0-alpha.191
+          - v2.0.0-alpha.198
     steps:
       - uses: actions/checkout@v7
       - uses: toitlang/action-setup@v1.4.0
         with:
-          toit-version: ${{ env.DEFAULT_TOIT_VERSION }}
+          toit-version: ${{ matrix.toit_version }}
       - run: make test
-      - run: make analyze-examples TOIT=toit TOIT_PKG="toit pkg"
+      - name: Analyze examples
+        run: |
+          if [ "${{ matrix.toit_version }}" = "v2.0.0-alpha.191" ]; then
+              make analyze-examples TOIT=toit TOIT_PKG="toit pkg" ANALYZE_EXCLUDE="examples/containers/base.toit examples/toit/usb_console_smoke_test.toit examples/toit/usb_console_v3.toit examples/host/heartbeat.toit examples/host/info.toit examples/host/qc.toit"
+          else
+            make analyze-examples TOIT=toit TOIT_PKG="toit pkg"
+          fi
 
   prepare-matrix:
     name: Prepare Build Matrix
@@ -72,17 +81,21 @@ jobs:
               --arg version "${{ inputs.toit_version }}" \
               --arg chip "${{ inputs.firmware_type }}" \
               --arg firmwareVersion "${{ inputs.firmware_version }}" \
-              --arg envelopeVersion "${{ inputs.lightbug_envelope_version }}" \
+              --arg envelopeReleaseTag "${{ inputs.lightbug_envelope_release_tag }}" \
+              --arg envelopeAsset "${{ inputs.lightbug_envelope_asset }}" \
               --arg envelopeUrl "${{ inputs.lightbug_envelope_url }}" \
-              '[{name: $name, path: $path, version: $version, chip: $chip, firmwareVersion: $firmwareVersion, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl}]')
+              '[{name: $name, path: $path, version: $version, chip: $chip, firmwareVersion: $firmwareVersion, envelopeReleaseTag: $envelopeReleaseTag, envelopeAsset: $envelopeAsset, envelopeUrl: $envelopeUrl}]')
           else
-            # Construct JSON for standard build
-            MATRIX_JSON=$(cat .github/variants.json | jq -c \
-              --arg version "${{ env.DEFAULT_TOIT_VERSION }}" \
-              --arg firmwareVersion "" \
-              --arg envelopeVersion "${{ env.LIGHTBUG_ENVELOPE_VERSION }}" \
-              --arg envelopeUrl "" \
-              '.variants | map(. + {version: $version, firmwareVersion: $firmwareVersion, envelopeVersion: $envelopeVersion, envelopeUrl: $envelopeUrl})')
+            # Expand each application into the firmware profiles it supports.
+            MATRIX_JSON=$(jq -c '
+              . as $config |
+              [
+                $config.variants[] as $variant |
+                $variant.profiles[] as $profile |
+                $config.firmware_profiles[$profile] as $firmware |
+                ($variant + $firmware + {firmwareVersion: "", envelopeUrl: ""} | del(.profiles))
+              ]
+            ' .github/variants.json)
           fi
           
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
@@ -120,10 +133,11 @@ jobs:
           if [ -z "$FIRMWARE_VERSION" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             FIRMWARE_VERSION="${GITHUB_REF_NAME}"
           fi
-          LIGHTBUG_ENVELOPE_VERSION="${{ matrix.envelopeVersion != '' && matrix.envelopeVersion || env.LIGHTBUG_ENVELOPE_VERSION }}" \
+          LIGHTBUG_ENVELOPE_RELEASE_TAG="${{ matrix.envelopeReleaseTag }}" \
+          LIGHTBUG_ENVELOPE_ASSET="${{ matrix.envelopeAsset }}" \
           LIGHTBUG_ENVELOPE_URL="${{ matrix.envelopeUrl }}" \
           LIGHTBUG_FIRMWARE_VERSION="$FIRMWARE_VERSION" \
-          ./build/build.sh "${{ matrix.name }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
+          ./build/build.sh "${{ matrix.name }}.${{ matrix.artifact_suffix }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
 
       - name: Upload Artifacts
         if: steps.build.outcome == 'success'

@@ -28,7 +28,7 @@ Example for an application in a different repository:
 	example-kiosk-app \
 	/workspace/external-app/src/main.toit \
 	esp32c6 \
-	v2.0.0-alpha.191
+	v2.0.0-alpha.198
 ```
 
 This writes artifacts to:
@@ -40,8 +40,9 @@ build/out/example-kiosk-app/
 Useful environment overrides:
 
 ```sh
-JAG_VERSION=v1.63.0
-LIGHTBUG_ENVELOPE_VERSION=lb.20260415-1
+JAG_VERSION=v1.71.0
+LIGHTBUG_ENVELOPE_RELEASE_TAG=lb.20260819-1
+LIGHTBUG_ENVELOPE_ASSET=esp32c6-single-ota.198.envelope
 LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope
 LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope
 LIGHTBUG_FIRMWARE_VERSION=0.18.0
@@ -58,13 +59,14 @@ set `LIGHTBUG_ENVELOPE_FILE` to the local file path.
 The envelope source precedence in `build.sh` is:
 1. `LIGHTBUG_ENVELOPE_FILE` (local file path)
 2. `LIGHTBUG_ENVELOPE_URL` (remote URL)
-3. `LIGHTBUG_ENVELOPE_VERSION` (release suffix + auto-download)
+3. `LIGHTBUG_ENVELOPE_RELEASE_TAG` plus `LIGHTBUG_ENVELOPE_ASSET`
+4. `LIGHTBUG_ENVELOPE_VERSION` (legacy release suffix + auto-download)
 
 Example for `base-vending` with your manual envelope:
 
 ```sh
-LIGHTBUG_ENVELOPE_FILE=/path/to/toit-envelopes/build/variants/esp32c6-console-none-usb-serial-jtag/esp32c6/firmware.envelope \
-./build/build.sh base-vending ./examples/containers/base-vending.toit v2.0.0-alpha.189 esp32c6
+LIGHTBUG_ENVELOPE_FILE=/path/to/toit-envelopes/dist/esp32c6-single-ota.198.envelope \
+./build/build.sh base-vending.198 ./examples/containers/base-vending.toit v2.0.0-alpha.198 esp32c6
 ```
 
 This avoids SDK mismatch errors like:

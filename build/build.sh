@@ -21,7 +21,8 @@ if [ "$#" -ne 4 ]; then
     echo "Optional environment overrides (highest precedence first):"
     echo "  LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope"
     echo "  LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope"
-    echo "  LIGHTBUG_ENVELOPE_VERSION=lb.20260225-1"
+    echo "  LIGHTBUG_ENVELOPE_RELEASE_TAG=lb.20260819-1"
+    echo "  LIGHTBUG_ENVELOPE_ASSET=esp32c6-single-ota.198.envelope"
     exit 1
 fi
 
@@ -130,7 +131,7 @@ else
 fi
 
 # 2. Locate or Download the envelope
-ENVELOPE_NAME="${FIRMWARE_TYPE}-single-ota.envelope"
+ENVELOPE_NAME="${LIGHTBUG_ENVELOPE_ASSET:-${FIRMWARE_TYPE}-single-ota.envelope}"
 DOWNLOAD_URL=""
 ENVELOPE_CACHE_DIR="build/cache/envelopes"
 ENVELOPE_CACHE_SCOPE=""
@@ -150,12 +151,18 @@ elif [ -n "${LIGHTBUG_ENVELOPE_URL}" ]; then
     ENVELOPE_NAME="$(basename "${LIGHTBUG_ENVELOPE_URL}")"
     ENVELOPE_CACHE_SCOPE="url-$(printf '%s' "${LIGHTBUG_ENVELOPE_URL}" | sha256sum | cut -d' ' -f1)"
 else
-    if [ -z "${LIGHTBUG_ENVELOPE_VERSION}" ]; then
-        echo "LIGHTBUG_ENVELOPE_VERSION is not set. Please set this environment variable to the desired Lightbug envelope release."
+    # LIGHTBUG_ENVELOPE_RELEASE_TAG and LIGHTBUG_ENVELOPE_ASSET are the
+    # version-independent release interface. Keep VERSION as a compatibility
+    # fallback for pre-matrix releases whose tag included the Toit version.
+    if [ -n "${LIGHTBUG_ENVELOPE_RELEASE_TAG:-}" ]; then
+        ENVELOPE_RELEASE_TAG="${LIGHTBUG_ENVELOPE_RELEASE_TAG}"
+    elif [ -n "${LIGHTBUG_ENVELOPE_VERSION:-}" ]; then
+        ENVELOPE_RELEASE_TAG="${TOIT_VERSION}.${LIGHTBUG_ENVELOPE_VERSION}"
+    else
+        echo "Set LIGHTBUG_ENVELOPE_RELEASE_TAG and LIGHTBUG_ENVELOPE_ASSET (or the legacy LIGHTBUG_ENVELOPE_VERSION)."
         exit 1
     fi
 
-    ENVELOPE_RELEASE_TAG="${TOIT_VERSION}.${LIGHTBUG_ENVELOPE_VERSION}"
     ENVELOPE_CACHE_SCOPE="release-${ENVELOPE_RELEASE_TAG}"
     DOWNLOAD_URL="https://github.com/lightbug-io/toit-envelopes/releases/download/${ENVELOPE_RELEASE_TAG}/${ENVELOPE_NAME}"
 fi

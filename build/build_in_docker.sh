@@ -12,11 +12,12 @@ Example:
     example-kiosk-app \
     /workspace/external-app/src/main.toit \
     esp32c6 \
-    v2.0.0-alpha.191
+    v2.0.0-alpha.198
 
 Optional environment variables:
-  JAG_VERSION=v1.63.0
-  LIGHTBUG_ENVELOPE_VERSION=lb.20260415-1
+  JAG_VERSION=v1.71.0
+  LIGHTBUG_ENVELOPE_RELEASE_TAG=lb.20260819-1
+  LIGHTBUG_ENVELOPE_ASSET=esp32c6-single-ota.198.envelope
   LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope
   LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope
   LIGHTBUG_FIRMWARE_VERSION=0.0.0
@@ -41,8 +42,8 @@ DOCKERFILE_PATH="${SCRIPT_DIR}/docker/Dockerfile"
 SNAPSHOT_NAME="$1"
 TARGET_INPUT="$2"
 FIRMWARE_TYPE="${3:-esp32c6}"
-TOIT_VERSION="${4:-v2.0.0-alpha.191}"
-JAG_VERSION="${JAG_VERSION:-v1.63.0}"
+TOIT_VERSION="${4:-v2.0.0-alpha.198}"
+JAG_VERSION="${JAG_VERSION:-v1.71.0}"
 DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG:-lightbug-toit-builder:jag-${JAG_VERSION#v}}"
 CONTAINER_HOME="/tmp/home"
 HOME_CACHE_DIR="${LIGHTBUG_ROOT}/build/cache/docker-home/${JAG_VERSION}"
@@ -93,6 +94,12 @@ esac
 ENVELOPE_ENV_ARGS=()
 CUSTOM_ENVELOPE_MOUNT_ARGS=()
 
+if [[ -n "${LIGHTBUG_ENVELOPE_RELEASE_TAG:-}" ]]; then
+  ENVELOPE_ENV_ARGS+=( -e "LIGHTBUG_ENVELOPE_RELEASE_TAG=${LIGHTBUG_ENVELOPE_RELEASE_TAG}" )
+fi
+if [[ -n "${LIGHTBUG_ENVELOPE_ASSET:-}" ]]; then
+  ENVELOPE_ENV_ARGS+=( -e "LIGHTBUG_ENVELOPE_ASSET=${LIGHTBUG_ENVELOPE_ASSET}" )
+fi
 if [[ -n "${LIGHTBUG_ENVELOPE_VERSION:-}" ]]; then
   ENVELOPE_ENV_ARGS+=( -e "LIGHTBUG_ENVELOPE_VERSION=${LIGHTBUG_ENVELOPE_VERSION}" )
 fi
