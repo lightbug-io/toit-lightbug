@@ -26,6 +26,15 @@ class Header:
   static TYPE_STORAGE_LEVEL := 15
   static TYPE_MESSAGE_LEVEL := 16
 
+  // Standard forwarding link IDs. Keep these aligned with misc/protocol/v3.yaml.
+  // TODO use generated code for these constants at some point
+  static LINK_ID_CHASM := 0
+  static LINK_ID_ESP32 := 1
+  static LINK_ID_LINK2 := 2
+  static LINK_ID_UART := 5
+  static LINK_ID_P1 := 3
+  static LINK_ID_USB_HOST := 7
+
   // For use with TYPE_MESSAGE_STATUS
   static STATUS_OK /int ::= 0
   static STATUS_GENERIC_ERROR /int ::= 1
