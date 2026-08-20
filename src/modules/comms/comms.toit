@@ -1,5 +1,4 @@
 import ...protocol as protocol
-import ...devices as devices
 import ...messages as messages
 import ...util.docs show message-bytes-to-docs-url
 import ...util.resilience show catch-and-restart
@@ -15,15 +14,17 @@ import io
 import monitor
 import monitor show Channel
 import .heartbeats show Heartbeats CommsHeartbeats
+import .transport show V3Transport
 
 class Comms:
   static MIN-MESSAGE-LENGTH ::= 11
   static MAX-INBOUND-WAIT-YIELDS ::= 100
 
   logger_/log.Logger
-  device_ /devices.Device
+  transport_ /V3Transport
   msgIdGenerator /IdGenerator
   background_ /bool
+  stopInboundOnDisconnect_ /bool
 
   outbox_ /Channel
   outboxTaskStarted_ /bool := false
@@ -49,28 +50,39 @@ class Comms:
   inboxesByName /Map := {:}
 
   constructor
-      --device/devices.Device? = null
+      // `device` is retained for source compatibility. New callers should use
+      // `transport`: Comms only requires a V3 byte-stream transport.
+      --device/V3Transport? = null
+      --transport/V3Transport? = null
       // Allow passing in handlers to register on creation
       --handlers/List?/*<MessageHandler>*/ = []
       // Customizable id generator for message ids
       // Defaults to a sequential generator starting at 1, max 4_294_967_295 (uint32 max)
       --idGenerator/IdGenerator = (SequentialIdGenerator --start=1 --maxId=4_294_967_295)
-      --startInbound/bool = true // Start the inbound reader (polling the device on I2C for messages)
+      --startInbound/bool = true // Start the inbound reader.
       --open/bool = true // Send Open message and heartbeats to keep connection alive
-      --reinitOnStart/bool = true // Reinitialize the device on start. Clearing buffers and subscriptions. Primarily for high throughput cases.
       --asyncHandlerDispatch/bool = false // Set true to dispatch each message handler in a background task.
       --background/bool = true // Run primairy tasks as background (non-blocking) tasks
+      // If true, end the inbound task when the transport disconnects. Use this
+      // when the transport owner must close and recreate its underlying
+      // resource before starting another Comms session (for example, a
+      // removable USB/serial port). The default keeps retrying, which suits
+      // persistent or self-reconnecting transports such as I2C.
+      --stopInboundOnDisconnect/bool = false
       
       --logger=(log.default.with-name "lb-comms"):
 
     logger_ = logger
-    device_ = device
+    if transport == null: transport = device
+    if transport == null: throw "Comms requires a V3 transport"
+    transport_ = transport
     messageHandlers_ = handlers
     msgIdGenerator = idGenerator
     background_ = background
+    stopInboundOnDisconnect_ = stopInboundOnDisconnect
     asyncHandlerDispatch_ = asyncHandlerDispatch
 
-    if device_.prefix:
+    if transport_.prefix:
       LBSyncBytes_ = #[0x4c, 0x42] // LB
     else:
       LBSyncBytes_ = #[]
@@ -79,7 +91,7 @@ class Comms:
     outbox_ = Channel 100
 
     heartbeats_ = CommsHeartbeats this logger_
-    start open startInbound false reinitOnStart
+    start open startInbound false
 
   heartbeats -> Heartbeats:
     return heartbeats_
@@ -99,16 +111,14 @@ class Comms:
     messageHandlers_.remove handler
     logger_.info "Unregistered message handler"
 
-  start sendOpen/bool startInbound/bool startOutbox/bool reinitOnStart/bool:
+  start sendOpen/bool startInbound/bool startOutbox/bool:
     logger_.info "Comms starting"
 
-    if reinitOnStart:
-      logger_.info "Reinitializing"
-      if not device_.reinit:
-        logger_.error "Failed to reinitialize , but continuing..."
-
     if startInbound:
-      task --background=background_:: catch-and-restart "processInbound_" (:: processInbound_) --logger=logger_
+      // A disconnect makes processInbound_ return. Do not restart that normal
+      // completion when the transport owner needs to recreate its resource;
+      // exceptions while still connected are still restarted in either mode.
+      task --background=background_:: catch-and-restart "processInbound_" (:: processInbound_) --restart-always=(not stopInboundOnDisconnect_) --logger=logger_
     if startOutbox:
       task --background=background_:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
     // In order for the Lightbug device to talk back to us, we have to open the conn
@@ -162,14 +172,14 @@ class Comms:
   // Perform a single pass of inbound processing and return a parsed message if available.
   processInboundOnce_ -> protocol.Message?:
     // Look for the next byte that is 3, which could indicate our protocol version
-    if device_.in.peek-byte != 3:
+    if transport_.in.peek-byte != 3:
       // if we don't find a 3, we can skip this byte
-      device_.in.read-byte
+      transport_.in.read-byte
       return null
 
     // Wait for a total of 3 bytes, which would also give us the length
     wait-yields := 0
-    while not device_.in.try-ensure-buffered 3:
+    while not transport_.in.try-ensure-buffered 3:
       logger_.trace "Inbound reader waiting for 3 bytes"
       wait-yields++
       if wait-yields > MAX-INBOUND-WAIT-YIELDS:
@@ -177,33 +187,33 @@ class Comms:
         return null
       yield
     // last to bytes of b3 are the uint16 LE message length
-    messageLength := ((device_.in.peek-byte 2) << 8) + (device_.in.peek-byte 1)
+    messageLength := ((transport_.in.peek-byte 2) << 8) + (transport_.in.peek-byte 1)
     if messageLength < MIN-MESSAGE-LENGTH:
         logger_.debug "Message length too short, skipping: $(messageLength)"
-        device_.in.read-byte
+        transport_.in.read-byte
         return null
     // If the msgLength looks too long (over 1000, just advance, as its probably garbage)
     if messageLength > 1000:
         logger_.error "Message length probably too long, skipping: $(messageLength)"
-        device_.in.read-byte
+        transport_.in.read-byte
         return null
 
     // Try and make sure that we have enough bytes buffered to read the full potential message
     wait-yields = 0
-    while not device_.in.try-ensure-buffered messageLength:
+    while not transport_.in.try-ensure-buffered messageLength:
       logger_.trace "Inbound reader waiting for message length: $(messageLength)"
       wait-yields++
       if wait-yields > MAX-INBOUND-WAIT-YIELDS:
         logger_.debug "Timed out waiting for message length: $(messageLength), skipping"
-        device_.in.read-byte
+        transport_.in.read-byte
         return null
       yield
 
-    messageBytes := device_.in.peek-bytes messageLength
+    messageBytes := transport_.in.peek-bytes messageLength
     // TODO remove once we are sure its good?
     if messageBytes.size != messageLength: // Fail safe, but shouldn't happen due to the try-enure-buffered above
       logger_.error "Message length mismatch, no more bytes available? skipping message"
-      device_.in.read-byte
+      transport_.in.read-byte
       throw "Message length mismatch, no more bytes available? skipping message"
       return null
 
@@ -218,18 +228,18 @@ class Comms:
 
       // if they match, we have a message, return it
       if expectedChecksum == calculatedChecksum:
-          device_.in.skip messageLength
+          transport_.in.skip messageLength
           return v3
       else:
         logger_.error "Checksum mismatch, skipping message"
 
         // Read a byte, and continue looking for a message
-        device_.in.read-byte
+        transport_.in.read-byte
         return null
     if e:
       // Always advance one byte before logging so malformed frames can't trap us in a retry loop
       // if formatting/logging itself fails.
-      device_.in.read-byte
+      transport_.in.read-byte
 
       // output a row of red cross emojis
       logger_.error " ❌ " * 20
@@ -245,8 +255,10 @@ class Comms:
   processInbound_:
     // Keep going until we find a message
     while true:
-      // Pause polling while the physical transport is not connected.
-      if not device_.connected:
+      // Persistent transports stay alive and retry. A transport owner that
+      // needs to recreate its resource can instead end this worker.
+      if not transport_.connected:
+        if stopInboundOnDisconnect_: return
         sleep --ms=50
         continue
       yield
@@ -257,7 +269,8 @@ class Comms:
         if m:
           processReceivedMessage_ m
       if e:
-        if not device_.connected:
+        if not transport_.connected:
+          if stopInboundOnDisconnect_: return
           logger_.debug "processInbound_: device disconnected mid-read, pausing"
           sleep --ms=50
         else:
@@ -267,12 +280,16 @@ class Comms:
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "RCV: $(msg)"
 
-    // Let any registered message handlers try and handle the message
+    // Let registered handlers consume the message before applying the generic
+    // ACK policy. A handler that returns true is responsible for its own
+    // response (for example, a forwarding bridge relays the message to the
+    // next hop instead of acknowledging it locally).
+    handled := false
     messageHandlers_.do: | handler |
       if asyncHandlerDispatch_:
         task:: handler.handle-message msg
-      else:
-        handler.handle-message msg
+      else if handler.handle-message msg:
+        handled = true
 
     // Add to any registered inboxes (only if inboxes are enabled)
     if inboxesEnabled_:
@@ -290,12 +307,14 @@ class Comms:
 
     // Ack messages that are not a response or an ack, and have a msg id
     // In the future, we likely want to push some of the ack decisions, and types of ack to the message handlers (when defined?!)
-    if msg.msgId and not isResponse and not isAck:
+    if msg.msgId and not isResponse and not isAck and not handled:
       // ACK these messages...
       ack-msg := messages.ACK.msg --data=null
       ack-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID msg.msgId
       ack-msg.header-add-data-uint8 protocol.Header.TYPE_MESSAGE_STATUS protocol.Header.STATUS_OK
-      send-via-outbox ack-msg
+      // ACKs are control traffic. Send them directly so they cannot be held
+      // behind normal application messages (notably on console transports).
+      sendSwitching_ ack-msg --now=true
 
     msgStatus := msg.msg-status
     isBad := msgStatus != null and msgStatus > 0
@@ -311,7 +330,12 @@ class Comms:
         logger_.warn "Received non-OKish message: status=$(statusNumStr) ($(statusName)) $(msg)"
 
     if isResponse:
-      tracker := trackers_.get respondingTo
+      // A response may legitimately arrive after its caller has timed out and
+      // removed the tracker.  It is still a valid inbound V3 message, but it
+      // must not restart the reader because of a missing map entry.
+      tracker := null
+      if trackers_.contains respondingTo:
+        tracker = trackers_.get respondingTo
       if tracker:
         lambda := null
         if isAck:
@@ -466,7 +490,7 @@ class Comms:
         msg.write-bytes-for-protocol-into m LBSyncBytes_.size
 
       // Send the message
-      device_.out.write m --flush=true
+      transport_.out.write m --flush=true
       logger_.with-level log.TRACE-LEVEL:
         logger_.trace "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
     else:
@@ -499,7 +523,7 @@ class Comms:
 
   // Send raw bytes, without any protocol wrapping
   send-raw-bytes bytes/ByteArray --flush=true:
-    device_.out.write bytes --flush=flush
+    transport_.out.write bytes --flush=flush
     // If there are less than 500 bytes, log them
     logger_.with-level log.TRACE-LEVEL:
       if bytes.size < 500:

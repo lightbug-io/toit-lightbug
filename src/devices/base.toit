@@ -1,7 +1,6 @@
 import i2c
 import gpio
 import uart
-import io
 import log
 import .i2c
 import .devices
@@ -15,6 +14,7 @@ import ..modules.haptics
 import ..modules.gnss show GNSS
 import ..modules.lora show LoraRadio
 import ..modules.comms.message-handler show MessageHandler
+import ..modules.comms.transport show V3Transport
 import ..modules.ble.handler show BLEHandler
 import ..modules.wifi.handler show WiFiHandler
 import ..modules.wifi
@@ -23,7 +23,7 @@ import ..util.backoff as backoff
 /*
 An interface representing a Lightbug device
 */
-interface Device extends HasInOut:
+interface Device extends V3Transport:
   // A name identifying the type of device
   name -> string
   /// E-ink
@@ -46,22 +46,3 @@ interface Device extends HasInOut:
   gnss -> GNSS
   // LoRa radio service.
   lora -> LoraRadio
-  // Reinit the device and communications
-  reinit -> bool
-  // Should messages be sent with a Lightbug message prefix, LB
-  prefix -> bool
-  // Whether the physical transport is currently connected.
-  connected -> bool
-  // Connects the physical transport (e.g. I2C bus). No-op if already connected.
-  connect -> none
-  // Disconnects the physical transport (e.g. I2C bus). No-op if already disconnected.
-  disconnect -> none
-
-/*
-An interface for combining a Reader and Writer for a device.
-*/
-interface HasInOut:
-  // Reader reading from the device
-  in -> Reader
-  // Writer writing to the device
-  out -> io.Writer

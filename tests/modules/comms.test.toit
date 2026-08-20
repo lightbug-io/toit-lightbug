@@ -1,5 +1,6 @@
 import lightbug.modules.comms as comms_mod
 import lightbug.devices as devices
+import lightbug.modules.comms.transport show V3Transport
 import lightbug.protocol as protocol
 import io
 
@@ -16,6 +17,34 @@ class TestReader extends io.Reader with io.InMixin:
     buffer_ = #[]
     return b
 
+class TestWriter extends io.Writer with io.OutMixin:
+  try-write_ data/io.Data from/int to/int -> int:
+    return to - from
+
+// Deliberately not a Lightbug Device: this verifies Comms can be used by a
+// byte-stream peer such as the USB console host.
+class TestTransport implements V3Transport:
+  reader_ /io.Reader
+
+  constructor reader/io.Reader:
+    reader_ = reader
+
+  in -> io.Reader:
+    return reader_
+
+  out -> io.Writer:
+    return TestWriter
+
+  prefix -> bool:
+    return false
+
+  connected -> bool:
+    return true
+
+  connect -> none:
+
+  disconnect -> none:
+
 main:
   testProcessInboundMessage
   testProcessInboundMessageWithPrefix
@@ -29,9 +58,8 @@ testProcessInboundMessage:
   // Prepend nothing - the reader expects protocol version as first byte within msg.bytes
   reader := TestReader --bytes=msg.bytes
 
-  // Create a fake device with injected reader
-  dev := devices.Fake --open=true --in=reader
-  c := comms_mod.Comms --device=dev --startInbound=false --open=false
+  transport := TestTransport reader
+  c := comms_mod.Comms --transport=transport --startInbound=false --open=false
 
   // Call single pass
   m := c.processInboundOnce_
@@ -61,7 +89,7 @@ testProcessInboundMessageWithPrefix:
   // Build a simple protocol message using the library
   msg := protocol.Message.with-data 0x0B (protocol.Data)
 
-  // LB prefix bytes (as used by Comms when device_.prefix is true)
+  // LB prefix bytes (as used by Comms when a transport's prefix is true)
   prefix := #[0x4c, 0x42]
 
   // Reader with prefix then message

@@ -36,7 +36,8 @@ class HeartbeatHandler implements MessageHandler:
       strobe_.red
       sleep --ms=50
       strobe_.off
-      return true  // Message was handled
+      // The handler only observes the heartbeat; Comms sends the generic ACK.
+      return false
     return false  // Not a heartbeat, let other handlers process it
 
   /**

@@ -51,6 +51,7 @@ class I2C implements Device:
   background_ /bool
   type_ /int? := null
   open_ /bool
+  reinit-on-comms-start_ /bool
   with-default-handlers_ /bool
   logger_ /log.Logger
 
@@ -88,6 +89,9 @@ class I2C implements Device:
       // But allow this to be disabled if needed
       // Calling .comms will start it anyway
       --startComms/bool=true
+      // I2C-specific reset command sent before the first Comms instance starts.
+      // This clears the peer's buffers and subscriptions for a clean link.
+      --reinit-on-comms-start/bool=true
       // Enabled default Lightbug firmware handlers
       // Such as WiFi and BLE scan request handlers
       // You may want to disable this while developing with logging, as this can cause slowness
@@ -114,6 +118,7 @@ class I2C implements Device:
     logger_ = logger.with-level log-level
     with-default-handlers_ = with-default-handlers
     open_ = open
+    reinit-on-comms-start_ = reinit-on-comms-start
     ble-advertisement_ = ble-advertisement
 
     // Store I2C pin parameters so the bus can be reconnected later.
@@ -220,6 +225,8 @@ class I2C implements Device:
 
   comms -> Comms:
     if not comms_:
+      if reinit-on-comms-start_ and not reinit:
+        logger_.error "Failed to reinitialize I2C device, but continuing..."
       handlers := [
               // We need to be able to detect the device type, at least once
               DeviceDetectionHandler this --logger=(logger_.with-name "h.detect"),

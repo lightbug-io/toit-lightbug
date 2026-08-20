@@ -152,14 +152,13 @@ run-rx-phase label/string msg-bytes/ByteArray count/int --async-handlers/bool=fa
   writer := NullWriter
 
   // open=false so no M11 Open/heartbeat tasks are spawned.
-  // reinitOnStart=false so no reinit write happens.
+  // Fake transports have no I2C reinitialisation command.
   // background=true so the inbound task and feeder task interleave correctly.
   device := devices.Fake --open=false --in=pipe --out=writer
   comms := Comms
       --device=device
       --handlers=[handler]
       --open=false
-      --reinitOnStart=false
       --startInbound=true
       --asyncHandlerDispatch=async-handlers
       --background=true
@@ -203,7 +202,6 @@ run-tx-phase label/string msg/protocol.Message msg-bytes/ByteArray count/int -> 
   comms := Comms
       --device=device
       --open=false
-      --reinitOnStart=false
       --startInbound=false
       --asyncHandlerDispatch=false
       --background=false

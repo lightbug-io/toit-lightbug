@@ -75,8 +75,6 @@ class Fake implements Device:
     if not lora_:
       lora_ = LoraRadio --device=this --logger=(log.default.with-name "lb.lora")
     return lora_
-  reinit -> bool:
-    return true
   prefix -> bool:
     return false
   // Fake device has no physical transport; connect/disconnect are no-ops.

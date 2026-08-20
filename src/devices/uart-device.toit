@@ -86,9 +86,6 @@ class UART implements Device:
     if not eink_:
       eink_ = Eink --device=this --logger=(log.default.with-name "eink")
     return eink_
-  // XXX: Does reinit really make sense for a generic UART device? Possibly not?
-  reinit -> bool:
-    return true
   prefix -> bool:
     return true
   // UART transport is managed externally; connect/disconnect are no-ops.
