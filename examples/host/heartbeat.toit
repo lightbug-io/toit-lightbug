@@ -1,7 +1,7 @@
-// Host-side peer for usb_console_v3.toit. Requires jag with Toit
+// Host-side heartbeat peer for usb_console_v3.toit. Requires jag with Toit
 // v2.0.0-alpha.198 or newer. Run from the examples directory:
-//   jag toit run toit/usb_v3_peer.toit /dev/ttyACM0
-//   jag toit run toit/usb_v3_peer.toit COM58
+//   jag toit run host/heartbeat.toit /dev/ttyACM0
+//   jag toit run host/heartbeat.toit COM58
 
 import io
 import log
@@ -15,7 +15,7 @@ import lightbug.protocol as protocol
 
 main args:
   if args.size != 1:
-    print "Usage: toit run toit/usb_v3_peer.toit <serial-port>"
+    print "Usage: toit run host/heartbeat.toit <serial-port>"
     print "Examples: /dev/ttyACM0 or COM58"
     return
 

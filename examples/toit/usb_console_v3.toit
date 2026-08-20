@@ -2,7 +2,7 @@
 // envelope. Receives V3 frames over USB and responds to DeviceStatus GET.
 //
 // Run the host peer from the examples directory:
-//   jag toit run toit/usb_v3_peer.toit /dev/ttyACM0
+//   jag toit run host/heartbeat.toit /dev/ttyACM0
 
 import lightbug.messages as messages
 import lightbug.modules.comms.message-handler show MessageHandler
