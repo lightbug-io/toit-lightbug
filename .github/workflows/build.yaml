@@ -143,8 +143,8 @@ jobs:
         if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.name }}-artifacts
-          path: build/out/${{ matrix.name }}/
+          name: ${{ matrix.name }}-${{ matrix.artifact_suffix }}-artifacts
+          path: build/out/${{ matrix.name }}.${{ matrix.artifact_suffix }}/
 
   release:
     name: Create Release
