@@ -2,6 +2,7 @@
 *.snapshot
 *.envelope
 *.bin
+src/firmware_build_info.toit
 build/out/
 build/cache/
 

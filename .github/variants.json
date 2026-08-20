@@ -3,14 +3,14 @@
     "191": {
       "version": "v2.0.0-alpha.191",
       "artifact_suffix": "191",
-      "envelope_release_tag": "lb.20260819-1",
-      "envelope_asset": "esp32c6-single-ota.191.envelope"
+      "envelopeReleaseTag": "lb.20260819-1",
+      "envelopeAsset": "esp32c6-single-ota.191.envelope"
     },
     "198": {
       "version": "v2.0.0-alpha.198",
       "artifact_suffix": "198",
-      "envelope_release_tag": "lb.20260819-1",
-      "envelope_asset": "esp32c6-single-ota.198.envelope"
+      "envelopeReleaseTag": "lb.20260819-1",
+      "envelopeAsset": "esp32c6-single-ota.198.envelope"
     }
   },
   "variants": [
