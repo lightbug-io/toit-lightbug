@@ -2,6 +2,7 @@ import .base show Device
 import .types show *
 import .i2c-device show I2C
 import .uart-device show UART
+import .proxy-device show Proxy
 import .fake-device show Fake
 
 // Import log and log levels for export, so users don't need to import them separately
@@ -9,3 +10,4 @@ import .fake-device show Fake
 import log.level show *
 
 export *
+
