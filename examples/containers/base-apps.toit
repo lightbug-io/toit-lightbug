@@ -2,6 +2,8 @@ import lightbug.devices as devices
 import lightbug.firmware as firmware
 import lightbug.messages as messages
 import lightbug.modules.comms.message-handler show MessageHandler
+import lightbug.modules.comms.forwarder show P1UsbForwarder
+import lightbug.modules.comms.usb-console show UsbConsole
 import lightbug.modules.strobe.strobe show Strobe
 import lightbug.protocol as protocol
 import lightbug.apps as apps
@@ -27,6 +29,12 @@ main:
     --with-default-handlers=true
     --background=false
   apps := apps.Apps device dog
+
+  // Keep the application container usable as a USB dock target.  The USB V3
+  // bridge sends Forward To=P1 requests to P1 and routes correlated replies
+  // (and Forward To=USB host messages) back to the host.
+  usb := UsbConsole --background=false
+  P1UsbForwarder --usb=usb.comms --p1=device.comms
 
   // Listen for "Actions" button presses...
   apps.start
