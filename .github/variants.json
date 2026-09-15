@@ -36,7 +36,13 @@
       "name": "base-apps",
       "path": "./examples/containers/base-apps.toit",
       "chip": "esp32c6",
-      "profiles": ["191", "198"]
+      "profiles": ["198"]
+    },
+    {
+      "name": "base-apps",
+      "path": "./examples/containers/base-apps-legacy.toit",
+      "chip": "esp32c6",
+      "profiles": ["191"]
     },
     {
       "name": "base-vending",

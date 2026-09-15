@@ -59,7 +59,7 @@ jobs:
       - name: Analyze examples
         run: |
           if [ "${{ matrix.toit_version }}" = "v2.0.0-alpha.191" ]; then
-              make analyze-examples TOIT=toit TOIT_PKG="toit pkg" ANALYZE_EXCLUDE="examples/containers/base.toit examples/toit/usb_console_smoke_test.toit examples/toit/usb_console_v3.toit examples/host/heartbeat.toit examples/host/info.toit examples/host/qc.toit"
+              make analyze-examples TOIT=toit TOIT_PKG="toit pkg" ANALYZE_EXCLUDE="examples/containers/base.toit examples/containers/base-apps.toit examples/toit/usb_console_smoke_test.toit examples/toit/usb_console_v3.toit examples/host/heartbeat.toit examples/host/info.toit examples/host/qc.toit"
           else
             make analyze-examples TOIT=toit TOIT_PKG="toit pkg"
           fi
