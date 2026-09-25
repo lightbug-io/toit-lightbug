@@ -28,14 +28,14 @@ class Apps:
     "QC",
     "Device Info",
     "Reboot",
-    "Go Back",
+    "Back",
     ]
   MENU-OPTION-SURVEY := 0
   MENU-OPTION-LORA := 1
   MENU-OPTION-QC:= 2
   MENU-OPTION-DEVICE-INFO := 3
   MENU-OPTION-REBOOT:= 4
-  MENU-OPTION-GO-BACK := 5
+  MENU-OPTION-BACK := 5
   DEVICE-INFO-OPTION-BACK := 5
 
   PAGE-HOME := 1
@@ -142,7 +142,7 @@ class Apps:
                 else if menu-selection.current == MENU-OPTION-REBOOT:
                   log.info "Rebooting device"
                   device_.comms.send messages.Reset.set-msg
-                else if menu-selection.current == MENU-OPTION-GO-BACK:
+                else if menu-selection.current == MENU-OPTION-BACK:
                   show-home
               else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
                 menu-selection.up

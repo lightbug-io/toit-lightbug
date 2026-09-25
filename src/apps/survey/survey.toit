@@ -48,7 +48,7 @@ class SurveyApp:
   static MENU-TEXT-DIST-5M ::= "Auto5m"
   static MENU-TEXT-DIST-10M ::= "Auto10m"
   static MENU-TEXT-START ::= "Start Survey"
-  static MENU-TEXT-BACK ::= "Go Back"
+  static MENU-TEXT-BACK ::= "Back"
   static MENU-TEXT-CLEAR-POINTS ::= "Clear Points"
   static MENU-TEXT-SEND ::= "Send to cloud"
   static MENU-TEXT-STOP ::= "Stop"
@@ -82,6 +82,7 @@ class SurveyApp:
 
   menu-selection/MenuSelection? := null
   action-menu-options_/List := []
+  info-menu-options_/List := []
   
   BUTTON-LEFT-INFO := "Info"
   device-button-left := ""
@@ -130,7 +131,6 @@ class SurveyApp:
     device-button-right = BUTTON-RIGHT-ACTIONS
 
     action-menu-options_ = [
-      MENU-TEXT-BACK,
       MENU-TEXT-CLEAR-POINTS,
       MENU-TEXT-SEND,
       last-selected-rtk_,
@@ -138,6 +138,7 @@ class SurveyApp:
       last-selected-dist_,
       MENU-TEXT-STOP,
       MENU-TEXT-EXIT,
+      MENU-TEXT-BACK,
     ]
 
     show-survey
@@ -350,18 +351,18 @@ class SurveyApp:
                     task:: send-points-to-link
                   else if label == MENU-TEXT-RTK-ON:
                     last-selected-rtk_ = MENU-TEXT-RTK-OFF
-                    action-menu-options_[3] = last-selected-rtk_ // RTK index
+                    action-menu-options_[2] = last-selected-rtk_ // RTK index
                     rtk-off
                     update-actions-menu
                   else if label == MENU-TEXT-RTK-OFF:
                     last-selected-rtk_ = MENU-TEXT-RTK-ON
-                    action-menu-options_[3] = last-selected-rtk_ // RTK index
+                    action-menu-options_[2] = last-selected-rtk_ // RTK index
                     rtk-on
                     update-actions-menu
                   else if label == MENU-TEXT-MODE-ON-Button:
                     // switch to Continuous
                     last-selected-mode_ = MENU-TEXT-MODE-Continuous
-                    action-menu-options_[4] = last-selected-mode_ // MODE index
+                    action-menu-options_[3] = last-selected-mode_ // MODE index
                     if is-surveying_:
                       // Update middle button label to continuous
                       device-button-middle = BUTTON-MIDDLE-CONTINIOUS
@@ -372,7 +373,7 @@ class SurveyApp:
                   else if label == MENU-TEXT-MODE-Continuous:
                     // switch to Button
                     last-selected-mode_ = MENU-TEXT-MODE-ON-Button
-                    action-menu-options_[4] = last-selected-mode_ // MODE index
+                    action-menu-options_[3] = last-selected-mode_ // MODE index
                     if is-surveying_:
                       // Update middle button label to store
                       device-button-middle = BUTTON-MIDDLE-STORE
@@ -383,21 +384,21 @@ class SurveyApp:
                   else if label == MENU-TEXT-DIST-5M:
                     // Cycle to 1m
                     last-selected-dist_ = MENU-TEXT-DIST-1M
-                    action-menu-options_[5] = last-selected-dist_ // DIST index
+                    action-menu-options_[4] = last-selected-dist_ // DIST index
                     store-last-point-dist_ = 1.0
                     update-actions-menu
                     screen-on-button-change
                   else if label == MENU-TEXT-DIST-1M:
                     // Cycle to 10m
                     last-selected-dist_ = MENU-TEXT-DIST-10M
-                    action-menu-options_[5] = last-selected-dist_
+                    action-menu-options_[4] = last-selected-dist_
                     store-last-point-dist_ = 10.0
                     update-actions-menu
                     screen-on-button-change
                   else if label == MENU-TEXT-DIST-10M:
                     // Cycle back to 5m (default)
                     last-selected-dist_ = MENU-TEXT-DIST-5M
-                    action-menu-options_[5] = last-selected-dist_
+                    action-menu-options_[4] = last-selected-dist_
                     store-last-point-dist_ = 5.0
                     update-actions-menu
                     screen-on-button-change
@@ -481,22 +482,22 @@ class SurveyApp:
       if e:
         logger_.warn "WiFi config: $e"
 
-      info-items := [
-        MENU-TEXT-BACK,
+      info-menu-options_ = [
         "Share$(last-share-code_)",
         "Conn$conn-type",
         ]
       if conn-type != "None":
-        info-items.add "IP$device-ip"
+        info-menu-options_.add "IP$device-ip"
       if conn-type == WIFI-CLIENT:
-        info-items.add "WiFi Net$wifi-ssid"
+        info-menu-options_.add "WiFi Net$wifi-ssid"
       if conn-type == WIFI-AP:
-        info-items.add "AP Name$(AP-NAME)"
-        info-items.add "AP Pass$(AP-PASS)"
+        info-menu-options_.add "AP Name$(AP-NAME)"
+        info-menu-options_.add "AP Pass$(AP-PASS)"
+      info-menu-options_.add MENU-TEXT-BACK
 
       showing-page_ = PAGE-INFO
-      device_.eink.send-menu --page-id=PAGE-INFO --items=info-items --selected-item=0
-      menu-selection = MenuSelection --start=0 --size=info-items.size
+      device_.eink.send-menu --page-id=PAGE-INFO --items=info-menu-options_ --selected-item=0
+      menu-selection = MenuSelection --start=0 --size=info-menu-options_.size
 
   // Check if we have WiFi configured..
   // We assume that production devices WILL NOT have this configured
@@ -859,7 +860,7 @@ class SurveyApp:
     // Info page
     else if showing-page_ == PAGE-INFO:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID_ACTION:
-        if menu-selection.current == 0:
+        if info-menu-options_[menu-selection.current] == MENU-TEXT-BACK:
           show-survey
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN-RIGHT:
         menu-selection.up

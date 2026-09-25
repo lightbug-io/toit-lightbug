@@ -30,7 +30,7 @@ class LoraApp:
   static MENU-TEXT-SEND-ID ::= "SendID"
   static MENU-TEXT-SEND-PING ::= "SendPing"
   static MENU-TEXT-SEND-LOCATION ::= "SendLocation"
-  static MENU-TEXT-BACK ::= "Go Back"
+  static MENU-TEXT-BACK ::= "Back"
   static MENU-TEXT-EXIT ::= "Exit"
 
   device_/Device
@@ -279,8 +279,8 @@ class LoraApp:
       sending = MENU-TEXT-SEND-LOCATION
     menu-options_ = [
       sending,
-      MENU-TEXT-BACK,
       MENU-TEXT-EXIT,
+      MENU-TEXT-BACK,
     ]
 
   add-received-message_ text/string:
