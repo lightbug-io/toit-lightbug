@@ -75,6 +75,8 @@ class SurveyApp:
   last-selected-wifi_/string? := null
   // Mode can be Button (store on press) or Continuous (store automatically when moved >=5m)
   last-received-position_/messages.Position? := null
+  pending-inbound-position_/messages.Position? := null
+  inbound-position-task_/Task? := null
   last-share-code_/string? := null
 
   buttons-subscriber-id_/int? := null
@@ -188,6 +190,10 @@ class SurveyApp:
   stop:
     dog_.stop
     is-running_ = false
+    if inbound-position-task_:
+      inbound-position-task_.cancel
+      inbound-position-task_ = null
+    pending-inbound-position_ = null
     survey-stop
     deinit-webserver_
     deinit-button-subscriber_
@@ -244,13 +250,30 @@ class SurveyApp:
       if showing-page_ == PAGE-SURVEY or showing-page_ == PAGE-MENU-ACTIONS or showing-page_ == PAGE-INFO:
         if a-msg.type == messages.Position.MT:
           pos := messages.Position.from-data a-msg.data
-          last-received-position_ = pos
-          screen-on-new-pos pos
-          // If in continuous mode and surveying, store points when moved >=5m
-          if is-surveying_ and last-selected-mode_ == MENU-TEXT-MODE-Continuous:
-            store-last-point-on-dist-change store-last-point-dist_
+          // Do not render or mutate the point store in Comms' inline handler:
+          // e-ink/I2C work there delays the Buttons inbox. The task uses the
+          // same existing logic after inbound dispatch has completed.
+          pending-inbound-position_ = pos
+          if not inbound-position-task_:
+            inbound-position-task_ = task:: process-inbound-positions_
     )
     device_.comms.register-handler position-handler_
+
+  process-inbound-positions_:
+    while is-running_ and pending-inbound-position_:
+      // Coalesce arrivals while a prior render/store update is in progress.
+      pos := pending-inbound-position_
+      pending-inbound-position_ = null
+      handle-inbound-position_ pos
+    inbound-position-task_ = null
+
+  handle-inbound-position_ pos/messages.Position:
+    if not is-running_: return
+    last-received-position_ = pos
+    screen-on-new-pos pos
+    // If in continuous mode and surveying, store points when moved >=5m.
+    if is-surveying_ and last-selected-mode_ == MENU-TEXT-MODE-Continuous:
+      store-last-point-on-dist-change store-last-point-dist_
 
   init-webserver_:
     if http_server_:

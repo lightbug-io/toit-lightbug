@@ -25,8 +25,13 @@ class Apps:
   buttons-subscriber-id_/int? := null
   position-handler_/PositionUpdateHandler? := null
   position-subscription-active_/bool := false
+  position-render-task_/Task? := null
+  latest-position_/messages.Position? := null
+  position-render-generation_/int := 0
   details-generation_/int := 0
   details-back-index_/int := 0
+  active-menu-page_/int? := null
+  last-p1-menu-item_/int? := null
 
   MENU-OPTIONS := [
     "Apps",
@@ -104,12 +109,14 @@ class Apps:
       // logger_.info "HOME"
       device_.eink.show-preset --page-id=PAGE-HOME
       menu-selection = null
+      active-menu-page_ = null
+      last-p1-menu-item_ = null
 
   show_menu:
     device_.eink.batch --important:
       // logger_.info "MENU"
       device_.eink.send-menu --page-id=PAGE-MENU --items=MENU-OPTIONS --selected-item=0
-      menu-selection = MenuSelection --start=0 --size=MENU-OPTIONS.size
+      set-menu-selection_ PAGE-MENU 0 MENU-OPTIONS.size
 
   show-device-info:
     items := [
@@ -122,17 +129,17 @@ class Apps:
       ]
     device_.eink.batch --important:
       device_.eink.send-menu --page-id=PAGE-DEVICE-INFO --items=items --selected-item=0
-      menu-selection = MenuSelection --start=0 --size=items.size
+      set-menu-selection_ PAGE-DEVICE-INFO 0 items.size
 
   show-apps-menu:
     device_.eink.batch --important:
       device_.eink.send-menu --page-id=PAGE-APPS-MENU --items=APPS-MENU-OPTIONS --selected-item=0
-      menu-selection = MenuSelection --start=0 --size=APPS-MENU-OPTIONS.size
+      set-menu-selection_ PAGE-APPS-MENU 0 APPS-MENU-OPTIONS.size
 
   show-messaging-menu:
     device_.eink.batch --important:
       device_.eink.send-menu --page-id=PAGE-MESSAGING-MENU --items=MESSAGING-MENU-OPTIONS --selected-item=0
-      menu-selection = MenuSelection --start=0 --size=MESSAGING-MENU-OPTIONS.size
+      set-menu-selection_ PAGE-MESSAGING-MENU 0 MESSAGING-MENU-OPTIONS.size
 
   send-messaging-action:
     selection := menu-selection.current
@@ -210,15 +217,26 @@ class Apps:
   start-position-subscription:
     stop-position-subscription_
     position-subscription-active_ = true
+    position-render-generation_++
+    generation := position-render-generation_
     position-handler_ = PositionUpdateHandler this
     device_.comms.register-handler position-handler_
     show-details-menu_ PAGE-POSITION [menu-row "Status" "Awaiting position", "Back"]
+    // Rendering is deliberately separate from Comms inbound dispatch. A menu
+    // redraw sends I2C traffic and can yield; doing that in a message handler
+    // delayed ButtonPress delivery while Position was subscribed.
+    position-render-task_ = task:: render-position-loop_ generation
     logger_.info "Sending V3 Position SUBSCRIBE: interval=1000ms"
     device_.comms.send (messages.Position.subscribe-msg --interval=1_000) --now=true
 
   stop-position-subscription_:
     if not position-subscription-active_: return
     position-subscription-active_ = false
+    position-render-generation_++
+    if position-render-task_:
+      position-render-task_.cancel
+      position-render-task_ = null
+    latest-position_ = null
     details-generation_++
     if position-handler_:
       device_.comms.unregister-handler position-handler_
@@ -228,6 +246,26 @@ class Apps:
 
   handle-position-update position/messages.Position:
     if not position-subscription-active_: return
+    // Keep Comms' inbound task short: it must still fan this message out to
+    // the Buttons inbox, where ButtonPress events are dispatched.
+    latest-position_ = position
+
+  render-position-loop_ generation/int:
+    while position-subscription-active_ and generation == position-render-generation_:
+      position := latest-position_
+      if position:
+        render-position_ position
+      // Coalesce newer reports and redraw at most once per second.
+      sleep --ms=1_000
+
+  render-position_ position/messages.Position:
+    if not position-subscription-active_: return
+    // P1 can report once a second. Preserve the current row while redrawing;
+    // otherwise each report resets local selection to row 0 and makes Back
+    // effectively unreachable.
+    selected-item := 0
+    if menu-selection:
+      selected-item = menu-selection.current
     show-details-menu_ PAGE-POSITION [
       menu-row "Latitude" (position.latitude.to-string --precision=6),
       menu-row "Longitude" (position.longitude.to-string --precision=6),
@@ -235,13 +273,125 @@ class Apps:
       menu-row "Accuracy" "$(position.accuracy.to-string --precision=2)m",
       menu-row "Satellites" "$(position.satellites)",
       "Back",
-      ]
+      ] --selected-item=selected-item --important=false
 
-  show-details-menu_ page-id/int items/List:
-    device_.eink.batch --important:
-      device_.eink.send-menu --page-id=page-id --items=items --selected-item=0
-      menu-selection = MenuSelection --start=0 --size=items.size
+  show-details-menu_ page-id/int items/List --selected-item/int?=null --important/bool=true:
+    if selected-item == null: selected-item = 0
+    device_.eink.batch --important=important:
+      device_.eink.send-menu --page-id=page-id --items=items --selected-item=selected-item
+      set-menu-selection_ page-id selected-item items.size
       details-back-index_ = items.size - 1
+
+  set-menu-selection_ page-id/int selected-item/int size/int:
+    menu-selection = MenuSelection --start=selected-item --size=size
+    active-menu-page_ = page-id
+    last-p1-menu-item_ = selected-item
+
+  is-managed-menu-page_ page-id/int -> bool:
+    return page-id == PAGE-MENU or
+        page-id == PAGE-APPS-MENU or
+        page-id == PAGE-MESSAGING-MENU or
+        page-id == PAGE-DEVICE-INFO or
+        page-id == PAGE-DEVICE-IDS or
+        page-id == PAGE-POSITION
+
+  synchronize-menu-selection-from-button_ button-data/messages.ButtonPress:
+    if menu-selection == null or active-menu-page_ != button-data.page-id: return
+    if not button-data.has-data messages.ButtonPress.MENU-ITEM: return
+    reported := button-data.menu-item
+    // P1 publishes the press before it applies it. For closely queued presses
+    // it can therefore repeat an old menuItem. Rebase only when P1 gives us a
+    // new value; otherwise retain our locally replayed sequence.
+    if reported != menu-selection.current and reported != last-p1-menu-item_:
+      if menu-selection.synchronize reported:
+        logger_.debug "Resynchronized menu $(button-data.page-id): $(reported)"
+    last-p1-menu-item_ = reported
+
+  handle-menu-button-press_ button-data/messages.ButtonPress:
+    synchronize-menu-selection-from-button_ button-data
+    // A button report is tagged with the page P1 was showing when pressed.
+    // Never apply a delayed press from an old P2 menu to the current one.
+    if is-managed-menu-page_ button-data.page-id and
+        active-menu-page_ != button-data.page-id:
+      logger_.debug "Ignoring stale menu button for page $(button-data.page-id)"
+      return
+
+    // Mirror P1's external-menu hold behavior.
+    if is-managed-menu-page_ button-data.page-id and
+        button-data.duration >= 1000 and
+        button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+      show-home
+      return
+    if is-managed-menu-page_ button-data.page-id and
+        button-data.duration >= 1000 and
+        button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+      menu-selection.select-last
+      return
+
+    if button-data.page-id == PAGE-HOME:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        show_menu
+    else if button-data.page-id == PAGE-MENU:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
+        if menu-selection.current == MENU-OPTION-APPS:
+          show-apps-menu
+        else if menu-selection.current == MENU-OPTION-MESSAGING:
+          show-messaging-menu
+        else if menu-selection.current == MENU-OPTION-DEVICE-INFO:
+          show-device-info
+        else if menu-selection.current == MENU-OPTION-BACK:
+          show-home
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        menu-selection.up
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+        menu-selection.down
+    else if button-data.page-id == PAGE-APPS-MENU:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
+        if menu-selection.current == APPS-MENU-OPTION-SURVEY:
+          task:: open-survey-app
+        else if menu-selection.current == APPS-MENU-OPTION-LORA:
+          task:: open-lora-app
+        else if menu-selection.current == APPS-MENU-OPTION-QC:
+          task:: open-qc-app
+        else if menu-selection.current == APPS-MENU-OPTION-BACK:
+          show_menu
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        menu-selection.up
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+        menu-selection.down
+    else if button-data.page-id == PAGE-MESSAGING-MENU:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
+        send-messaging-action
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        menu-selection.up
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+        menu-selection.down
+    else if button-data.page-id == PAGE-DEVICE-IDS:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
+        if menu-selection.current == details-back-index_:
+          details-generation_++
+          show-messaging-menu
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        menu-selection.up
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+        menu-selection.down
+    else if button-data.page-id == PAGE-POSITION:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
+        if menu-selection.current == details-back-index_:
+          stop-position-subscription_
+          show-messaging-menu
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        menu-selection.up
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+        menu-selection.down
+    else if button-data.page-id == PAGE-DEVICE-INFO:
+      if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
+        if menu-selection.current == DEVICE-INFO-OPTION-BACK:
+          show_menu
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
+        menu-selection.up
+      else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
+        menu-selection.down
 
   // P1's menu renderer treats ASCII Unit Separator (0x1F) as a left/right
   // column break. Keep this in one helper so all Device Info rows align.
@@ -293,76 +443,10 @@ class Apps:
                 device_.strobe.blue
                 sleep --ms=50
                 device_.strobe.off
-            if button-data.duration >= 3000: // 3s any button = home (for now)
-              show-home
-            else if self.app_ and self.app_.is-running:
-              // If an app is running, let it handle button presses
-            else if button-data.page-id == PAGE-HOME: // TODO use a preset page const ID
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                self.show_menu
-            else if button-data.page-id == PAGE-MENU:
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
-                if menu-selection.current == MENU-OPTION-APPS:
-                  self.show-apps-menu
-                else if menu-selection.current == MENU-OPTION-MESSAGING:
-                  self.show-messaging-menu
-                else if menu-selection.current == MENU-OPTION-DEVICE-INFO:
-                  self.show-device-info
-                else if menu-selection.current == MENU-OPTION-BACK:
-                  show-home
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
-                menu-selection.down
-            else if button-data.page-id == PAGE-APPS-MENU:
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
-                if menu-selection.current == APPS-MENU-OPTION-SURVEY:
-                  task:: open-survey-app
-                else if menu-selection.current == APPS-MENU-OPTION-LORA:
-                  task:: open-lora-app
-                else if menu-selection.current == APPS-MENU-OPTION-QC:
-                  task:: open-qc-app
-                else if menu-selection.current == APPS-MENU-OPTION-BACK:
-                  self.show_menu
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
-                menu-selection.down
-            else if button-data.page-id == PAGE-MESSAGING-MENU:
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
-                self.send-messaging-action
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
-                menu-selection.down
-            else if button-data.page-id == PAGE-DEVICE-IDS:
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
-                if menu-selection.current == details-back-index_:
-                  details-generation_++
-                  self.show-messaging-menu
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
-                menu-selection.down
-            else if button-data.page-id == PAGE-POSITION:
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
-                if menu-selection.current == details-back-index_:
-                  self.stop-position-subscription_
-                  self.show-messaging-menu
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
-                menu-selection.down
-            else if button-data.page-id == PAGE-DEVICE-INFO:
-              if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
-                if menu-selection.current == DEVICE-INFO-OPTION-BACK:
-                  self.show_menu
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
-                menu-selection.up
-              else if button-data.button-id == messages.ButtonPress.BUTTON-ID-UP-LEFT:
-                menu-selection.down
+            if self.app_ and self.app_.is-running:
+              // If an app is running, let it handle button presses.
             else:
-              // logger_.info "BTN miss $button-data"
+              self.handle-menu-button-press_ button-data
         )
 
         if not id:
@@ -392,6 +476,7 @@ class Apps:
   stop:
     // logger_.info "STOP"
     is-running_ = false
+    stop-position-subscription_
     // Unsubscribe from buttons if we have a subscriber id
     if buttons-subscriber-id_:
       e := catch: device_.buttons.unsubscribe --subscriber-id=buttons-subscriber-id_ --timeout=null
