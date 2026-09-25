@@ -109,17 +109,26 @@ class BLE:
 
     e := catch:
       central.scan --duration=scan-duration --interval=interval --window=window --active=active: | device/ble.RemoteScannedDevice |
-        scan-result := BLEScanResult.from-device device
+        // Do not report rotating private addresses. They cannot be used as a
+        // stable device identifier by the P1/cloud path. The native ESP BLE
+        // API supplies this value separately from the six address bytes.
+        // We might at some point allow seeing these, and also returning the type
+        // of address we are returning, but noone seems to need this yet
+        if is-trackable-address-type_ device.address-type:
+          scan-result := BLEScanResult.from-device device
 
-        // Apply filter if provided
-        should-emit := true
-        if filter:
-          should-emit = filter.call scan-result
+          // Apply filter if provided.
+          should-emit := true
+          if filter:
+            should-emit = filter.call scan-result
 
-        if should-emit:
-          emitted-count++
-          if onSeen:
-            onSeen.call scan-result
+          if should-emit:
+            emitted-count++
+            if onSeen:
+              onSeen.call scan-result
+        else:
+          logger_.with-level log.TRACE-LEVEL:
+            logger_.trace "Ignoring BLE device with private or unknown address type: $(device.address-type)"
 
     if e:
       logger_.error "BLE scan failed: $e"
@@ -171,6 +180,13 @@ class BLE:
     if ms <= 0:
       return 0
     return max 4 ((ms * 1000 + 312) / 625)
+
+  // Keep only addresses that are stable without BLE resolving keys. Types 2
+  // and 3 are resolvable-private addresses; null is possible on platforms
+  // which do not expose a BLE address type.
+  is-trackable-address-type_ address-type/int? -> bool:
+    return address-type == ble.RemoteScannedDevice.ADDRESS-TYPE-PUBLIC or
+        address-type == ble.RemoteScannedDevice.ADDRESS-TYPE-RANDOM
 
   /**
   Starts BLE advertising with the provided advertisement data.
