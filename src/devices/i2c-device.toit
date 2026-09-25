@@ -44,6 +44,9 @@ class I2C implements Device:
   i2c-scl-pin_ /gpio.Pin? := null
   i2c-reader_ /Reader? := null
   i2c-writer_ /Writer? := null
+  // P1 retains command state across some I2C operations. Serialize access to
+  // this transport without blocking BLE or the rest of the application.
+  i2c-mutex_ := monitor.Mutex
   connected_ /bool := false
   pending-reinit_ /bool := false
 
@@ -187,8 +190,8 @@ class I2C implements Device:
     i2c-sda-pin_ = sda-pin
     i2c-scl-pin_ = scl-pin
     i2c-device_ = LBI2CDevice i2c-bus_
-    i2c-reader_ = Reader i2c-device_ --logger=(logger_.with-name "i2c.read")
-    i2c-writer_ = Writer i2c-device_ --logger=(logger_.with-name "i2c.write")
+    i2c-reader_ = Reader i2c-device_ i2c-mutex_ --logger=(logger_.with-name "i2c.read")
+    i2c-writer_ = Writer i2c-device_ i2c-mutex_ --logger=(logger_.with-name "i2c.write")
     connected_ = true
     if pending-reinit_:
       pending-reinit_ = false
@@ -266,7 +269,8 @@ class I2C implements Device:
         --initial-delay=(Duration --ms=50)
         --backoff-factor=2.0
         --max-delay=(Duration --s=1):
-        i2c-device.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
+        i2c-mutex_.do:
+          i2c-device.write #[I2C-COMMAND-LIGHTBUG-REINIT, 0xf0]
     
     if e:
       logger_.error "Lightbug I2C: Failed to reinitialize device after retries: $e"

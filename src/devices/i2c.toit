@@ -36,9 +36,10 @@ LBI2CDevice bus/i2c.Bus-> i2c.Device:
 
 class Reader extends io.Reader:
   device /i2c.Device
+  bus-mutex_ /any
   logger_ /log.Logger
 
-  constructor .device --finishWhenEmpty=false --logger/log.Logger:
+  constructor .device .bus-mutex_ --finishWhenEmpty=false --logger/log.Logger:
     logger_ = logger
 
   /**
@@ -55,10 +56,15 @@ class Reader extends io.Reader:
         --initial-delay=I2C-WAIT-SLEEP
         --backoff-factor=2.0
         --max-delay=(Duration --s=4):
-        data = read-inner_ b
+        // A command followed by its data read is stateful on P1. Serialize a
+        // complete read attempt, but never the outer retry backoff.
+        data = bus-mutex_.do: read-inner_ b
     if e:
       logger_.error "Lightbug I2C: Failed to read after backoff: $e"
       return b
+    // An empty poll has completed its I2C transaction. Release the bus while
+    // waiting for P1 to produce more data, and yield to the application.
+    if data.size == 0: sleep I2C-WAIT-SLEEP
     return data
 
   read-inner_ all/ByteArray -> ByteArray?:
@@ -77,14 +83,12 @@ class Reader extends io.Reader:
       // Taking UART as an example, if there are no bytes, it loops until there are some.
       // UART does this with a read state, for now we will just sleep a bit...
       if len-int == 0:
-        // logger_.trace "None to read, sleeping for $I2C-WAIT-SLEEP" // verbose log
-        sleep-blocking I2C-WAIT-SLEEP // Sleep as there is no data to read right now, don't overload the bus
+        // The caller does the yielding wait after releasing bus-mutex_.
         break // Leave the while loop
 
       // If we are told there are more bytes available than the largest Lightbug buffer, ignore it...
       if len-int > I2C-MAX-READABLE-BYTES:
         logger_.warn "⚠️ Messy readable ($len-int), bin & sleep $I2C-WAIT-SLEEP"
-        sleep-blocking I2C-WAIT-SLEEP
         break
 
       logger_.trace "Got $len-int to read"
@@ -94,7 +98,9 @@ class Reader extends io.Reader:
         logger_.trace "Requesting chunk of $chunkSize"
         device.write #[I2C-COMMAND-LIGHTBUG-READ, chunkSize]
         logger_.trace "Reading $chunkSize"
-        sleep-blocking --ms=2 // For I2C stability, gap between write and read
+        // The mutex keeps this P1 command/data sequence exclusive, so this
+        // can yield without allowing another I2C operation to interleave.
+        sleep --ms=2
         b := device.read chunkSize
         if b.size != chunkSize:
           logger_.error "Failed to read chunk of $chunkSize, got $b.size"
@@ -118,8 +124,6 @@ class Reader extends io.Reader:
         if ff-percentage >= 95:
           logger_.warn "⚠️ I2C bus corruption: chunk is $ff-percentage% 0xff bytes ($total-ff/$b.size) (size $b.size): $b"
           logger_.trace "Discarding chunk and retrying. Valid bytes so far: $all.size"
-          // Sleep to let the bus recover, then retry.
-          sleep-blocking I2C-WAIT-SLEEP
           // Break inner loop to retry from the outer loop.
           break
 
@@ -141,10 +145,11 @@ class Reader extends io.Reader:
 
 class Writer extends io.Writer:
   device /i2c.Device
+  bus-mutex_ /any
   can-write-bytes /int := 0
   logger_ /log.Logger
 
-  constructor .device --logger/log.Logger:
+  constructor .device .bus-mutex_ --logger/log.Logger:
     logger_ = logger
 
   /**
@@ -163,7 +168,8 @@ class Writer extends io.Writer:
         --initial-delay=I2C-WAIT-SLEEP
         --backoff-factor=2.0
         --max-delay=(Duration --s=4):
-        result = try-write-inner_ data from to written
+        // Serialize multi-chunk writes, but release the bus for retry backoff.
+        result = bus-mutex_.do: try-write-inner_ data from to written
     if e:
       logger_.error "Lightbug I2C: Failed to write after backoff: $e"
       return written
@@ -191,11 +197,11 @@ class Writer extends io.Writer:
         // Probably got some messy data, so reset and sleep
         logger_.warn "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
         can-write-bytes = 0
-        sleep-blocking I2C-WAIT-SLEEP
+        sleep I2C-WAIT-SLEEP
       logger_.trace "Can write $can-write-bytes bytes"
       if can-write-bytes == 0:
         logger_.trace "Waiting for some bytes to be writeable, sleeping for $I2C-WAIT-SLEEP"
-        sleep-blocking I2C-WAIT-SLEEP
+        sleep I2C-WAIT-SLEEP
       else:
         logger_.trace "Can write $can-write-bytes bytes, continuing"
 
@@ -215,7 +221,8 @@ class Writer extends io.Writer:
       written += writing
       can-write-bytes -= writing
       current-index = read-to-index
-      sleep-blocking --ms=2 // For I2C stability, gap between sequential writes
+      // bus-mutex_ prevents another I2C operation entering this gap.
+      sleep --ms=2
 
     logger_.trace "Wrote $written bytes"
     return written
