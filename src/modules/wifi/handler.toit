@@ -42,6 +42,10 @@ class WiFiHandler implements MessageHandler:
     duration := extract-scan-duration msg
     request-msg-id := msg.msgId
 
+    // Returning true suppresses Comms' generic ACK policy. P1 requires an OK
+    // ACK for MID_WIFI_SCAN before it starts its scan-completion deadline.
+    acknowledge-request request-msg-id
+
     // If the msg was forwarded, extract the msg source too, so we can forward responses correctly
     forwarded-for := null
     if msg.was-forwarded:
@@ -51,6 +55,14 @@ class WiFiHandler implements MessageHandler:
       perform-wifi-scan duration request-msg-id forwarded-for
 
     return true
+
+  acknowledge-request request-msg-id/int?:
+    if request-msg-id == null: return
+    ack-msg := messages.ACK.msg --data=null
+    ack-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+    ack-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-OK
+    // Match Comms' generic ACK path: make this control traffic immediate.
+    device_.comms.send ack-msg --now=true
 
   extract-scan-duration msg/protocol.Message -> int:
     if msg.header-has-data DURATION-HEADER-FIELD:

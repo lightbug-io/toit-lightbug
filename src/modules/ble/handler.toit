@@ -46,6 +46,11 @@ class BLEHandler implements MessageHandler:
     duration := extract-scan-duration msg
     active := extract-active-scan-request msg
     request-msg-id := msg.msgId
+
+    // Returning true suppresses Comms' generic ACK policy. P1 treats an OK
+    // ACK for MID_BLE_SCAN as "scan started" and otherwise retries the request
+    // after its ACK timeout, so acknowledge before launching the async work.
+    acknowledge-request request-msg-id
     
     // If the msg was forwarded, extract the msg source too, so we can forward responses correctly
     forwarded-for := null
@@ -57,6 +62,14 @@ class BLEHandler implements MessageHandler:
       perform-ble-scan duration active request-msg-id forwarded-for
     
     return true
+
+  acknowledge-request request-msg-id/int?:
+    if request-msg-id == null: return
+    ack-msg := messages.ACK.msg --data=null
+    ack-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
+    ack-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-OK
+    // Match Comms' generic ACK path: make this control traffic immediate.
+    device_.comms.send ack-msg --now=true
   
   /**
    * Extract scan duration from message header field 7.
