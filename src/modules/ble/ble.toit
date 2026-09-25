@@ -45,14 +45,18 @@ class BLE:
     --active: Whether to request scan responses from scannable devices.
     --interval-ms: Optional scan interval in milliseconds.
     --window-ms: Optional scan window in milliseconds.
+    --interval-units: Optional raw Central.scan interval in 0.625 ms units.
+      Takes precedence over --interval-ms.
+    --window-units: Optional raw Central.scan window in 0.625 ms units.
+      Takes precedence over --window-ms.
     --onSeen: Optional callback invoked as devices are discovered during the
       scan, before the final result list is returned.
 
   Returns: List of BLEScanResult objects containing scan results
   */
-  scan --duration/int --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --onSeen/Lambda?=null -> List:
+  scan --duration/int? --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --interval-units/int?=null --window-units/int?=null --onSeen/Lambda?=null -> List:
     results := []
-    scan --stream --duration=duration --filter=filter --active=active --interval-ms=interval-ms --window-ms=window-ms --onSeen=(:: | result |
+    scan --stream --duration=duration --filter=filter --active=active --interval-ms=interval-ms --window-ms=window-ms --interval-units=interval-units --window-units=window-units --onSeen=(:: | result |
       results.add result
       if onSeen:
         onSeen.call result
@@ -90,22 +94,30 @@ class BLE:
     --active: Whether to request scan responses from scannable devices.
     --interval-ms: Optional scan interval in milliseconds.
     --window-ms: Optional scan window in milliseconds.
+    --interval-units: Optional raw Central.scan interval in 0.625 ms units.
+    --window-units: Optional raw Central.scan window in 0.625 ms units.
     --onSeen: Optional callback invoked for each device that passes the filter.
 
   Returns: The number of devices emitted to $onSeen.
   */
-  scan --stream --duration/int --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --onSeen/Lambda?=null -> int:
-    if duration <= 0:
+  scan --stream --duration/int? --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --interval-units/int?=null --window-units/int?=null --onSeen/Lambda?=null -> int:
+    if duration != null and duration <= 0:
       logger_.warn "Scan duration must be positive, got: $duration"
       return 0
 
-    logger_.debug "Starting BLE scan with duration: $duration ms"
+    if duration == null:
+      logger_.debug "Starting BLE scan with infinite duration"
+    else:
+      logger_.debug "Starting BLE scan with duration: $duration ms"
 
-    scan-duration := Duration --ms=duration
+    scan-duration := duration == null ? null : Duration --ms=duration
     central := adapter_.central
     emitted-count := 0
-    interval := scan-units-from-ms_ interval-ms
-    window := scan-units-from-ms_ window-ms
+    // The public millisecond options retain their existing behaviour. The V3
+    // request path uses the optional controller-unit options to reach
+    // RemoteScannedDevice.scan without conversion (one unit is 0.625 ms).
+    interval := interval-units != null ? interval-units : scan-units-from-ms_ interval-ms
+    window := window-units != null ? window-units : scan-units-from-ms_ window-ms
 
     e := catch:
       central.scan --duration=scan-duration --interval=interval --window=window --active=active: | device/ble.RemoteScannedDevice |
@@ -149,6 +161,8 @@ class BLE:
     --active: Whether to request scan responses from scannable devices.
     --interval-ms: Optional scan interval in milliseconds.
     --window-ms: Optional scan window in milliseconds.
+    --interval-units: Optional raw Central.scan interval in 0.625 ms units.
+    --window-units: Optional raw Central.scan window in 0.625 ms units.
     --onSeen: Optional callback to call for each discovered device while the
       scan is still running.
     --onComplete: Callback to call when scan completes (receives List of results).
@@ -158,8 +172,8 @@ class BLE:
     $scan --stream to avoid list accumulation. If you need early visibility of
     discoveries but still want the final list, use $scan with --onSeen.
   */
-  scan --async --duration/int --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --onSeen/Lambda?=null --onComplete/Lambda?=null --onError/Lambda?=null:
-    if duration <= 0:
+  scan --async --duration/int? --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --interval-units/int?=null --window-units/int?=null --onSeen/Lambda?=null --onComplete/Lambda?=null --onError/Lambda?=null:
+    if duration != null and duration <= 0:
       logger_.warn "Scan duration must be positive, got: $duration"
       if onError:
         onError.call "Invalid duration: $duration"
@@ -167,7 +181,7 @@ class BLE:
 
     task::
       e := catch:
-        results := scan --duration=duration --filter=filter --active=active --interval-ms=interval-ms --window-ms=window-ms --onSeen=onSeen
+        results := scan --duration=duration --filter=filter --active=active --interval-ms=interval-ms --window-ms=window-ms --interval-units=interval-units --window-units=window-units --onSeen=onSeen
         if onComplete:
           onComplete.call results
       

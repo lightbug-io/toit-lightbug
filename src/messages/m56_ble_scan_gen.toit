@@ -12,6 +12,8 @@ class BLEScan extends protocol.Data:
   static NAME := 4
   static SCAN-RESPONSE := 5
   static ACTIVE-SCAN-REQUEST := 6
+  static SCAN-INTERVAL := 7
+  static SCAN-WINDOW := 8
 
   constructor:
     super
@@ -27,7 +29,7 @@ class BLEScan extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --name/string?=null --scan-response/ByteArray?=null --active-scan-request/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --advertising-data/ByteArray?=null --mac/ByteArray?=null --rssi/int?=null --name/string?=null --scan-response/ByteArray?=null --active-scan-request/bool?=null --scan-interval/int?=null --scan-window/int?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if advertising-data != null: data.add-data ADVERTISING-DATA advertising-data
     if mac != null: data.add-data MAC mac
@@ -35,6 +37,8 @@ class BLEScan extends protocol.Data:
     if name != null: data.add-data-ascii NAME name
     if scan-response != null: data.add-data SCAN-RESPONSE scan-response
     if active-scan-request != null: data.add-data-bool ACTIVE-SCAN-REQUEST active-scan-request
+    if scan-interval != null: data.add-data-uint SCAN-INTERVAL scan-interval
+    if scan-window != null: data.add-data-uint SCAN-WINDOW scan-window
     return data
 
   // Subscribe to a message with an optional interval in milliseconds
@@ -49,6 +53,14 @@ class BLEScan extends protocol.Data:
     if timeout != null:
       msg.header.data.add-data-uint32 protocol.Header.TYPE-SUBSCRIPTION-TIMEOUT timeout
     return msg
+
+  /**
+   * Creates a UNSUBSCRIBE Request message for BLE Scan.
+   *
+   * Returns: A Message ready to be sent
+   */
+  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
 
   /**
    * Advertising Data
@@ -86,6 +98,18 @@ class BLEScan extends protocol.Data:
   active-scan-request -> bool:
     return get-data-bool ACTIVE-SCAN-REQUEST
 
+  /**
+   * BLE scan interval in 0.625 ms controller units. Omit or set to 0 to retain the ESP default.
+   */
+  scan-interval -> int:
+    return get-data-uint SCAN-INTERVAL
+
+  /**
+   * BLE scan window in 0.625 ms controller units. Omit or set to 0 to retain the ESP default.
+   */
+  scan-window -> int:
+    return get-data-uint SCAN-WINDOW
+
   stringify -> string:
     return {
       "advertisingData": advertising-data,
@@ -94,4 +118,6 @@ class BLEScan extends protocol.Data:
       "name": name,
       "scanResponse": scan-response,
       "activeScanRequest": active-scan-request,
+      "scanInterval": scan-interval,
+      "scanWindow": scan-window,
     }.stringify

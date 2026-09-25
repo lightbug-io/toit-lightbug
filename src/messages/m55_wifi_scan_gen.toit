@@ -47,6 +47,14 @@ class WiFiScan extends protocol.Data:
     return msg
 
   /**
+   * Creates a UNSUBSCRIBE Request message for WiFi Scan.
+   *
+   * Returns: A Message ready to be sent
+   */
+  static unsubscribe-msg --base-data/protocol.Data?=protocol.Data -> protocol.Message:
+    return protocol.Message.with-method MT protocol.Header.METHOD-UNSUBSCRIBE base-data
+
+  /**
    * SSID of the access point
    */
   ssid -> string:
