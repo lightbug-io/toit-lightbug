@@ -97,7 +97,7 @@ print-device-ids reply/protocol.Message? -> none:
     print "P1 DeviceIDs request replied with V3 type=$(reply.type) status=$(reply.msg-status)"
     return
   ids := messages.DeviceIDs.from-data reply.data
-  print "P1 DeviceIDs received: id=$(ids.id) imei=$(ids.imei) iccid=$(ids.iccid) forwarded-for=$(reply.forwarded-for)"
+  print "P1 DeviceIDs received: id=$(ids.id) serial=$(ids.serial) imei=$(ids.imei) iccid=$(ids.iccid) forwarded-for=$(reply.forwarded-for)"
 
 class HostSerialTransport implements V3Transport:
   port_ /uart.Port

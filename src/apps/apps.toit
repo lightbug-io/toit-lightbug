@@ -204,6 +204,8 @@ class Apps:
       ids := messages.DeviceIDs.from-data response.data
       show-details-menu_ PAGE-DEVICE-IDS [
         menu-row "Device ID" "$(ids.id)",
+        // Only available on some device types for now, so don't show this.
+        // menu-row "Serial" "$(ids.serial)",
         menu-row "IMEI" ids.imei,
         menu-row "ICCID" ids.iccid,
         menu-row "SIM2 ICCID" ids.cached-sim2-iccid,

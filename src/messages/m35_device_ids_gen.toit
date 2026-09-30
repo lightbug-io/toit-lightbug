@@ -9,6 +9,7 @@ class DeviceIDs extends protocol.Data:
   static ID := 1
   static IMEI := 2
   static ICCID := 3
+  static SERIAL := 4
   static CACHED-SIM2-ICCID := 8
 
   constructor:
@@ -25,11 +26,12 @@ class DeviceIDs extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --id/int?=null --imei/string?=null --iccid/string?=null --cached-sim2-iccid/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --id/int?=null --imei/string?=null --iccid/string?=null --serial/int?=null --cached-sim2-iccid/string?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if id != null: data.add-data-uint ID id
     if imei != null: data.add-data-ascii IMEI imei
     if iccid != null: data.add-data-ascii ICCID iccid
+    if serial != null: data.add-data-uint SERIAL serial
     if cached-sim2-iccid != null: data.add-data-ascii CACHED-SIM2-ICCID cached-sim2-iccid
     return data
 
@@ -61,6 +63,12 @@ class DeviceIDs extends protocol.Data:
     return get-data-ascii ICCID
 
   /**
+   * Device serial number. Currently only available on some device types.
+   */
+  serial -> int:
+    return get-data-uint SERIAL
+
+  /**
    * SIM2 ICCID cached from a previous read. This value may be stale.
    */
   cached-sim2-iccid -> string:
@@ -71,5 +79,6 @@ class DeviceIDs extends protocol.Data:
       "id": id,
       "imei": imei,
       "iccid": iccid,
+      "serial": serial,
       "cachedIccid2": cached-sim2-iccid,
     }.stringify

@@ -26,7 +26,7 @@ class VendingUpdater:
         return
       ids := messages.DeviceIDs.from-data resp.data
       vending-id := vending.update-vending-id-from-current-id ids.id
-      logger_.info "✅ Device IDs: id=$(ids.id) imei=$(ids.imei) iccid=$(ids.iccid) -> vending-id=$(vending-id)"
+      logger_.info "✅ Device IDs: id=$(ids.id) serial=$(ids.serial) imei=$(ids.imei) iccid=$(ids.iccid) -> vending-id=$(vending-id)"
     if e:
       logger_.error "❌ DeviceIDs update failed: $e"
 
