@@ -25,6 +25,7 @@ class FileData extends protocol.Data:
   static TARGET-ADDRESS := 8
   static MD5 := 9
   static CHUNK-COUNT := 10
+  static TARGET-ERASE-SIZE := 11
   static PAYLOAD := 129
 
   constructor:
@@ -41,7 +42,7 @@ class FileData extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --file-type/int?=null --file-id/int?=null --chunk/int?=null --chunk-size/int?=null --total-size/int?=null --total-chunks/int?=null --status/int?=null --target-address/int?=null --md5/ByteArray?=null --chunk-count/int?=null --payload/ByteArray?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --file-type/int?=null --file-id/int?=null --chunk/int?=null --chunk-size/int?=null --total-size/int?=null --total-chunks/int?=null --status/int?=null --target-address/int?=null --md5/ByteArray?=null --chunk-count/int?=null --target-erase-size/int?=null --payload/ByteArray?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if file-type != null: data.add-data-uint FILE-TYPE file-type
     if file-id != null: data.add-data-uint FILE-ID file-id
@@ -53,6 +54,7 @@ class FileData extends protocol.Data:
     if target-address != null: data.add-data-uint TARGET-ADDRESS target-address
     if md5 != null: data.add-data MD5 md5
     if chunk-count != null: data.add-data-uint CHUNK-COUNT chunk-count
+    if target-erase-size != null: data.add-data-uint TARGET-ERASE-SIZE target-erase-size
     if payload != null: data.add-data PAYLOAD payload
     return data
 
@@ -94,19 +96,19 @@ class FileData extends protocol.Data:
     return get-data-uint FILE-ID
 
   /**
-   * Chunk index, 0-based.
+   * Chunk index, 0-based. Omitted from a GET request when requesting file metadata only.
    */
   chunk -> int:
     return get-data-uint CHUNK
 
   /**
-   * Requested chunk size in bytes. Initial ESP32 OTA implementation requests 1024-byte chunks.
+   * Requested chunk size in bytes. Current ESP32 OTA requests 768-byte chunks. Included in both metadata and chunk requests so the server can calculate totalChunks for the requested transfer shape.
    */
   chunk-size -> int:
     return get-data-uint CHUNK-SIZE
 
   /**
-   * Total file size in bytes.
+   * Total file size in bytes. Returned by the server in the metadata response and repeated on chunk responses when practical.
    *
    * Unit: byte
    */
@@ -114,7 +116,7 @@ class FileData extends protocol.Data:
     return get-data-uint TOTAL-SIZE
 
   /**
-   * Total number of chunks in the file.
+   * Total number of chunks in the file for the requested chunkSize. Required in the metadata response before the device starts chunk requests.
    */
   total-chunks -> int:
     return get-data-uint TOTAL-CHUNKS
@@ -138,14 +140,23 @@ class FileData extends protocol.Data:
     return get-data MD5
 
   /**
-   * Optional number of sequential chunks requested starting from chunk. If omitted, defaults to 1.
+   * Number of sequential chunks requested starting at chunk. If omitted, assume 1. Servers should respond with one File Data response per requested chunk, not a combined payload.
    */
   chunk-count -> int:
     return get-data-uint CHUNK-COUNT
 
   /**
-   * Extended-length payload field containing one complete chunk. Field id 129 uses
-   * a two-byte little-endian V3 length prefix, so a 1024-byte ESP32 OTA chunk fits
+   * Optional flash erase extent from targetAddress. Used when the target must erase a whole image or partition region even though the transferred file is smaller.
+   *
+   * Unit: byte
+   */
+  target-erase-size -> int:
+    return get-data-uint TARGET-ERASE-SIZE
+
+  /**
+   * Extended-length payload field containing one complete chunk. Not included in
+   * metadata responses. Field id 129 uses
+   * a two-byte little-endian V3 length prefix, so a 768-byte ESP32 OTA chunk fits
    * in a single field.
    */
   payload -> ByteArray:
@@ -163,5 +174,6 @@ class FileData extends protocol.Data:
       "targetAddress": target-address,
       "md5": md5,
       "chunkCount": chunk-count,
+      "targetEraseSize": target-erase-size,
       "payload": payload,
     }.stringify

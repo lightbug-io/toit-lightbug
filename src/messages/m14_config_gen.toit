@@ -34,7 +34,10 @@ class Config extends protocol.Data:
   static KEY_USB-LOCK := 32
   static KEY_LED-RESTING-ARMED-COLOR := 33
   static KEY_BLE-NAME-FILTER-PREFIX := 34
+  static KEY_MENU-CONFIG := 35
+  static KEY_COMMAND-LOGGING := 36
   static KEY_ARMING-MODE := 50
+  static KEY_P2-FIRMWARE-MD5-CACHE := 100
   static KEY_SILO-ID := 32777
   static KEY_SERIAL-NUMBER := 32780
 
@@ -52,7 +55,10 @@ class Config extends protocol.Data:
     32: "USB Lock",
     33: "LED Resting Armed Color",
     34: "BLE Name Filter Prefix",
+    35: "Menu Config",
+    36: "Command Logging",
     50: "Arming Mode",
+    100: "P2 Firmware MD5 Cache",
     32777: "Silo ID",
     32780: "Serial Number",
   }
@@ -145,7 +151,10 @@ class Config extends protocol.Data:
     return get-data SUMMARY-OF-UINT16-KEYS
 
   /**
-   * Key
+   * Config key identifier.
+   * Required for SET.
+   * Optional for GET: when omitted, GET returns a key summary instead of an individual key value.
+   *
    *
    * Valid values:
    * - KEY_BASESETTINGS (1): 24 bytes of basic device settings (intervals, modes, etc.)
@@ -161,7 +170,17 @@ class Config extends protocol.Data:
    * - KEY_USB-LOCK (32): When non-zero, USB access is locked (usb pins are switched to i2c bus).
    * - KEY_LED-RESTING-ARMED-COLOR (33): RGB color when armed = true (3 bytes RGB  + 1 mode). [m,R,G,B] for the status LED when armed. m=2 enables breathing
    * - KEY_BLE-NAME-FILTER-PREFIX (34): Collection of null terminated strings. Expected format is [prefix1]\0[prefix2]\0[prefix3]\0
+   * - KEY_MENU-CONFIG (35): Controls the built-in device menu. Value 0 shows the default menu and default e-ink home "Menu" / "Actions" buttons. Value 1 disables the default menu and removes those default home buttons.
+   * Currently, any non-zero value disables the default menu and shows only "Menu disabled by admin" if the menu is opened, but all values above 1 are reserved for future use.
+   *
+   * - KEY_COMMAND-LOGGING (36): Bitfield controlling blanket forwarding of received V3 messages for command logging. The low 16 bits select source links to log, and the high 16 bits select destination links to receive those logs.
+   * Link bits use the same standardized link IDs as Forwarded For and Forward To: 0 = Chasm, 1 = ESP32, 2 = Link2, 3 = P1, 5 = UART link, 7 = USB host.
+   * Matching messages are copied with Forward To removed, Forwarded For set to the source link, and storage forced to None if the target link does not support storage.
+   *
    * - KEY_ARMING-MODE (50): Bitmask controlling device behaviour when armed. Value 0x00 = default (active when armed).
+   *
+   * - KEY_P2-FIRMWARE-MD5-CACHE (100): Cached 16-byte MD5 digest reported by the ESP32 ROM after the most recent OTA verification.
+   * Allows the server to decide whether the device already has the expected firmware and whether the previous update succeeded.
    *
    * - KEY_SILO-ID (32777): Silo ID for the device, used to determine which silo to connect to.
    * - KEY_SERIAL-NUMBER (32780): Integer representation of the device serial number.
