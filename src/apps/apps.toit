@@ -18,6 +18,7 @@ class Apps:
 
   device_/Device
   dog_/Watchdog
+  show-unknown-lora-messages_/bool := false
   is-running_/bool := false
   menu-selection/MenuSelection? := null
   app_/any? := null // TODO make an app interface?
@@ -98,9 +99,10 @@ class Apps:
   PAGE-DEVICE-IDS := 24
   PAGE-POSITION := 25
 
-  constructor device/Device dog/Watchdog:
+  constructor device/Device dog/Watchdog --show-unknown-lora-messages/bool=false:
     device_ = device
     dog_ = dog
+    show-unknown-lora-messages_ = show-unknown-lora-messages
     self := this
 
   show-home:
@@ -467,7 +469,7 @@ class Apps:
 
   open-lora-app:
     stop
-    app_ = LoraApp device_ this dog_
+    app_ = LoraApp device_ this dog_ --show-unknown-messages=show-unknown-lora-messages_
     app_.start
   
   open-qc-app:
