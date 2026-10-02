@@ -5,8 +5,8 @@ import lightbug.cust.vending show Vending
 import lightbug.cust.vending_updater show VendingUpdater
 
 POLL-EVERY ::= (Duration --s=60)
-MIN-RESPONSE-DELAY ::= (Duration --ms=100)
-RESPONSE-COUNT ::= 3
+MIN-RESPONSE-DELAY ::= (Duration --ms=180)
+RESPONSE-COUNT ::= 1
 
 // A basic example of a vending app that listens for UART commands
 // and responds RESPONSE-COUNT times, spaced by MIN-RESPONSE-DELAY, with cached
