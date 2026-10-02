@@ -276,7 +276,14 @@ class Comms:
         else:
           throw e
 
-  processReceivedMessage_ msg/protocol.Message:
+  /** Dispatch a synthetic inbound message through the normal P2 handlers and inboxes.
+      No bytes go to P1, and no protocol ACK or response tracking is performed.
+      Intended for opt-in development tools. */
+  inject-inbound msg/protocol.Message:
+    logger_.info "Synthetic inbound message type=$(msg.type)"
+    processReceivedMessage_ msg --synthetic=true
+
+  processReceivedMessage_ msg/protocol.Message --synthetic/bool=false:
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "RCV: $(msg)"
 
@@ -299,6 +306,9 @@ class Comms:
           logger_.warn "Inbox full '$name', Dropped msg type: $(dropped.type) for new type: $(msg.type)"
         logger_.debug "Inbox add '$name': $(msg.type)"
         inbox.send msg
+
+    if synthetic:
+      return
 
     // Find waiting lambdas, based on the response
     respondingTo := msg.response-to
