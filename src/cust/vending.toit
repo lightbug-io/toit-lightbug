@@ -25,7 +25,7 @@ class Vending:
 
   // Commands (FROM VENDING)
   static Cmd_SetId := VendingProtocol.Cmd_SetId // Will not be implemented.
-  static Cmd_Auth := VendingProtocol.Cmd_Auth // Will not be implemented.
+  static Cmd_Auth := VendingProtocol.Cmd_Auth
 
   port := null
   _rx-pin := null
@@ -34,9 +34,11 @@ class Vending:
   _tx-pin-num := null
   _baud-rate := null
   _min-response-delay := (Duration --ms=50)
+  _response-count /int := 1
   _last-request-start-us := 0
   temperature-cache_ /float := 20.0
   voltage-cache_ /float := 3.7
+  authed /bool := false
 
   // 0x2b is serial
   // 	if(settings->serialNum){
@@ -54,7 +56,9 @@ class Vending:
 
   logger_/log.Logger
 
-  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --logger=log.default:
+  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --response-count/int=1 --logger=log.default:
+    if response-count < 1:
+      throw "response-count must be at least 1"
     logger_ = logger
     _rx-pin-num = rx-pin
     _tx-pin-num = tx-pin
@@ -62,6 +66,7 @@ class Vending:
     _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
     _baud-rate = baud-rate
     _min-response-delay = min-response-delay
+    _response-count = response-count
     // Init a port..
     set-port-rx
 
@@ -74,12 +79,13 @@ class Vending:
     _rx-pin = gpio.Pin _rx-pin-num --open-drain=true
     _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
 
-  wait-min-response-delay:
+  wait-min-response-delay --since-us/int?=null:
     if _min-response-delay.in-us <= 0:
       return
-    if _last-request-start-us <= 0:
+    start-us := since-us == null ? _last-request-start-us : since-us
+    if start-us <= 0:
       return
-    elapsed-us := (Time.monotonic-us --since-wakeup) - _last-request-start-us
+    elapsed-us := (Time.monotonic-us --since-wakeup) - start-us
     remaining-us := _min-response-delay.in-us - elapsed-us
     if remaining-us > 0:
       sleep --ms=((remaining-us + 999) / 1000)
@@ -133,23 +139,19 @@ class Vending:
     return voltage-cache_
   
   send-error:
-    wait-min-response-delay
-    set-port-tx
-    port.out.write "ERROR\r\n".to-byte-array --flush=true
-    // Let the final stop bit clear before rearming RX.
-    sleep (Duration --ms=2)
-    set-port-rx
+    send-response "ERROR\r\n".to-byte-array
 
   send-response frame/ByteArray:
-    wait-min-response-delay
-    set-port-tx
-    // pad the frame with 500 bytes of 1...
-    // frame = frame + (ByteArray 500 --initial=1)
-    port.out.write frame --flush=true
-    // Let the final stop bit clear before rearming RX.
-    sleep (Duration --ms=2)
-    set-port-rx
-    logger_.debug "Sent response frame: $(frame)"
+    previous-start-us := _last-request-start-us
+    _response-count.repeat:
+      wait-min-response-delay --since-us=previous-start-us
+      set-port-tx
+      previous-start-us = Time.monotonic-us --since-wakeup
+      port.out.write frame --flush=true
+      // Let the final stop bit clear before rearming RX.
+      sleep (Duration --ms=2)
+      set-port-rx
+      logger_.debug "Sent response frame: $(frame)"
   
   read-frame -> ByteArray?:
     // Wait for a port
@@ -222,6 +224,8 @@ class Vending:
 
     response := VendingProtocol.response-for-command-payload data vending-id get-temperature get-voltage
     if response:
+      if data[0] == Cmd_Auth and response[3] == VendingProtocol.Stat_Success:
+        authed = response[4] == 0x01
       send-response response
       print "Processed command $(data[0])"
       return

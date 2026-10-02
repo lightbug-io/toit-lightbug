@@ -126,7 +126,16 @@ class VendingProtocol:
       status-data := get-stat-data vending-id temperature voltage
       return build-response-frame Res_GetStat Stat_Success status-data
 
-    // Cmd_SetId and Cmd_Auth are intentionally ignored for now.
+    if command == Cmd_Auth:
+      if data.size != 9:
+        return build-response-frame Res_Auth Stat_Fail
+      // Match LifepassVending.cpp: the first eight bytes are not checked.
+      // Only 0x01 authorizes; every other value clears authorization.
+      auth-data := ByteArray 1
+      auth-data[0] = data[8] == 0x01 ? 1 : 0
+      return build-response-frame Res_Auth Stat_Success auth-data
+
+    // Cmd_SetId is intentionally ignored for now.
     return null
 
   static get-stat-data vending-id/int temperature/int voltage/float -> ByteArray:
