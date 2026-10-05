@@ -4,6 +4,7 @@ class LoraProfile:
   static MEDIUM ::= 1
   static LONG ::= 2
   static FAST ::= 3
+  static DEFAULT ::= FAST
   static COUNT ::= 4
   static SLOT ::= 0
   static MAX-PAYLOAD ::= 64
@@ -62,6 +63,12 @@ class LoraProfile:
   min-gap-ms bytes/int -> int:
     airtime := airtime-ms bytes
     return (airtime * 100 * 100 + duty-percent * 80 - 1) / (duty-percent * 80)
+
+  /** The selected preset applies to manual sends, replies and continual sends. */
+  send-gap-ms bytes/int mode/string -> int:
+    airtime-gap := min-gap-ms bytes
+    cadence := interval-ms mode
+    return airtime-gap > cadence ? airtime-gap : cadence
 
   stringify -> string:
     return "$name $(frequency-hz / 1_000_000.0)MHz SF$sf CR4/$(coding-rate + 4) $(tx-power-dbm)dBm"
