@@ -6,6 +6,8 @@ class LoraFlow:
   render-pending_/bool := false
   last-render-us_/int := 0
   last-flash-us_/int := 0
+  last-status-flash-us_/int := 0
+  activity-status_/string? := null
 
   tx-wait-us now-us/int -> int:
     return now-us < next-tx-us_ ? next-tx-us_ - now-us : 0
@@ -46,6 +48,25 @@ class LoraFlow:
 
   reset-flash:
     last-flash-us_ = 0
+
+  set-activity-status text/string -> bool:
+    if activity-status_ == text: return false
+    activity-status_ = text
+    return true
+
+  clear-activity-status -> bool:
+    if activity-status_ == null: return false
+    activity-status_ = null
+    return true
+
+  activity-status -> string?:
+    return activity-status_
+
+  should-flash-status now-us/int min-interval-us/int -> bool:
+    if last-status-flash-us_ != 0 and now-us - last-status-flash-us_ < min-interval-us:
+      return false
+    last-status-flash-us_ = now-us
+    return true
 
   render-pending -> bool:
     return render-pending_

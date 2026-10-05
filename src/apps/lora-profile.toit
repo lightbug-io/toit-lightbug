@@ -65,9 +65,9 @@ class LoraProfile:
     return (airtime * 100 * 100 + duty-percent * 80 - 1) / (duty-percent * 80)
 
   /** The selected preset applies to manual sends, replies and continual sends. */
-  send-gap-ms bytes/int mode/string -> int:
+  send-gap-ms bytes/int interval-ms/int -> int:
     airtime-gap := min-gap-ms bytes
-    cadence := interval-ms mode
+    cadence := interval-ms
     return airtime-gap > cadence ? airtime-gap : cadence
 
   stringify -> string:

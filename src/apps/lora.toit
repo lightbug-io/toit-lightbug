@@ -4,12 +4,14 @@ import ..modules.comms.generic-handler show GenericHandler
 import ..modules.eink.menu-selection show MenuSelection
 import ..protocol as protocol
 import ..util.bytes show stringify-all-bytes-compact-hex
+import coordinate show Coordinate
 import io.byte-order show LITTLE-ENDIAN
 import log
 import watchdog show Watchdog
 import .apps show Apps
 import .lora-profile show LoraProfile
 import .lora-flow show LoraFlow LoraWire
+import .lora-distance show LoraDistance
 
 TOP-PAD := 41
 TEXT-SPACING := 12
@@ -17,9 +19,13 @@ MAX-MESSAGES := 5
 MAX-DISPLAY-CHARS := 38
 LORA-RX-INDEFINITE := 0
 STROBE-FLASH-MS := 15
+TX-STROBE-FLASH-MS := 50
 WATCHDOG-FEED-MS := 10000
 RX-DISPLAY-MIN-INTERVAL-US := 1_000_000
 RX-LED-MIN-INTERVAL-US := 200_000
+TX-STATUS-LED-MIN-INTERVAL-US := 1_000_000
+TX-STATUS-DISPLAY-MIN-WAIT-US := 250_000
+CONTINUAL-JITTER-MAX-MS := 250
 
 class LoraApp:
   static screen-width ::= 250
@@ -36,9 +42,10 @@ class LoraApp:
   static MENU-TEXT-BACK ::= "Back"
   static MENU-MODE ::= 0
   static MENU-PROFILE ::= 1
-  static MENU-REPEAT ::= 2
-  static MENU-EXIT ::= 3
-  static MENU-BACK ::= 4
+  static MENU-RATE ::= 2
+  static MENU-REPEAT ::= 3
+  static MENU-EXIT ::= 4
+  static MENU-BACK ::= 5
 
   device_/Device
   parent_/Apps? := null
@@ -52,6 +59,7 @@ class LoraApp:
   watchdog-feeding_/bool := false
   position-handler_/GenericHandler? := null
   position-subscribed_/bool := false
+  position-subscribe-pending_/bool := false
   lora-page-drawn_/bool := false
   received-render-task_/Task? := null
   received-render-generation_/int := 0
@@ -65,11 +73,14 @@ class LoraApp:
   profile-index_/int := LoraProfile.DEFAULT
   profile_/LoraProfile := LoraProfile.at LoraProfile.DEFAULT
   profile-ready_/bool := false
+  rate-index_/int := 0
   continual_/bool := false
   continual-task_/Task? := null
   continual-generation_/int := 0
   menu-options_/List := []
   received-messages_/List := []
+  received-peer-coordinates_/List := []
+  distance-location-seen_/bool := false
   last-position_/messages.Position? := null
   last-position-received-us_/int := 0
   device-id_/int? := null
@@ -188,11 +199,21 @@ class LoraApp:
           text := payload-to-display-text_ payload v3-msg
           logger_.info "LoRa rx: $text"
           feed
+          peer-coordinate := received-position_ text v3-msg
+          if peer-coordinate:
+            distance-location-seen_ = true
+            if not position-subscribed_ and not position-subscribe-pending_:
+              position-subscribe-pending_ = true
+              task::
+                if is-running_:
+                  subscribe-position_
+                else:
+                  position-subscribe-pending_ = false
           // Keep binary traffic in the logs without filling the e-ink screen.
           if show-unknown-messages_ or v3-msg != null or payload-is-text_ payload:
             if v3-msg == null:
               handle-received-payload_ text
-            add-received-message_ (short-display-text_ text)
+            add-received-message_ text peer-coordinate
             maybe-rx-feedback_
         else:
           logger_.info "LoRa update without payload"
@@ -211,14 +232,23 @@ class LoraApp:
       return
     position-handler_ = GenericHandler --callback=(:: |a-msg|
       if is-running_ and a-msg.type == messages.Position.MT:
-        first-fix := last-position_ == null or last-position_.type == messages.Position.TYPE_INVALID
+        first-fix := not (position-fresh_ last-position_)
         last-position_ = messages.Position.from-data a-msg.data
         last-position-received-us_ = Time.monotonic-us
-        if last-position_.type != messages.Position.TYPE_INVALID:
+        if last-position_.type != messages.Position.TYPE_INVALID and
+            last-position_.type != messages.Position.TYPE_RESERVED and
+            (last-position_.latitude != 0 or last-position_.longitude != 0):
           logger_.info "P1 position update type=$(last-position_.type) lat=$(last-position_.latitude) lon=$(last-position_.longitude)"
+          if first-fix and distance-location-seen_ and showing-page_ == PAGE-LORA:
+            schedule-received-message-render_
+          if flow_.activity-status == "Waiting for P1 position":
+            clear-activity-status_
           if first-fix and send-mode_ == SEND-LOCATION and showing-page_ == PAGE-LORA:
             task::
               if is-running_ and showing-page_ == PAGE-LORA: screen-on-button-row-change_
+        else if send-mode_ == SEND-LOCATION:
+          logger_.warn "P1 position not usable: type=$(last-position_.type) lat=$(last-position_.latitude) lon=$(last-position_.longitude)"
+          set-activity-status_ "Waiting for P1 position"
     )
     device_.comms.register-handler position-handler_
 
@@ -314,13 +344,16 @@ class LoraApp:
 
   subscribe-position_:
     if position-subscribed_:
+      position-subscribe-pending_ = false
       return
     init-position-handler_
     e := catch:
       device_.gnss.subscribe-position --interval=1000 --message-level=2
       position-subscribed_ = true
+      position-subscribe-pending_ = false
       logger_.info "Position subscribed at 1s, level 2 (start GNSS)"
     if e:
+      position-subscribe-pending_ = false
       logger_.warn "Failed to subscribe to position: $e"
       show-lora --reason="position subscription failed"
 
@@ -364,7 +397,7 @@ class LoraApp:
     status := "$mode | $(device-id-text_)$(flow_.pending-manual-mode != null ? " | Queued" : "")"
     device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=17 --text=status --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
 
-  draw-timing_:
+  draw-timing_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     // Continual cadence and the shared airtime guard are different.
     // Position length varies; before a fix, show a 32-byte estimate.
     bytes := device-id_ == null ? 8 : "$(device-id_)".size
@@ -382,11 +415,35 @@ class LoraApp:
       else:
         bytes = 32
         estimated = true
-    gap-ms := profile_.send-gap-ms bytes send-mode_
+    gap-ms := profile_.send-gap-ms bytes (selected-interval-ms_ send-mode_)
     gap-tenths := (gap-ms + 99) / 100
-    interval-tenths := (profile_.interval-ms send-mode_) / 100
-    text := "Min TX gap $(estimated ? "~" : "")$(gap-tenths / 10).$(gap-tenths % 10)s | Auto $(interval-tenths / 10).$(interval-tenths % 10)s"
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=29 --text=text --fontsize=0 --width=(screen-width - 8)
+    interval-tenths := (selected-interval-ms_ send-mode_) / 100
+    max-interval-tenths := ((selected-interval-ms_ send-mode_) + CONTINUAL-JITTER-MAX-MS + 99) / 100
+    text := "Min TX gap $(estimated ? "~" : "")$(gap-tenths / 10).$(gap-tenths % 10)s | Rate $(interval-tenths / 10).$(interval-tenths % 10)-$(max-interval-tenths / 10).$(max-interval-tenths % 10)s"
+    if flow_.activity-status != null:
+      text = flow_.activity-status
+    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=29 --text=text --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
+
+  set-activity-status_ text/string:
+    if not flow_.set-activity-status text:
+      return
+    now := Time.monotonic-us
+    if flow_.should-flash-status now TX-STATUS-LED-MIN-INTERVAL-US:
+      task::
+        if is-running_: device_.strobe.flash device_.strobe.YELLOW --ms=100
+    if showing-page_ == PAGE-LORA:
+      task:: screen-on-timing_
+
+  clear-activity-status_:
+    if not flow_.clear-activity-status:
+      return
+    if showing-page_ == PAGE-LORA:
+      task:: screen-on-timing_
+
+  screen-on-timing_:
+    device_.eink.batch:
+      if is-running_ and showing-page_ == PAGE-LORA:
+        draw-timing_ --redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
 
   draw-button-row_ --final-redraw-type/int?=null:
     third := screen-width / 3
@@ -404,7 +461,7 @@ class LoraApp:
     while i < MAX-MESSAGES:
       text := ""
       if i < received-messages_.size:
-        text = received-messages_[i]
+        text = received-line-text_ i
       else if i == 0 and received-messages_.size == 0:
         text = "Listening..."
       redraw-type := (i == MAX-MESSAGES - 1 and final-redraw-type != null) ? final-redraw-type : messages.DrawElement.REDRAW-TYPE-BUFFERONLY
@@ -413,6 +470,29 @@ class LoraApp:
 
   send-button-text_ -> string:
     return "Send"
+
+  selected-interval-ms_ mode/string -> int:
+    if rate-index_ == 1: return 1_000
+    if rate-index_ == 2: return 5_000
+    if rate-index_ == 3: return 10_000
+    return profile_.interval-ms mode
+
+  rate-label_ -> string:
+    if rate-index_ == 1: return "1 s"
+    if rate-index_ == 2: return "5 s"
+    if rate-index_ == 3: return "10 s"
+    return "Auto"
+
+  cycle-rate_:
+    was-continual := continual_
+    if was-continual: stop-continual_
+    rate-index_ = (rate-index_ + 1) % 4
+    logger_.info "LoRa rate selected: $(rate-label_) mode=$send-mode_ interval_ms=$(selected-interval-ms_ send-mode_)"
+    if was-continual: start-continual_
+    if showing-page_ == PAGE-MENU:
+      update-menu
+    else:
+      screen-on-button-row-change_
 
   show-menu --reason/string="unspecified":
     logger_.info "LoRa page transition: $(showing-page_) -> $(PAGE-MENU), reason=$(reason)"
@@ -435,14 +515,35 @@ class LoraApp:
     menu-options_ = [
       "Mode$send-mode_",
       "Radio$(profile_.name) $(profile_.frequency-hz / 1_000_000.0)",
+      "Rate$(rate-label_)",
       "Continual$(continual_ ? "On" : "Off")",
       MENU-TEXT-EXIT,
       MENU-TEXT-BACK,
     ]
 
-  add-received-message_ text/string:
+  add-received-message_ text/string peer-coordinate/Coordinate?:
     received-messages_.insert text --at=0
+    received-peer-coordinates_.insert peer-coordinate --at=0
     trim-received-messages_
+
+  received-line-text_ index/int -> string:
+    text := received-messages_[index]
+    peer-coordinate := received-peer-coordinates_[index]
+    if peer-coordinate == null:
+      return short-display-text_ text
+    distance-text := "UNKm"
+    local := last-position_
+    if position-fresh_ local:
+      local-coordinate := Coordinate local.latitude local.longitude
+      meters := LoraDistance.meters local-coordinate peer-coordinate
+      distance-text = "$(meters)m"
+    return short-display-with-suffix_ text distance-text
+
+  short-display-with-suffix_ text/string suffix/string -> string:
+    if text.size + suffix.size + 1 <= MAX-DISPLAY-CHARS:
+      return "$text $suffix"
+    prefix-size := MAX-DISPLAY-CHARS - suffix.size - 4
+    return "$(text[0..prefix-size])... $suffix"
 
   maybe-rx-feedback_:
     if showing-page_ != PAGE-LORA:
@@ -456,6 +557,7 @@ class LoraApp:
   trim-received-messages_:
     while received-messages_.size > MAX-MESSAGES:
       received-messages_.remove --at=(received-messages_.size - 1)
+      received-peer-coordinates_.remove --at=(received-peer-coordinates_.size - 1)
 
   schedule-received-message-render_:
     flow_.note-receive
@@ -519,6 +621,18 @@ class LoraApp:
       return v3-message-to-text_ v3-msg
     return payload-to-text_ payload
 
+  received-position_ text/string v3-msg/protocol.Message? -> Coordinate?:
+    if v3-msg:
+      if v3-msg.type != messages.Position.MT: return null
+      position := messages.Position.from-data v3-msg.data
+      if position.type == messages.Position.TYPE_INVALID or
+          position.type == messages.Position.TYPE_RESERVED or
+          (position.latitude == 0 and position.longitude == 0):
+        return null
+      return Coordinate position.latitude position.longitude
+    parts := split-payload_ text
+    return LoraDistance.parse parts[1]
+
   payload-to-v3-message_ payload/ByteArray -> protocol.Message?:
     if payload.size < 7 or payload[0] != 3:
       return null
@@ -543,6 +657,13 @@ class LoraApp:
     // TODO: render other V3 message types using a generated priority list of compact fields.
     return "$client $(msg.type) $(msg.size)"
 
+  position-fresh_ position/messages.Position? -> bool:
+    return position != null and
+        position.type != messages.Position.TYPE_INVALID and
+        position.type != messages.Position.TYPE_RESERVED and
+        (position.latitude != 0 or position.longitude != 0) and
+        Time.monotonic-us - last-position-received-us_ <= 15_000_000
+
   v3-message-client-text_ msg/protocol.Message -> string:
     if msg.header-has-data protocol.Header.TYPE_CLIENT_ID:
       return "$(msg.header-get-data-uint protocol.Header.TYPE_CLIENT_ID)"
@@ -553,7 +674,9 @@ class LoraApp:
   send-current --continual/bool=false:
     payload := payload-for-current-mode_
     if payload == null:
-      if not continual:
+      if send-mode_ == SEND-LOCATION:
+        set-activity-status_ "Waiting for P1 position"
+      else if not continual:
         logger_.warn "No valid payload for $send-mode_"
         flash-rejected_
       return
@@ -581,7 +704,7 @@ class LoraApp:
     continual_ = true
     continual-generation_++
     generation := continual-generation_
-    logger_.info "LoRa continual on profile=$(profile_.name) mode=$send-mode_ interval_ms=$(profile_.interval-ms send-mode_)"
+    logger_.info "LoRa continual on profile=$(profile_.name) mode=$send-mode_ rate=$(rate-label_) interval_ms=$(selected-interval-ms_ send-mode_) jitter_max_ms=$CONTINUAL-JITTER-MAX-MS"
     continual-task_ = task:: continual-loop_ generation
 
   stop-continual_:
@@ -594,8 +717,10 @@ class LoraApp:
       continual-task_ = null
 
   continual-loop_ generation/int:
-    // Use a fixed deadline so P1/I2C work does not get added to every interval.
-    next-at-us := Time.monotonic-us + (profile_.interval-ms send-mode_) * 1000
+    // Random phase and bounded per-send jitter prevent devices started together
+    // from repeatedly transmitting in lockstep. The airtime guard still applies.
+    interval-ms := selected-interval-ms_ send-mode_
+    next-at-us := Time.monotonic-us + (interval-ms + (random CONTINUAL-JITTER-MAX-MS)) * 1000
     while is-running_ and continual_ and generation == continual-generation_:
       remaining-us := next-at-us - Time.monotonic-us
       if remaining-us > 0:
@@ -603,9 +728,12 @@ class LoraApp:
       if not is-running_ or not continual_ or generation != continual-generation_:
         break
       send-current --continual=true
-      next-at-us += (profile_.interval-ms send-mode_) * 1000
+      interval-ms = selected-interval-ms_ send-mode_
+      jitter-ms := random CONTINUAL-JITTER-MAX-MS
+      next-at-us += (interval-ms + jitter-ms) * 1000
+      logger_.debug "LoRa continual next send in $(interval-ms + jitter-ms)ms (rate=$(interval-ms)ms jitter=$(jitter-ms)ms)"
       if next-at-us <= Time.monotonic-us:
-        next-at-us = Time.monotonic-us + (profile_.interval-ms send-mode_) * 1000
+        next-at-us = Time.monotonic-us + (interval-ms + jitter-ms) * 1000
     if generation == continual-generation_:
       continual-task_ = null
 
@@ -619,7 +747,9 @@ class LoraApp:
     first := flow_.queue-manual mode
     logger_.info "LoRa manual send queued: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000) coalesced=$(not first)"
     if first:
-      device_.strobe.flash device_.strobe.YELLOW --ms=100
+      wait-tenths := (wait-us + 99_999) / 100_000
+      queue-text := wait-us > 0 ? "Queued: ~$(wait-tenths / 10).$(wait-tenths % 10)s" : "Queued for airtime"
+      set-activity-status_ queue-text
       if showing-page_ == PAGE-LORA: screen-on-button-row-change_
     if pending-manual-task_: return
     generation := flow_.pending-generation
@@ -656,28 +786,41 @@ class LoraApp:
     if bytes < 1 or bytes > LoraProfile.MAX-PAYLOAD:
       logger_.warn "LoRa send blocked: payload=$bytes bytes exceeds 1..$(LoraProfile.MAX-PAYLOAD)"
       return "blocked"
-    now := Time.monotonic-us
-    wait-us := flow_.tx-wait-us now
-    if manual and flow_.pending-manual-mode != null:
-      queue-manual_ mode wait-us
-      return "queued"
-    if continual and wait-us > 0:
-      // Continual mode waits for its airtime deadline.
-      sleep --ms=((wait-us + 999) / 1000)
-      now = Time.monotonic-us
-      wait-us = flow_.tx-wait-us now
-    if wait-us > 0:
-      if manual:
-        queue-manual_ mode wait-us
-        return "queued"
-      logger_.info "LoRa send deferred: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
-      return "blocked"
-    gap-ms := profile_.send-gap-ms bytes mode
-    if not (flow_.reserve-tx now gap-ms):
+
+    gap-ms := profile_.send-gap-ms bytes (selected-interval-ms_ mode)
+    while true:
+      if not is-running_ or (continual and not continual_):
+        return "cancelled"
+      now := Time.monotonic-us
+      wait-us := flow_.tx-wait-us now
+      if wait-us > 0:
+        if continual:
+          show-airtime-wait_ wait-us
+          logger_.info "LoRa continual waiting for airtime: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
+          sleep --ms=((wait-us + 999) / 1000)
+          continue
+        if manual:
+          queue-manual_ mode wait-us
+          return "queued"
+        logger_.info "LoRa send deferred: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
+        return "blocked"
+      if flow_.reserve-tx now gap-ms:
+        if flow_.activity-status != null:
+          clear-activity-status_
+        logger_.info "LoRa airtime budget: profile=$(profile_.name) mode=$mode bytes=$bytes airtime_ms=$(profile_.airtime-ms bytes) next_gap_ms=$gap-ms"
+        return "reserved"
+      if continual:
+        // An automatic pong may reserve the shared budget after the check above.
+        show-airtime-wait_ (flow_.tx-wait-us Time.monotonic-us)
+        continue
       logger_.warn "LoRa send deferred: budget changed before reservation"
       return "blocked"
-    logger_.info "LoRa airtime budget: profile=$(profile_.name) mode=$mode bytes=$bytes airtime_ms=$(profile_.airtime-ms bytes) next_gap_ms=$gap-ms"
-    return "reserved"
+
+  show-airtime-wait_ wait-us/int:
+    if wait-us < TX-STATUS-DISPLAY-MIN-WAIT-US:
+      return
+    wait-tenths := (wait-us + 99_999) / 100_000
+    set-activity-status_ "TX wait: ~$(wait-tenths / 10).$(wait-tenths % 10)s"
 
   send-lora-payload_ payload/string mode/string --continual/bool=false:
     reservation := reserve-transmission_ payload mode --continual=continual --manual=(not continual)
@@ -691,6 +834,7 @@ class LoraApp:
       if continual:
         device_.comms.send msg --now=true
         logger_.info "LoRa tx: $payload profile=$(profile_.name) continual=true outcome=queued-to-P1 at_us=$(Time.monotonic-us)"
+        flash-white_
       else:
         response := device_.comms.send-new msg --timeout=(Duration --s=5)
         if response == null:
@@ -710,6 +854,7 @@ class LoraApp:
   send-lora-payload-now_ payload/string mode/string:
     if (reserve-transmission_ payload mode) != "reserved":
       logger_.info "LoRa automatic response suppressed by airtime guard"
+      set-activity-status_ "Pong skipped: airtime guard"
       return
     // Reserve synchronously, then perform P1 I/O outside inbound dispatch.
     task::
@@ -717,6 +862,7 @@ class LoraApp:
         data := messages.LoRa.data --payload=payload.to-byte-array --config-slot=LoraProfile.SLOT
         device_.comms.send (messages.LoRa.msg --data=data) --now=true
         logger_.info "LoRa automatic tx: $payload profile=$(profile_.name)"
+        flash-white_
         feed
       if e:
         logger_.warn "Failed to send LORA automatically: $e"
@@ -751,7 +897,7 @@ class LoraApp:
     device_.strobe.flash-red --ms=STROBE-FLASH-MS
 
   flash-white_:
-    device_.strobe.flash-white --ms=STROBE-FLASH-MS
+    device_.strobe.flash-white --ms=TX-STROBE-FLASH-MS
 
   flash-green_:
     device_.strobe.flash-green --ms=STROBE-FLASH-MS
@@ -804,6 +950,7 @@ class LoraApp:
         position.type == messages.Position.TYPE_RESERVED or
         (position.latitude == 0 and position.longitude == 0):
       logger_.warn "Location send skipped: awaiting fresh P1 GNSS fix"
+      set-activity-status_ "Waiting for P1 position"
       return null
     return prefixed-payload_ "$(position.latitude.to-string --precision=6),$(position.longitude.to-string --precision=6)"
 
@@ -825,20 +972,24 @@ class LoraApp:
     if was-continual: stop-continual_
     if send-mode_ == SEND-ID:
       send-mode_ = SEND-PING
-      unsubscribe-position_
+      unsubscribe-position-if-unused_
     else if send-mode_ == SEND-PING:
       send-mode_ = SEND-LOCATION
       subscribe-position_
     else:
       send-mode_ = SEND-ID
-      unsubscribe-position_
+      unsubscribe-position-if-unused_
     if was-continual:
       start-continual_
-      logger_.info "LoRa continual mode changed to $send-mode_ interval_ms=$(profile_.interval-ms send-mode_)"
+      logger_.info "LoRa continual mode changed to $send-mode_ rate=$(rate-label_) interval_ms=$(selected-interval-ms_ send-mode_)"
     if showing-page_ == PAGE-MENU:
       update-menu
     else:
       screen-on-button-row-change_
+
+  unsubscribe-position-if-unused_:
+    if send-mode_ != SEND-LOCATION and not distance-location-seen_:
+      unsubscribe-position_
 
   handle-button-press button-data/messages.ButtonPress --received-page/int?=null:
     if not is-running_:
@@ -886,6 +1037,8 @@ class LoraApp:
           cycle-send-mode_
         else if selected == MENU-PROFILE:
           cycle-profile_
+        else if selected == MENU-RATE:
+          cycle-rate_
         else if selected == MENU-REPEAT:
           toggle-continual_
         else if selected == MENU-EXIT:
