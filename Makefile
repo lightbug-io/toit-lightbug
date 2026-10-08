@@ -20,8 +20,6 @@ BITMAP_MANIFEST := tools/bitmaps.json
 BITMAP_TARGET := src/util/bitmaps.toit
 TOIT ?= jag toit
 TOIT_PKG ?= jag pkg
-# Space-separated `find -path` patterns omitted during example analysis.
-ANALYZE_EXCLUDE ?=
 
 .PHONY: bitmaps
 bitmaps: $(BITMAP_MANIFEST) tools/generate_bitmaps.py
@@ -32,7 +30,7 @@ analyze-examples:
 	@echo "Installing example dependencies"
 	@cd examples && $(TOIT_PKG) install
 	@echo "Analyzing examples"
-	@find examples -type d -name '.packages' -prune -o -type f -name '*.toit' $(foreach pattern,$(ANALYZE_EXCLUDE),! -path '$(pattern)') -print0 | xargs -0 -n 1 $(TOIT) analyze --project-root examples
+	@find examples -type d -name '.packages' -prune -o -type f -name '*.toit' -print0 | xargs -0 -n 1 $(TOIT) analyze --project-root examples
 
 # We need a blocking jag run in order for this to work properly for things like BLE scans
 .PHONY: test
@@ -44,20 +42,31 @@ test: install-tests
 		echo "   For complete test results, consider running on host: make test DEVICE=host"; \
 		echo ""; \
 	fi; \
-	FAILED=0; \
 	if command -v jag >/dev/null 2>&1; then \
-		find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c 'echo Running {} && jag run --device $${DEVICE:-host} {} || FAILED=1' \; ; \
+		RUNNER=jag; \
+	elif [ "$$DEVICE_TARGET" != "host" ]; then \
+		echo "Error: Running tests on a device requires 'jag'"; \
+		exit 1; \
 	elif command -v toit.run >/dev/null 2>&1; then \
-		find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c 'echo Running {} && toit.run --device $${DEVICE:-host} {} || FAILED=1' \; ; \
+		RUNNER=toit.run; \
 	elif command -v toit >/dev/null 2>&1; then \
-		find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c 'echo Running {} && toit run --device $${DEVICE:-host} {} || FAILED=1' \; ; \
+		RUNNER=toit; \
 	else \
 		echo "Error: Neither 'jag' nor 'toit.run' or 'toit' found in PATH"; \
 		exit 1; \
 	fi; \
-	if [ $$FAILED -ne 0 ]; then \
-		exit 1; \
-	fi
+	find tests -type d -name '.packages' -prune -o -type f \( -name '*_test.toit' -o -name '*.test.toit' \) -exec sh -c ' \
+		runner=$$1; device=$$2; shift 2; failed=0; \
+		for test do \
+			echo "Running $$test"; \
+			case "$$runner" in \
+				jag) jag run --device "$$device" "$$test" ;; \
+				toit.run) toit.run "$$test" ;; \
+				toit) toit run "$$test" ;; \
+			esac || failed=1; \
+		done; \
+		exit "$$failed" \
+	' sh "$$RUNNER" "$$DEVICE_TARGET" {} +
 
 .PHONY: install-tests
 install-tests:
