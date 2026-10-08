@@ -43,13 +43,18 @@ on:
 
 jobs:
   test:
-    name: Run Tests / Toit v2.0.0-alpha.198
+    name: Run Tests / Toit ${{ matrix.toit_version }}
     runs-on: ubuntu-latest
+    # Keep this matrix even with one version so future SDK versions are easy to add.
+    strategy:
+      matrix:
+        toit_version:
+          - v2.0.0-alpha.198
     steps:
       - uses: actions/checkout@v7
       - uses: toitlang/action-setup@v1.4.0
         with:
-          toit-version: v2.0.0-alpha.198
+          toit-version: ${{ matrix.toit_version }}
       - name: Test Makefile runner
         run: python3 tools/test_make_test.py
       - run: make test
