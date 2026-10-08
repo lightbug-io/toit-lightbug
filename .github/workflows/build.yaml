@@ -43,28 +43,18 @@ on:
 
 jobs:
   test:
-    name: Run Tests / Toit ${{ matrix.toit_version }}
+    name: Run Tests / Toit v2.0.0-alpha.198
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toit_version:
-          - v2.0.0-alpha.191
-          - v2.0.0-alpha.198
     steps:
       - uses: actions/checkout@v7
       - uses: toitlang/action-setup@v1.4.0
         with:
-          toit-version: ${{ matrix.toit_version }}
+          toit-version: v2.0.0-alpha.198
       - name: Test Makefile runner
         run: python3 tools/test_make_test.py
       - run: make test
       - name: Analyze examples
-        run: |
-          if [ "${{ matrix.toit_version }}" = "v2.0.0-alpha.191" ]; then
-              make analyze-examples TOIT=toit TOIT_PKG="toit pkg" ANALYZE_EXCLUDE="examples/containers/base.toit examples/containers/base-apps.toit examples/toit/usb_console_smoke_test.toit examples/toit/usb_console_v3.toit examples/host/heartbeat.toit examples/host/info.toit examples/host/qc.toit"
-          else
-            make analyze-examples TOIT=toit TOIT_PKG="toit pkg"
-          fi
+        run: make analyze-examples TOIT=toit TOIT_PKG="toit pkg"
 
   prepare-matrix:
     name: Prepare Build Matrix
