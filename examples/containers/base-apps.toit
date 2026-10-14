@@ -18,8 +18,14 @@ LOG-LEVEL ::= log.WARN-LEVEL
 logger := log.default.with-name "base-apps"
 
 main:
+  run
+
+// The production entrypoint has no dependency on development input services.
+// A separate bench entrypoint passes setup after the device is constructed.
+run --setup/Lambda?=null --start-watchdog-provider/bool=true:
   firmware.print-startup-line
-  provider.main
+  if start-watchdog-provider:
+    provider.main
   client := WatchdogServiceClient
   client.open
   dog := client.create "lb/apps"
@@ -28,7 +34,10 @@ main:
     --log-level=LOG-LEVEL
     --with-default-handlers=true
     --background=false
-  apps := apps.Apps device dog
+  if setup:
+    setup.call device
+  show-unknown-lora := jag-define "lb-lora-show-unknown"
+  apps := apps.Apps device dog --show-unknown-lora-messages=(show-unknown-lora != null and show-unknown-lora.stringify == "true")
 
   // Keep the application container usable as a USB dock target.  The USB V3
   // bridge sends Forward To=P1 requests to P1 and routes correlated replies
