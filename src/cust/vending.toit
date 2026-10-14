@@ -149,7 +149,7 @@ class Vending:
       previous-start-us = Time.monotonic-us --since-wakeup
       port.out.write frame --flush=true
       // Let the final stop bit clear before rearming RX.
-      sleep (Duration --ms=2)
+      // sleep (Duration --ms=2)
       set-port-rx
       logger_.debug "Sent response frame: $(frame)"
   
