@@ -47,16 +47,19 @@ The reusable agent instructions are in the [IP-camera skill](skills/ip-camera/SK
 
 Use the [Jaguar skill](skills/jaguar/SKILL.md) for finding devices, reading logs,
 trying an app with `jag run`, or installing a boot-persistent named container.
+Use the [firmware skill](skills/device-firmware/SKILL.md) when replacing the
+ESP/P2 firmware itself. P1 firmware is a separate update.
 
 Give the agent the intended device(s), source or firmware artifact, and whether
 you want a temporary run, a persistent container, or a firmware flash. Existing
 authorization carries through the task; a change from container installation to
 firmware replacement needs its own agreed scope.
 
-For example: “Find the connected device and install this app as a boot container.”
-Ports and IPs are checked against current device identity before writes.
+For example: “Find the connected device and install this app as a boot container,”
+or “Flash this envelope to the device on this port and verify its startup.” Ports
+and IPs are checked against current device identity before writes.
 
-The skill includes [native/Windows/WSL transport selection](skills/jaguar/references/transports.md).
+The skills include [native/Windows/WSL transport selection](skills/jaguar/references/transports.md).
 Use Windows Jaguar when Windows owns the COM port; use native Jaguar when the
 device is attached to Linux/macOS. For network operations, test the current
 endpoint from the host that can reach it. WSL and Windows may have different

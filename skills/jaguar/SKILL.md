@@ -1,6 +1,6 @@
 ---
 name: jaguar
-description: Discover Toit devices, choose native or Windows/WSL Jaguar access, inspect logs, and run or install apps and containers.
+description: Discover Toit devices, choose native or Windows/WSL Jaguar access, inspect logs, and run or install apps and containers. Use device-firmware for firmware replacement.
 ---
 
 # Jaguar development
@@ -54,8 +54,7 @@ Relay can start with `-D lb-app=relay`; source defines do not select a device.
   the timeout deliberately. Verify a working USB/UART path before disabling the
   network used for updates. HTTP development controls also need networking.
 - A Wi-Fi-disabled run is not the same as persistent USB-only firmware. If a
-  firmware change is required, establish its target, artifact and replacement
-  effects as a separate operation.
+  firmware change is required, use [device-firmware](../device-firmware/SKILL.md).
 
 ## Verify the result
 
