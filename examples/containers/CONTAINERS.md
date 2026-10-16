@@ -21,4 +21,4 @@ You can see more about these applications at https://docs.lightbug.io/devices/ap
 
 And as part of this container, the ESP will subscribe to button press events when powered on.
 
-When developing, if you want an app to launch automatically when the device is powered on, you can set the `lb-app` define, for example: `-D lb-app=lora`
+When developing, if you want an app to launch automatically when the device is powered on, you can set the `lb-app` define, for example: `-D lb-app=relay`

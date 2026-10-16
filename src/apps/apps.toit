@@ -5,7 +5,7 @@ import ..protocol as protocol
 import ..firmware as firmware
 import ..modules.comms.message-handler show MessageHandler
 import .survey
-import .lora
+import .relay
 import .qc
 import ..modules.eink.menu-selection show MenuSelection
 import .survey.strobe-once show strobe-once
@@ -47,12 +47,12 @@ class Apps:
 
   APPS-MENU-OPTIONS := [
     "Survey",
-    "LoRa",
+    "Relay",
     "QC",
     "Back",
     ]
   APPS-MENU-OPTION-SURVEY := 0
-  APPS-MENU-OPTION-LORA := 1
+  APPS-MENU-OPTION-RELAY := 1
   APPS-MENU-OPTION-QC := 2
   APPS-MENU-OPTION-BACK := 3
 
@@ -353,8 +353,8 @@ class Apps:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID-ACTION:
         if menu-selection.current == APPS-MENU-OPTION-SURVEY:
           task:: open-survey-app
-        else if menu-selection.current == APPS-MENU-OPTION-LORA:
-          task:: open-lora-app
+        else if menu-selection.current == APPS-MENU-OPTION-RELAY:
+          task:: open-relay-app
         else if menu-selection.current == APPS-MENU-OPTION-QC:
           task:: open-qc-app
         else if menu-selection.current == APPS-MENU-OPTION-BACK:
@@ -467,10 +467,12 @@ class Apps:
     app_ = SurveyApp device_ this dog_
     app_.start
 
-  open-lora-app:
-    stop
-    app_ = LoraApp device_ this dog_ --show-unknown-messages=show-unknown-lora-messages_
+  open-relay-app:
+    stop-position-subscription_
+    app_ = RelayApp device_ this dog_ --show-unknown-messages=show-unknown-lora-messages_
+    // Acquire Relay's subscriber before releasing Home's shared button stream.
     app_.start
+    stop
   
   open-qc-app:
     stop

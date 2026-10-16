@@ -12,6 +12,7 @@ import .apps show Apps
 import .lora-profile show LoraProfile
 import .lora-flow show LoraFlow LoraWire
 import .lora-distance show LoraDistance
+import .relay-radio show RelayRadio
 
 TOP-PAD := 41
 TEXT-SPACING := 12
@@ -27,11 +28,11 @@ TX-STATUS-LED-MIN-INTERVAL-US := 1_000_000
 TX-STATUS-DISPLAY-MIN-WAIT-US := 250_000
 CONTINUAL-JITTER-MAX-MS := 250
 
-class LoraApp:
+class RelayApp:
   static screen-width ::= 250
   static screen-height ::= 122
 
-  static PAGE-LORA ::= 34
+  static PAGE-RELAY ::= 34
   static PAGE-MENU ::= 35
 
   static SEND-ID ::= "id"
@@ -41,11 +42,12 @@ class LoraApp:
   static MENU-TEXT-EXIT ::= "Exit to Home"
   static MENU-TEXT-BACK ::= "Back"
   static MENU-MODE ::= 0
-  static MENU-PROFILE ::= 1
-  static MENU-RATE ::= 2
-  static MENU-REPEAT ::= 3
-  static MENU-EXIT ::= 4
-  static MENU-BACK ::= 5
+  static MENU-RADIO ::= 1
+  static MENU-PROFILE ::= 2
+  static MENU-RATE ::= 3
+  static MENU-REPEAT ::= 4
+  static MENU-EXIT ::= 5
+  static MENU-BACK ::= 6
 
   device_/Device
   parent_/Apps? := null
@@ -60,11 +62,16 @@ class LoraApp:
   position-handler_/GenericHandler? := null
   position-subscribed_/bool := false
   position-subscribe-pending_/bool := false
-  lora-page-drawn_/bool := false
+  relay-page-drawn_/bool := false
   received-render-task_/Task? := null
   received-render-generation_/int := 0
   pending-manual-task_/Task? := null
-  flow_/LoraFlow := LoraFlow
+  espnow-channel_/int := RelayRadio.DEFAULT-CHANNEL
+  radio-mode_/int := RelayRadio.LORA
+  radio_/RelayRadio? := null
+  radio-generation_/int := 0
+  flows_/List := [LoraFlow, LoraFlow, LoraFlow]
+  flow_/LoraFlow := ?
   button-events_/List := []
   button-worker_/Task? := null
 
@@ -72,7 +79,7 @@ class LoraApp:
   send-mode_/string := SEND-PING
   profile-index_/int := LoraProfile.DEFAULT
   profile_/LoraProfile := LoraProfile.at LoraProfile.DEFAULT
-  profile-ready_/bool := false
+  radio-ready_/bool := false
   rate-index_/int := 0
   continual_/bool := false
   continual-task_/Task? := null
@@ -86,10 +93,11 @@ class LoraApp:
   device-id_/int? := null
   show-unknown-messages_/bool := false
 
-  logger_/log.Logger := log.default.with-name "lora"
+  logger_/log.Logger := log.default.with-name "relay"
 
   constructor device/Device parent/Apps dog/Watchdog --show-unknown-messages/bool=false:
     device_ = device
+    flow_ = flows_[0]
     parent_ = parent
     dog_ = dog
     show-unknown-messages_ = show-unknown-messages
@@ -102,9 +110,9 @@ class LoraApp:
     init-button-subscription_
     init-lora-handler_
     apply-profile_ LoraProfile.DEFAULT
-    show-lora --reason="app start"
+    show-relay --reason="app start"
     init-device-id_
-    logger_.info "LoRa app started"
+    logger_.info "$radio-name_ app started"
 
   stop:
     is-running_ = false
@@ -114,16 +122,20 @@ class LoraApp:
     watchdog-feeding_ = false
     stop-continual_
     dog_.stop
+    radio-generation_++
     stop-lora-listening_
+    if radio_: radio_.stop
+    radio_ = null
     unsubscribe-position_
-    deinit-button-subscriber_
     deinit-lora-handler_
     deinit-position-handler_
 
+    // Keep the P1 button stream alive while Home takes over its subscription.
     parent_.start
+    deinit-button-subscriber_
     parent_.show-home
     showing-page_ = 0
-    lora-page-drawn_ = false
+    relay-page-drawn_ = false
 
   feed:
     e := catch: dog_.feed
@@ -150,7 +162,7 @@ class LoraApp:
           // Keep feedback immediate, but keep page transitions ordered.
           task::
             if is-running_: device_.strobe.flash-blue --ms=50
-          logger_.info "LoRa button received: $(button-context_ button-data) P2-page=$(showing-page_) queued=$(button-events_.size)"
+          logger_.info "$radio-name_ button received: $(button-context_ button-data) P2-page=$(showing-page_) queued=$(button-events_.size)"
           schedule-button-handling_ button-data
       )
 
@@ -181,7 +193,7 @@ class LoraApp:
   process-button-events_:
     while is-running_ and button-events_.size > 0:
       event := button-events_.remove --at=0
-      logger_.info "LoRa button handling: $(button-context_ event[0]) received-P2-page=$(event[1]) current-P2-page=$(showing-page_) queued=$(button-events_.size)"
+      logger_.info "$radio-name_ button handling: $(button-context_ event[0]) received-P2-page=$(event[1]) current-P2-page=$(showing-page_) queued=$(button-events_.size)"
       handle-button-press event[0] --received-page=event[1]
     button-worker_ = null
 
@@ -191,34 +203,36 @@ class LoraApp:
 
   init-lora-handler_:
     lora-handler_ = GenericHandler --callback=(:: |a-msg|
-      if is-running_ and a-msg.type == messages.LoRa.MT:
+      if is-running_ and radio-mode_ == RelayRadio.LORA and a-msg.type == messages.LoRa.MT:
         lora := messages.LoRa.from-data a-msg.data
         if lora.has-data messages.LoRa.PAYLOAD:
-          payload := lora.payload
-          v3-msg := payload-to-v3-message_ payload
-          text := payload-to-display-text_ payload v3-msg
-          logger_.info "LoRa rx: $text"
-          feed
-          peer-coordinate := received-position_ text v3-msg
-          if peer-coordinate:
-            distance-location-seen_ = true
-            if not position-subscribed_ and not position-subscribe-pending_:
-              position-subscribe-pending_ = true
-              task::
-                if is-running_:
-                  subscribe-position_
-                else:
-                  position-subscribe-pending_ = false
-          // Keep binary traffic in the logs without filling the e-ink screen.
-          if show-unknown-messages_ or v3-msg != null or payload-is-text_ payload:
-            if v3-msg == null:
-              handle-received-payload_ text
-            add-received-message_ text peer-coordinate
-            maybe-rx-feedback_
+          receive-payload_ lora.payload
         else:
-          logger_.info "LoRa update without payload"
+          logger_.info "$radio-name_ update without payload"
     )
     device_.comms.register-handler lora-handler_
+
+  receive-payload_ payload/ByteArray:
+    v3-msg := payload-to-v3-message_ payload
+    text := payload-to-display-text_ payload v3-msg
+    logger_.info "$radio-name_ rx: $text"
+    feed
+    peer-coordinate := received-position_ text v3-msg
+    if peer-coordinate:
+      distance-location-seen_ = true
+      if not position-subscribed_ and not position-subscribe-pending_:
+        position-subscribe-pending_ = true
+        task::
+          if is-running_:
+            subscribe-position_
+          else:
+            position-subscribe-pending_ = false
+    // Keep binary traffic in the logs without filling the e-ink screen.
+    if show-unknown-messages_ or v3-msg != null or payload-is-text_ payload:
+      if v3-msg == null:
+        handle-received-payload_ text
+      add-received-message_ text peer-coordinate
+      maybe-rx-feedback_
 
   deinit-lora-handler_:
     if lora-handler_:
@@ -239,13 +253,13 @@ class LoraApp:
             last-position_.type != messages.Position.TYPE_RESERVED and
             (last-position_.latitude != 0 or last-position_.longitude != 0):
           logger_.info "P1 position update type=$(last-position_.type) lat=$(last-position_.latitude) lon=$(last-position_.longitude)"
-          if first-fix and distance-location-seen_ and showing-page_ == PAGE-LORA:
+          if first-fix and distance-location-seen_ and showing-page_ == PAGE-RELAY:
             schedule-received-message-render_
           if flow_.activity-status == "Waiting for P1 position":
             clear-activity-status_
-          if first-fix and send-mode_ == SEND-LOCATION and showing-page_ == PAGE-LORA:
+          if first-fix and send-mode_ == SEND-LOCATION and showing-page_ == PAGE-RELAY:
             task::
-              if is-running_ and showing-page_ == PAGE-LORA: screen-on-button-row-change_
+              if is-running_ and showing-page_ == PAGE-RELAY: screen-on-button-row-change_
         else if send-mode_ == SEND-LOCATION:
           logger_.warn "P1 position not usable: type=$(last-position_.type) lat=$(last-position_.latitude) lon=$(last-position_.longitude)"
           set-activity-status_ "Waiting for P1 position"
@@ -266,7 +280,7 @@ class LoraApp:
       stop-lora-listening_
     profile-index_ = index
     profile_ = LoraProfile.at index
-    profile-ready_ = false
+    radio-ready_ = false
     e := catch:
       data := messages.LoRaConfig.data
         --config-slot=LoraProfile.SLOT
@@ -300,10 +314,10 @@ class LoraApp:
           cfg.crc-on or cfg.fixed-length or
           cfg.max-payload-length != LoraProfile.MAX-PAYLOAD:
         throw "P1 LoRaConfig mismatch: $cfg"
-      profile-ready_ = true
-      logger_.info "LoRa profile ready: $profile_ slot=$(LoraProfile.SLOT) duty=$(profile_.duty-percent)%"
+      radio-ready_ = true
+      logger_.info "$radio-name_ profile ready: $profile_ slot=$(LoraProfile.SLOT) duty=$(profile_.duty-percent)%"
     if e:
-      logger_.warn "LoRa profile unavailable: $e"
+      logger_.warn "$radio-name_ profile unavailable: $e"
       return false
     return true
 
@@ -313,14 +327,15 @@ class LoraApp:
     if showing-page_ == PAGE-MENU:
       update-menu
     else:
-      show-lora --full=true --reason="profile changed"
+      show-relay --full=true --reason="profile changed"
 
   start-lora-listening_:
-    if lora-listening_ or not profile-ready_:
+    if radio-mode_ != RelayRadio.LORA or lora-listening_ or not radio-ready_:
       return
     lora-listening_ = subscribe-lora_
 
   stop-lora-listening_:
+    if not lora-listening_: return
     lora-listening_ = false
     unsubscribe-lora_
 
@@ -329,7 +344,7 @@ class LoraApp:
       msg := messages.LoRa.subscribe-msg --duration=LORA-RX-INDEFINITE
       msg.data.add-data-uint messages.LoRa.CONFIG-SLOT LoraProfile.SLOT
       device_.comms.send msg --now=true
-      logger_.info "LoRa subscribed profile=$(profile_.name) slot=$(LoraProfile.SLOT)"
+      logger_.info "$radio-name_ subscribed profile=$(profile_.name) slot=$(LoraProfile.SLOT)"
     if e:
       logger_.warn "Failed to subscribe to LORA: $e"
       return false
@@ -338,7 +353,7 @@ class LoraApp:
   unsubscribe-lora_:
     e := catch:
       device_.comms.send messages.LoRa.unsubscribe-msg --now=true
-      logger_.info "LoRa unsubscribed"
+      logger_.info "$radio-name_ unsubscribed"
     if e:
       logger_.warn "Failed to unsubscribe from LORA: $e"
 
@@ -355,7 +370,7 @@ class LoraApp:
     if e:
       position-subscribe-pending_ = false
       logger_.warn "Failed to subscribe to position: $e"
-      show-lora --reason="position subscription failed"
+      show-relay --reason="position subscription failed"
 
   unsubscribe-position_:
     if not position-subscribed_:
@@ -368,12 +383,12 @@ class LoraApp:
     last-position_ = null
     last-position-received-us_ = 0
 
-  show-lora --full/bool=false --reason/string="unspecified":
-    logger_.info "LoRa page transition: $(showing-page_) -> $(PAGE-LORA), full=$(full), reason=$(reason)"
+  show-relay --full/bool=false --reason/string="unspecified":
+    logger_.info "$radio-name_ page transition: $(showing-page_) -> $(PAGE-RELAY), full=$(full), reason=$(reason)"
     redraw-type := messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
-    if full or showing-page_ != PAGE-LORA or not lora-page-drawn_:
+    if full or showing-page_ != PAGE-RELAY or not relay-page-drawn_:
       redraw-type = messages.DrawElement.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR
-    showing-page_ = PAGE-LORA
+    showing-page_ = PAGE-RELAY
     trim-received-messages_
     start-lora-listening_
     flow_.mark-rendered Time.monotonic-us
@@ -383,19 +398,20 @@ class LoraApp:
       draw-message-lines_
       draw-timing_
       draw-status_
-      // BasePage only supports P1 preset pages. PAGE-LORA is custom, so the
+      // BasePage only supports P1 preset pages. PAGE-RELAY is custom, so the
       // final DrawElement must perform the redraw (as Survey does).
       draw-title_ --redraw-type=redraw-type
-      lora-page-drawn_ = true
+      relay-page-drawn_ = true
 
   draw-title_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
-    title := profile-ready_ ? "LoRa $(profile_.name)$(continual_ ? " Auto" : "")" : "LoRa profile error"
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=0 --text=title --fontsize=1 --redraw-type=redraw-type
+    settings := radio-mode_ == RelayRadio.LORA ? profile_.name : (radio-mode_ == RelayRadio.ESPNOW ? "Ch $(espnow-channel_)" : "Advertisements")
+    title := radio-ready_ ? "Relay $(radio-name_) $settings$(continual_ ? " Auto" : "")" : "Relay $(radio-name_) unavailable"
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=0 --text=title --fontsize=1 --redraw-type=redraw-type
 
   draw-status_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     mode := send-mode_ == SEND-LOCATION ? "Location" : (send-mode_ == SEND-PING ? "Ping" : "ID")
     status := "$mode | $(device-id-text_)$(flow_.pending-manual-mode != null ? " | Queued" : "")"
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=17 --text=status --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=17 --text=status --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
 
   draw-timing_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     // Continual cadence and the shared airtime guard are different.
@@ -415,14 +431,16 @@ class LoraApp:
       else:
         bytes = 32
         estimated = true
-    gap-ms := profile_.send-gap-ms bytes (selected-interval-ms_ send-mode_)
+    gap-ms := send-gap-ms_ bytes send-mode_
     gap-tenths := (gap-ms + 99) / 100
     interval-tenths := (selected-interval-ms_ send-mode_) / 100
     max-interval-tenths := ((selected-interval-ms_ send-mode_) + CONTINUAL-JITTER-MAX-MS + 99) / 100
     text := "Min TX gap $(estimated ? "~" : "")$(gap-tenths / 10).$(gap-tenths % 10)s | Rate $(interval-tenths / 10).$(interval-tenths % 10)-$(max-interval-tenths / 10).$(max-interval-tenths % 10)s"
+    if radio-mode_ != RelayRadio.LORA:
+      text = "Send immediately | Auto $(interval-tenths / 10).$(interval-tenths % 10)-$(max-interval-tenths / 10).$(max-interval-tenths % 10)s"
     if flow_.activity-status != null:
       text = flow_.activity-status
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=29 --text=text --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=29 --text=text --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
 
   set-activity-status_ text/string:
     if not flow_.set-activity-status text:
@@ -431,30 +449,30 @@ class LoraApp:
     if flow_.should-flash-status now TX-STATUS-LED-MIN-INTERVAL-US:
       task::
         if is-running_: device_.strobe.flash device_.strobe.YELLOW --ms=100
-    if showing-page_ == PAGE-LORA:
+    if showing-page_ == PAGE-RELAY:
       task:: screen-on-timing_
 
   clear-activity-status_:
     if not flow_.clear-activity-status:
       return
-    if showing-page_ == PAGE-LORA:
+    if showing-page_ == PAGE-RELAY:
       task:: screen-on-timing_
 
   screen-on-timing_:
     device_.eink.batch:
-      if is-running_ and showing-page_ == PAGE-LORA:
+      if is-running_ and showing-page_ == PAGE-RELAY:
         draw-timing_ --redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
 
   draw-button-row_ --final-redraw-type/int?=null:
     third := screen-width / 3
     y := screen-height - 15
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=0 --y=y --text="Home" --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=third --y=y --text=send-button-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=0 --y=y --text="Home" --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=third --y=y --text=send-button-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
     redraw-type := final-redraw-type == null ? messages.DrawElement.REDRAW-TYPE-BUFFERONLY : final-redraw-type
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=(third * 2) --y=y --text="Menu" --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=(third * 2) --y=y --text="Menu" --redraw-type=redraw-type
 
   draw-line_ index/int text/string --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=(TOP-PAD + TEXT-SPACING * index) --text=text --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=(screen-width - 8) --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=(TOP-PAD + TEXT-SPACING * index) --text=text --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=(screen-width - 8) --redraw-type=redraw-type
 
   draw-message-lines_ --final-redraw-type/int?=null:
     i := 0
@@ -475,7 +493,7 @@ class LoraApp:
     if rate-index_ == 1: return 1_000
     if rate-index_ == 2: return 5_000
     if rate-index_ == 3: return 10_000
-    return profile_.interval-ms mode
+    return radio-mode_ == RelayRadio.LORA ? (profile_.interval-ms mode) : 1_000
 
   rate-label_ -> string:
     if rate-index_ == 1: return "1 s"
@@ -487,7 +505,7 @@ class LoraApp:
     was-continual := continual_
     if was-continual: stop-continual_
     rate-index_ = (rate-index_ + 1) % 4
-    logger_.info "LoRa rate selected: $(rate-label_) mode=$send-mode_ interval_ms=$(selected-interval-ms_ send-mode_)"
+    logger_.info "$radio-name_ rate selected: $(rate-label_) mode=$send-mode_ interval_ms=$(selected-interval-ms_ send-mode_)"
     if was-continual: start-continual_
     if showing-page_ == PAGE-MENU:
       update-menu
@@ -495,7 +513,7 @@ class LoraApp:
       screen-on-button-row-change_
 
   show-menu --reason/string="unspecified":
-    logger_.info "LoRa page transition: $(showing-page_) -> $(PAGE-MENU), reason=$(reason)"
+    logger_.info "$radio-name_ page transition: $(showing-page_) -> $(PAGE-MENU), reason=$(reason)"
     update-menu-options_
     menu-selection = MenuSelection --start=0 --size=menu-options_.size
     showing-page_ = PAGE-MENU
@@ -513,8 +531,9 @@ class LoraApp:
 
   update-menu-options_:
     menu-options_ = [
-      "Mode$send-mode_",
-      "Radio$(profile_.name) $(profile_.frequency-hz / 1_000_000.0)",
+      "Send$send-mode_",
+      "Radio$radio-name_$(radio-ready_ ? "" : " unavailable")",
+      radio-mode_ == RelayRadio.LORA ? "Profile$(profile_.name) $(profile_.frequency-hz / 1_000_000.0)" : (radio-mode_ == RelayRadio.ESPNOW ? "Channel$(espnow-channel_)" : "BLECompact advertisements"),
       "Rate$(rate-label_)",
       "Continual$(continual_ ? "On" : "Off")",
       MENU-TEXT-EXIT,
@@ -546,13 +565,13 @@ class LoraApp:
     return "$(text[0..prefix-size])... $suffix"
 
   maybe-rx-feedback_:
-    if showing-page_ != PAGE-LORA:
+    if showing-page_ != PAGE-RELAY:
       return
     schedule-received-message-render_
     now := Time.monotonic-us
     if flow_.should-flash now RX-LED-MIN-INTERVAL-US:
       task::
-        if is-running_ and showing-page_ == PAGE-LORA: flash-green_
+        if is-running_ and showing-page_ == PAGE-RELAY: flash-green_
 
   trim-received-messages_:
     while received-messages_.size > MAX-MESSAGES:
@@ -577,24 +596,24 @@ class LoraApp:
     while is-running_ and generation == received-render-generation_ and flow_.render-pending:
       wait-us := flow_.render-wait-us Time.monotonic-us RX-DISPLAY-MIN-INTERVAL-US
       sleep --ms=(wait-us > 0 ? (wait-us + 999) / 1000 : 50)
-      if not is-running_ or generation != received-render-generation_ or showing-page_ != PAGE-LORA:
+      if not is-running_ or generation != received-render-generation_ or showing-page_ != PAGE-RELAY:
         break
       if (flow_.render-wait-us Time.monotonic-us RX-DISPLAY-MIN-INTERVAL-US) > 0:
         continue
       device_.eink.batch:
-        if showing-page_ == PAGE-LORA:
+        if showing-page_ == PAGE-RELAY:
           flow_.mark-rendered Time.monotonic-us
           draw-message-lines_ --final-redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
     received-render-task_ = null
 
   screen-on-received-message_:
     device_.eink.batch:
-      if showing-page_ == PAGE-LORA:
+      if showing-page_ == PAGE-RELAY:
         draw-message-lines_ --final-redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
 
   screen-on-button-row-change_:
     device_.eink.batch --important:
-      if showing-page_ == PAGE-LORA:
+      if showing-page_ == PAGE-RELAY:
         draw-button-row_
         draw-timing_
         draw-status_ --redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
@@ -613,7 +632,7 @@ class LoraApp:
       return "<empty>"
     e := catch:
       return payload.to-string
-    logger_.warn "LoRa payload was not valid UTF-8: $e"
+    logger_.warn "$radio-name_ payload was not valid UTF-8: $e"
     return stringify-all-bytes-compact-hex payload
 
   payload-to-display-text_ payload/ByteArray v3-msg/protocol.Message? -> string:
@@ -646,7 +665,7 @@ class LoraApp:
         return null
       return msg
     if e:
-      logger_.debug "LoRa payload was not a valid V3 message: $e"
+      logger_.debug "$radio-name_ payload was not a valid V3 message: $e"
     return null
 
   v3-message-to-text_ msg/protocol.Message -> string:
@@ -680,7 +699,7 @@ class LoraApp:
         logger_.warn "No valid payload for $send-mode_"
         flash-rejected_
       return
-    send-lora-payload_ payload send-mode_ --continual=continual
+    send-payload_ payload send-mode_ --continual=continual
 
   send-id:
     payload := id-payload_
@@ -688,7 +707,7 @@ class LoraApp:
       logger_.warn "Device ID unavailable"
       flash-rejected_
       return
-    send-lora-payload_ payload SEND-ID
+    send-payload_ payload SEND-ID
 
   toggle-continual_:
     if continual_:
@@ -698,18 +717,18 @@ class LoraApp:
     update-menu
 
   start-continual_:
-    if not profile-ready_:
-      logger_.warn "Cannot enable continual: LoRa profile is unavailable"
+    if not radio-ready_:
+      logger_.warn "Cannot enable continual: $radio-name_ is unavailable"
       return
     continual_ = true
     continual-generation_++
     generation := continual-generation_
-    logger_.info "LoRa continual on profile=$(profile_.name) mode=$send-mode_ rate=$(rate-label_) interval_ms=$(selected-interval-ms_ send-mode_) jitter_max_ms=$CONTINUAL-JITTER-MAX-MS"
+    logger_.info "$radio-name_ continual on profile=$(profile_.name) mode=$send-mode_ rate=$(rate-label_) interval_ms=$(selected-interval-ms_ send-mode_) jitter_max_ms=$CONTINUAL-JITTER-MAX-MS"
     continual-task_ = task:: continual-loop_ generation
 
   stop-continual_:
     if continual_:
-      logger_.info "LoRa continual off"
+      logger_.info "$radio-name_ continual off"
     continual_ = false
     continual-generation_++
     if continual-task_:
@@ -731,7 +750,7 @@ class LoraApp:
       interval-ms = selected-interval-ms_ send-mode_
       jitter-ms := random CONTINUAL-JITTER-MAX-MS
       next-at-us += (interval-ms + jitter-ms) * 1000
-      logger_.debug "LoRa continual next send in $(interval-ms + jitter-ms)ms (rate=$(interval-ms)ms jitter=$(jitter-ms)ms)"
+      logger_.debug "$radio-name_ continual next send in $(interval-ms + jitter-ms)ms (rate=$(interval-ms)ms jitter=$(jitter-ms)ms)"
       if next-at-us <= Time.monotonic-us:
         next-at-us = Time.monotonic-us + (interval-ms + jitter-ms) * 1000
     if generation == continual-generation_:
@@ -745,12 +764,12 @@ class LoraApp:
 
   queue-manual_ mode/string wait-us/int:
     first := flow_.queue-manual mode
-    logger_.info "LoRa manual send queued: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000) coalesced=$(not first)"
+    logger_.info "$radio-name_ manual send queued: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000) coalesced=$(not first)"
     if first:
       wait-tenths := (wait-us + 99_999) / 100_000
-      queue-text := wait-us > 0 ? "Queued: ~$(wait-tenths / 10).$(wait-tenths % 10)s" : "Queued for airtime"
+      queue-text := wait-us > 0 ? "Queued: ~$(wait-tenths / 10).$(wait-tenths % 10)s" : "Queued for TX"
       set-activity-status_ queue-text
-      if showing-page_ == PAGE-LORA: screen-on-button-row-change_
+      if showing-page_ == PAGE-RELAY: screen-on-button-row-change_
     if pending-manual-task_: return
     generation := flow_.pending-generation
     pending-manual-task_ = task:: process-pending-manual_ generation
@@ -766,28 +785,31 @@ class LoraApp:
         continue
       mode := flow_.take-manual
       if mode != send-mode_:
-        logger_.info "LoRa queued manual send cancelled: mode changed"
+        logger_.info "$radio-name_ queued manual send cancelled: mode changed"
       else:
         payload := payload-for-current-mode_
         if payload == null:
-          logger_.warn "LoRa queued manual send cancelled: no valid $mode payload"
+          logger_.warn "$radio-name_ queued manual send cancelled: no valid $mode payload"
           flash-rejected_
         else:
-          send-lora-payload_ payload mode
-      if showing-page_ == PAGE-LORA and is-running_: screen-on-button-row-change_
+          send-payload_ payload mode
+      if showing-page_ == PAGE-RELAY and is-running_: screen-on-button-row-change_
     if generation == flow_.pending-generation:
       pending-manual-task_ = null
 
   reserve-transmission_ payload/string mode/string --continual/bool=false --manual/bool=false -> string:
-    if not profile-ready_:
-      logger_.warn "LoRa send blocked: profile unavailable"
+    if not radio-ready_:
+      logger_.warn "$radio-name_ send blocked: radio unavailable"
       return "blocked"
     bytes := payload.to-byte-array.size
     if bytes < 1 or bytes > LoraProfile.MAX-PAYLOAD:
-      logger_.warn "LoRa send blocked: payload=$bytes bytes exceeds 1..$(LoraProfile.MAX-PAYLOAD)"
+      logger_.warn "$radio-name_ send blocked: payload=$bytes bytes exceeds 1..$(LoraProfile.MAX-PAYLOAD)"
       return "blocked"
 
-    gap-ms := profile_.send-gap-ms bytes (selected-interval-ms_ mode)
+    // Local radios have no app-imposed cooldown or pending manual send.
+    if radio-mode_ != RelayRadio.LORA:
+      return is-running_ ? "reserved" : "cancelled"
+    gap-ms := send-gap-ms_ bytes mode
     while true:
       if not is-running_ or (continual and not continual_):
         return "cancelled"
@@ -796,24 +818,24 @@ class LoraApp:
       if wait-us > 0:
         if continual:
           show-airtime-wait_ wait-us
-          logger_.info "LoRa continual waiting for airtime: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
+          logger_.info "$radio-name_ continual waiting for airtime: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
           sleep --ms=((wait-us + 999) / 1000)
           continue
         if manual:
           queue-manual_ mode wait-us
           return "queued"
-        logger_.info "LoRa send deferred: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
+        logger_.info "$radio-name_ send deferred: profile=$(profile_.name) mode=$mode wait_ms=$((wait-us + 999) / 1000)"
         return "blocked"
       if flow_.reserve-tx now gap-ms:
         if flow_.activity-status != null:
           clear-activity-status_
-        logger_.info "LoRa airtime budget: profile=$(profile_.name) mode=$mode bytes=$bytes airtime_ms=$(profile_.airtime-ms bytes) next_gap_ms=$gap-ms"
+        logger_.info "$radio-name_ airtime budget: profile=$(profile_.name) mode=$mode bytes=$bytes airtime_ms=$(radio-mode_ == RelayRadio.LORA ? (profile_.airtime-ms bytes) : 0) next_gap_ms=$gap-ms"
         return "reserved"
       if continual:
         // An automatic pong may reserve the shared budget after the check above.
         show-airtime-wait_ (flow_.tx-wait-us Time.monotonic-us)
         continue
-      logger_.warn "LoRa send deferred: budget changed before reservation"
+      logger_.warn "$radio-name_ send deferred: budget changed before reservation"
       return "blocked"
 
   show-airtime-wait_ wait-us/int:
@@ -822,10 +844,13 @@ class LoraApp:
     wait-tenths := (wait-us + 99_999) / 100_000
     set-activity-status_ "TX wait: ~$(wait-tenths / 10).$(wait-tenths % 10)s"
 
-  send-lora-payload_ payload/string mode/string --continual/bool=false:
+  send-payload_ payload/string mode/string --continual/bool=false:
     reservation := reserve-transmission_ payload mode --continual=continual --manual=(not continual)
     if reservation != "reserved":
       if reservation == "blocked" and not continual: flash-rejected_
+      return
+    if radio-mode_ != RelayRadio.LORA:
+      send-local-payload_ payload
       return
     e := catch:
       feed
@@ -833,39 +858,46 @@ class LoraApp:
       msg := messages.LoRa.msg --data=data
       if continual:
         device_.comms.send msg --now=true
-        logger_.info "LoRa tx: $payload profile=$(profile_.name) continual=true outcome=queued-to-P1 at_us=$(Time.monotonic-us)"
+        logger_.info "$radio-name_ tx: $payload profile=$(profile_.name) continual=true outcome=queued-to-P1 at_us=$(Time.monotonic-us)"
         flash-white_
       else:
         response := device_.comms.send-new msg --timeout=(Duration --s=5)
         if response == null:
-          logger_.warn "LoRa manual tx unconfirmed: no P1 response for $payload; peer RX may still occur"
+          logger_.warn "$radio-name_ manual tx unconfirmed: no P1 response for $payload; peer RX may still occur"
           device_.strobe.flash device_.strobe.YELLOW --ms=100
         else if not response.msg-ok:
-          logger_.warn "LoRa manual tx rejected by P1: $payload response=$response"
+          logger_.warn "$radio-name_ manual tx rejected by P1: $payload response=$response"
           flash-rejected_
         else:
-          logger_.info "LoRa tx: $payload profile=$(profile_.name) continual=false outcome=P1-accepted at_us=$(Time.monotonic-us)"
+          logger_.info "$radio-name_ tx: $payload profile=$(profile_.name) continual=false outcome=P1-accepted at_us=$(Time.monotonic-us)"
           flash-white_
       feed
     if e:
       logger_.warn "Failed to send LORA: $e"
       if not continual: flash-rejected_
 
-  send-lora-payload-now_ payload/string mode/string:
+  send-payload-now_ payload/string mode/string:
     if (reserve-transmission_ payload mode) != "reserved":
-      logger_.info "LoRa automatic response suppressed by airtime guard"
-      set-activity-status_ "Pong skipped: airtime guard"
+      logger_.info "$radio-name_ automatic response suppressed by airtime guard"
+      set-activity-status_ (radio-mode_ == RelayRadio.LORA ? "Pong skipped: airtime guard" : "Pong skipped: TX busy")
       return
-    // Reserve synchronously, then perform P1 I/O outside inbound dispatch.
-    task::
-      e := catch:
-        data := messages.LoRa.data --payload=payload.to-byte-array --config-slot=LoraProfile.SLOT
-        device_.comms.send (messages.LoRa.msg --data=data) --now=true
-        logger_.info "LoRa automatic tx: $payload profile=$(profile_.name)"
-        flash-white_
-        feed
-      if e:
-        logger_.warn "Failed to send LORA automatically: $e"
+    // Reserve synchronously, then perform radio I/O outside inbound dispatch.
+    generation := radio-generation_
+    task:: send-automatic_ payload generation
+
+  send-automatic_ payload/string generation/int:
+    if not is-running_ or generation != radio-generation_: return
+    if radio-mode_ != RelayRadio.LORA:
+      send-local-payload_ payload
+      return
+    e := catch:
+      data := messages.LoRa.data --payload=payload.to-byte-array --config-slot=LoraProfile.SLOT
+      device_.comms.send (messages.LoRa.msg --data=data) --now=true
+      logger_.info "$radio-name_ automatic tx: $payload profile=$(profile_.name)"
+      flash-white_
+      feed
+    if e:
+      logger_.warn "Failed to send LoRa automatically: $e"
 
   handle-received-payload_ text/string:
     parts := split-payload_ text
@@ -873,25 +905,25 @@ class LoraApp:
     body := parts[1]
     if LoraWire.is-ping body:
       if sender != "" and device-id_ != null and sender == "$(device-id_)":
-        logger_.info "LoRa ping from self ignored"
+        logger_.info "$radio-name_ ping from self ignored"
         return
-      if body.starts-with "ping:" and body[5..body.size] != profile_.code:
-        logger_.warn "LoRa peer profile mismatch: received=$(body[5..body.size]) local=$(profile_.code)"
-      response := prefixed-payload_ "pong:$(profile_.code)"
+      if radio-mode_ == RelayRadio.LORA and body.starts-with "ping:" and body[5..body.size] != profile_.code:
+        logger_.warn "$radio-name_ peer profile mismatch: received=$(body[5..body.size]) local=$(profile_.code)"
+      response := prefixed-payload_ (radio-mode_ == RelayRadio.LORA ? "pong:$(profile_.code)" : "pong")
       if response:
-        send-lora-payload-now_ response "pong"
-        logger_.info "LoRa auto-pong considered: $response"
+        send-payload-now_ response "pong"
+        logger_.info "$radio-name_ auto-pong considered: $response"
       else:
-        logger_.warn "LoRa auto-pong skipped: no device id"
+        logger_.warn "$radio-name_ auto-pong skipped: no device id"
     else if LoraWire.is-legacy-pong body:
-      logger_.info "LoRa legacy pong received from $sender"
+      logger_.info "$radio-name_ legacy pong received from $sender"
     else if LoraWire.pong-profile body:
       peer-profile := LoraWire.pong-profile body
       if peer-profile == profile_.code:
-        logger_.info "LoRa peer profile matched: $(profile_.name)"
+        logger_.info "$radio-name_ peer profile matched: $(profile_.name)"
       else:
-        logger_.warn "LoRa peer profile mismatch: peer=$peer-profile local=$(profile_.code)"
-    logger_.info "LoRa rx parsed sender='$sender' body='$body'"
+        logger_.warn "$radio-name_ peer profile mismatch: peer=$peer-profile local=$(profile_.code)"
+    logger_.info "$radio-name_ rx parsed sender='$sender' body='$body'"
 
   flash-rejected_:
     device_.strobe.flash-red --ms=STROBE-FLASH-MS
@@ -924,7 +956,7 @@ class LoraApp:
         ids := messages.DeviceIDs.from-data resp.data
         device-id_ = ids.id
         logger_.info "Device id: $(device-id_)"
-        if showing-page_ == PAGE-LORA:
+        if showing-page_ == PAGE-RELAY:
           screen-on-button-row-change_
     if e:
       logger_.warn "Failed to read device id: $e"
@@ -981,7 +1013,7 @@ class LoraApp:
       unsubscribe-position-if-unused_
     if was-continual:
       start-continual_
-      logger_.info "LoRa continual mode changed to $send-mode_ rate=$(rate-label_) interval_ms=$(selected-interval-ms_ send-mode_)"
+      logger_.info "$radio-name_ continual mode changed to $send-mode_ rate=$(rate-label_) interval_ms=$(selected-interval-ms_ send-mode_)"
     if showing-page_ == PAGE-MENU:
       update-menu
     else:
@@ -997,7 +1029,7 @@ class LoraApp:
     if button-data.duration <= 0:
       return
     if received-page != null and received-page != showing-page_:
-      logger_.warn "Ignoring stale queued LoRa button: received-P2-page=$(received-page), current-P2-page=$(showing-page_)"
+      logger_.warn "Ignoring stale queued Relay button: received-P2-page=$(received-page), current-P2-page=$(showing-page_)"
       return
     else if button-data.duration >= 3000:
       stop
@@ -1006,19 +1038,19 @@ class LoraApp:
     // The event is tagged by P1 with the page that was visible at press time.
     // Once P2 has transitioned to another page, an event from the former page
     // is stale.  It must never be reinterpreted using that former page: an
-    // Action tagged PAGE-LORA while the menu is open would otherwise transmit
+    // Action tagged PAGE-RELAY while the menu is open would otherwise transmit
     // a ping (and flash white) from inside the menu.
     if button-data.page-id != showing-page_:
       logger_.warn "Ignoring P1/P2 page mismatch: P1=$(button-data.page-id), P2=$(showing-page_)"
       return
 
-    if showing-page_ == PAGE-LORA:
+    if showing-page_ == PAGE-RELAY:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         stop
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_ACTION:
         send-current
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN_RIGHT:
-        show-menu --reason="accepted P1 Down/Right on LoRa page"
+        show-menu --reason="accepted P1 Down/Right on Relay page"
 
     else if showing-page_ == PAGE-MENU:
       if menu-selection == null:
@@ -1029,14 +1061,20 @@ class LoraApp:
         // than relying solely on our locally replayed Up/Down presses.
         if button-data.has-data messages.ButtonPress.MENU-ITEM:
           if not menu-selection.synchronize button-data.menu-item:
-            logger_.warn "Ignoring out-of-range P1 LoRa menu item $(button-data.menu-item)"
+            logger_.warn "Ignoring out-of-range P1 Relay menu item $(button-data.menu-item)"
             return
-        logger_.info "LoRa menu action: item $(menu-selection.current)"
+        logger_.info "$radio-name_ menu action: item $(menu-selection.current)"
         selected := menu-selection.current
         if selected == MENU-MODE:
           cycle-send-mode_
+        else if selected == MENU-RADIO:
+          cycle-radio_
         else if selected == MENU-PROFILE:
-          cycle-profile_
+          if radio-mode_ == RelayRadio.LORA:
+            cycle-profile_
+          else if radio-mode_ == RelayRadio.ESPNOW:
+            espnow-channel_ = espnow-channel_ % RelayRadio.MAX-CHANNEL + 1
+            restart-radio_
         else if selected == MENU-RATE:
           cycle-rate_
         else if selected == MENU-REPEAT:
@@ -1044,8 +1082,72 @@ class LoraApp:
         else if selected == MENU-EXIT:
           stop
         else if selected == MENU-BACK:
-          show-lora --full=true --reason="accepted menu Back"
+          show-relay --full=true --reason="accepted menu Back"
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN_RIGHT:
         menu-selection.up
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         menu-selection.down
+
+  radio-name_ -> string:
+    return RelayRadio.name radio-mode_
+
+  send-gap-ms_ bytes/int mode/string -> int:
+    if radio-mode_ == RelayRadio.LORA:
+      return profile_.send-gap-ms bytes (selected-interval-ms_ mode)
+    return 0
+
+  cycle-radio_:
+    next-mode := (radio-mode_ + 1) % 3
+    restart-radio_ --mode=next-mode
+
+  restart-radio_ --mode/int=radio-mode_:
+    stop-continual_
+    cancel-pending-manual_
+    cancel-received-message-render_
+    radio-generation_++
+    stop-lora-listening_
+    if radio_: radio_.stop
+    radio_ = null
+    radio-mode_ = mode
+    flow_ = flows_[radio-mode_]
+    flow_.clear-activity-status
+    received-messages_ = []
+    received-peer-coordinates_ = []
+    radio-ready_ = false
+    if radio-mode_ == RelayRadio.LORA:
+      apply-profile_ profile-index_
+      start-lora-listening_
+    else:
+      generation := radio-generation_
+      e := catch:
+        radio_ = RelayRadio radio-mode_ --channel=espnow-channel_
+            --ble-module=(radio-mode_ == RelayRadio.BLE ? device_.ble : null)
+            --receive=(:: |payload|
+              if is-running_ and generation == radio-generation_: receive-payload_ payload)
+            --failed=(:: |error|
+              if is-running_ and generation == radio-generation_:
+                radio-ready_ = false
+                stop-continual_
+                cancel-pending-manual_
+                logger_.warn "$radio-name_ receive failed: $error"
+                set-activity-status_ "$radio-name_ receive error")
+        radio_.start
+      if e:
+        logger_.warn "$radio-name_ unavailable: $e"
+        set-activity-status_ (radio-mode_ == RelayRadio.ESPNOW ? "ESP-NOW needs Wi-Fi disabled" : "BLE radio busy/unavailable")
+      else:
+        radio-ready_ = true
+    update-menu
+
+  send-local-payload_ payload/string:
+    generation := radio-generation_
+    radio := radio_
+    e := catch:
+      radio.send payload
+      if is-running_ and generation == radio-generation_:
+        logger_.info "$radio-name_ tx: $payload"
+        flash-white_
+        feed
+    if e and is-running_ and generation == radio-generation_:
+      logger_.warn "$radio-name_ send failed: $e"
+      flash-rejected_
