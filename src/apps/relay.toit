@@ -32,7 +32,7 @@ class RelayApp:
   static screen-width ::= 250
   static screen-height ::= 122
 
-  static PAGE-LORA ::= 34
+  static PAGE-RELAY ::= 34
   static PAGE-MENU ::= 35
 
   static SEND-ID ::= "id"
@@ -62,7 +62,7 @@ class RelayApp:
   position-handler_/GenericHandler? := null
   position-subscribed_/bool := false
   position-subscribe-pending_/bool := false
-  lora-page-drawn_/bool := false
+  relay-page-drawn_/bool := false
   received-render-task_/Task? := null
   received-render-generation_/int := 0
   pending-manual-task_/Task? := null
@@ -110,7 +110,7 @@ class RelayApp:
     init-button-subscription_
     init-lora-handler_
     apply-profile_ LoraProfile.DEFAULT
-    show-lora --reason="app start"
+    show-relay --reason="app start"
     init-device-id_
     logger_.info "$radio-name_ app started"
 
@@ -135,7 +135,7 @@ class RelayApp:
     deinit-button-subscriber_
     parent_.show-home
     showing-page_ = 0
-    lora-page-drawn_ = false
+    relay-page-drawn_ = false
 
   feed:
     e := catch: dog_.feed
@@ -253,13 +253,13 @@ class RelayApp:
             last-position_.type != messages.Position.TYPE_RESERVED and
             (last-position_.latitude != 0 or last-position_.longitude != 0):
           logger_.info "P1 position update type=$(last-position_.type) lat=$(last-position_.latitude) lon=$(last-position_.longitude)"
-          if first-fix and distance-location-seen_ and showing-page_ == PAGE-LORA:
+          if first-fix and distance-location-seen_ and showing-page_ == PAGE-RELAY:
             schedule-received-message-render_
           if flow_.activity-status == "Waiting for P1 position":
             clear-activity-status_
-          if first-fix and send-mode_ == SEND-LOCATION and showing-page_ == PAGE-LORA:
+          if first-fix and send-mode_ == SEND-LOCATION and showing-page_ == PAGE-RELAY:
             task::
-              if is-running_ and showing-page_ == PAGE-LORA: screen-on-button-row-change_
+              if is-running_ and showing-page_ == PAGE-RELAY: screen-on-button-row-change_
         else if send-mode_ == SEND-LOCATION:
           logger_.warn "P1 position not usable: type=$(last-position_.type) lat=$(last-position_.latitude) lon=$(last-position_.longitude)"
           set-activity-status_ "Waiting for P1 position"
@@ -327,7 +327,7 @@ class RelayApp:
     if showing-page_ == PAGE-MENU:
       update-menu
     else:
-      show-lora --full=true --reason="profile changed"
+      show-relay --full=true --reason="profile changed"
 
   start-lora-listening_:
     if radio-mode_ != RelayRadio.LORA or lora-listening_ or not radio-ready_:
@@ -370,7 +370,7 @@ class RelayApp:
     if e:
       position-subscribe-pending_ = false
       logger_.warn "Failed to subscribe to position: $e"
-      show-lora --reason="position subscription failed"
+      show-relay --reason="position subscription failed"
 
   unsubscribe-position_:
     if not position-subscribed_:
@@ -383,12 +383,12 @@ class RelayApp:
     last-position_ = null
     last-position-received-us_ = 0
 
-  show-lora --full/bool=false --reason/string="unspecified":
-    logger_.info "$radio-name_ page transition: $(showing-page_) -> $(PAGE-LORA), full=$(full), reason=$(reason)"
+  show-relay --full/bool=false --reason/string="unspecified":
+    logger_.info "$radio-name_ page transition: $(showing-page_) -> $(PAGE-RELAY), full=$(full), reason=$(reason)"
     redraw-type := messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
-    if full or showing-page_ != PAGE-LORA or not lora-page-drawn_:
+    if full or showing-page_ != PAGE-RELAY or not relay-page-drawn_:
       redraw-type = messages.DrawElement.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR
-    showing-page_ = PAGE-LORA
+    showing-page_ = PAGE-RELAY
     trim-received-messages_
     start-lora-listening_
     flow_.mark-rendered Time.monotonic-us
@@ -398,20 +398,20 @@ class RelayApp:
       draw-message-lines_
       draw-timing_
       draw-status_
-      // BasePage only supports P1 preset pages. PAGE-LORA is custom, so the
+      // BasePage only supports P1 preset pages. PAGE-RELAY is custom, so the
       // final DrawElement must perform the redraw (as Survey does).
       draw-title_ --redraw-type=redraw-type
-      lora-page-drawn_ = true
+      relay-page-drawn_ = true
 
   draw-title_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     settings := radio-mode_ == RelayRadio.LORA ? profile_.name : (radio-mode_ == RelayRadio.ESPNOW ? "Ch $(espnow-channel_)" : "Advertisements")
     title := radio-ready_ ? "Relay $(radio-name_) $settings$(continual_ ? " Auto" : "")" : "Relay $(radio-name_) unavailable"
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=0 --text=title --fontsize=1 --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=0 --text=title --fontsize=1 --redraw-type=redraw-type
 
   draw-status_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     mode := send-mode_ == SEND-LOCATION ? "Location" : (send-mode_ == SEND-PING ? "Ping" : "ID")
     status := "$mode | $(device-id-text_)$(flow_.pending-manual-mode != null ? " | Queued" : "")"
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=17 --text=status --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=17 --text=status --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
 
   draw-timing_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     // Continual cadence and the shared airtime guard are different.
@@ -440,7 +440,7 @@ class RelayApp:
       text = "Send immediately | Auto $(interval-tenths / 10).$(interval-tenths % 10)-$(max-interval-tenths / 10).$(max-interval-tenths % 10)s"
     if flow_.activity-status != null:
       text = flow_.activity-status
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=29 --text=text --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=29 --text=text --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
 
   set-activity-status_ text/string:
     if not flow_.set-activity-status text:
@@ -449,30 +449,30 @@ class RelayApp:
     if flow_.should-flash-status now TX-STATUS-LED-MIN-INTERVAL-US:
       task::
         if is-running_: device_.strobe.flash device_.strobe.YELLOW --ms=100
-    if showing-page_ == PAGE-LORA:
+    if showing-page_ == PAGE-RELAY:
       task:: screen-on-timing_
 
   clear-activity-status_:
     if not flow_.clear-activity-status:
       return
-    if showing-page_ == PAGE-LORA:
+    if showing-page_ == PAGE-RELAY:
       task:: screen-on-timing_
 
   screen-on-timing_:
     device_.eink.batch:
-      if is-running_ and showing-page_ == PAGE-LORA:
+      if is-running_ and showing-page_ == PAGE-RELAY:
         draw-timing_ --redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
 
   draw-button-row_ --final-redraw-type/int?=null:
     third := screen-width / 3
     y := screen-height - 15
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=0 --y=y --text="Home" --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=third --y=y --text=send-button-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=0 --y=y --text="Home" --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=third --y=y --text=send-button-text_ --redraw-type=messages.DrawElement.REDRAW-TYPE-BUFFERONLY
     redraw-type := final-redraw-type == null ? messages.DrawElement.REDRAW-TYPE-BUFFERONLY : final-redraw-type
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=(third * 2) --y=y --text="Menu" --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --textalign=messages.DrawElement.TEXTALIGN_MIDDLE --width=third --x=(third * 2) --y=y --text="Menu" --redraw-type=redraw-type
 
   draw-line_ index/int text/string --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
-    device_.eink.draw-element --page-id=PAGE-LORA --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=(TOP-PAD + TEXT-SPACING * index) --text=text --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=(screen-width - 8) --redraw-type=redraw-type
+    device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=(TOP-PAD + TEXT-SPACING * index) --text=text --fontsize=0 --textalign=messages.DrawElement.TEXTALIGN_LEFT --width=(screen-width - 8) --redraw-type=redraw-type
 
   draw-message-lines_ --final-redraw-type/int?=null:
     i := 0
@@ -565,13 +565,13 @@ class RelayApp:
     return "$(text[0..prefix-size])... $suffix"
 
   maybe-rx-feedback_:
-    if showing-page_ != PAGE-LORA:
+    if showing-page_ != PAGE-RELAY:
       return
     schedule-received-message-render_
     now := Time.monotonic-us
     if flow_.should-flash now RX-LED-MIN-INTERVAL-US:
       task::
-        if is-running_ and showing-page_ == PAGE-LORA: flash-green_
+        if is-running_ and showing-page_ == PAGE-RELAY: flash-green_
 
   trim-received-messages_:
     while received-messages_.size > MAX-MESSAGES:
@@ -596,24 +596,24 @@ class RelayApp:
     while is-running_ and generation == received-render-generation_ and flow_.render-pending:
       wait-us := flow_.render-wait-us Time.monotonic-us RX-DISPLAY-MIN-INTERVAL-US
       sleep --ms=(wait-us > 0 ? (wait-us + 999) / 1000 : 50)
-      if not is-running_ or generation != received-render-generation_ or showing-page_ != PAGE-LORA:
+      if not is-running_ or generation != received-render-generation_ or showing-page_ != PAGE-RELAY:
         break
       if (flow_.render-wait-us Time.monotonic-us RX-DISPLAY-MIN-INTERVAL-US) > 0:
         continue
       device_.eink.batch:
-        if showing-page_ == PAGE-LORA:
+        if showing-page_ == PAGE-RELAY:
           flow_.mark-rendered Time.monotonic-us
           draw-message-lines_ --final-redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
     received-render-task_ = null
 
   screen-on-received-message_:
     device_.eink.batch:
-      if showing-page_ == PAGE-LORA:
+      if showing-page_ == PAGE-RELAY:
         draw-message-lines_ --final-redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
 
   screen-on-button-row-change_:
     device_.eink.batch --important:
-      if showing-page_ == PAGE-LORA:
+      if showing-page_ == PAGE-RELAY:
         draw-button-row_
         draw-timing_
         draw-status_ --redraw-type=messages.DrawElement.REDRAW-TYPE_PARTIALREDRAW
@@ -699,7 +699,7 @@ class RelayApp:
         logger_.warn "No valid payload for $send-mode_"
         flash-rejected_
       return
-    send-lora-payload_ payload send-mode_ --continual=continual
+    send-payload_ payload send-mode_ --continual=continual
 
   send-id:
     payload := id-payload_
@@ -707,7 +707,7 @@ class RelayApp:
       logger_.warn "Device ID unavailable"
       flash-rejected_
       return
-    send-lora-payload_ payload SEND-ID
+    send-payload_ payload SEND-ID
 
   toggle-continual_:
     if continual_:
@@ -769,7 +769,7 @@ class RelayApp:
       wait-tenths := (wait-us + 99_999) / 100_000
       queue-text := wait-us > 0 ? "Queued: ~$(wait-tenths / 10).$(wait-tenths % 10)s" : "Queued for TX"
       set-activity-status_ queue-text
-      if showing-page_ == PAGE-LORA: screen-on-button-row-change_
+      if showing-page_ == PAGE-RELAY: screen-on-button-row-change_
     if pending-manual-task_: return
     generation := flow_.pending-generation
     pending-manual-task_ = task:: process-pending-manual_ generation
@@ -792,8 +792,8 @@ class RelayApp:
           logger_.warn "$radio-name_ queued manual send cancelled: no valid $mode payload"
           flash-rejected_
         else:
-          send-lora-payload_ payload mode
-      if showing-page_ == PAGE-LORA and is-running_: screen-on-button-row-change_
+          send-payload_ payload mode
+      if showing-page_ == PAGE-RELAY and is-running_: screen-on-button-row-change_
     if generation == flow_.pending-generation:
       pending-manual-task_ = null
 
@@ -844,7 +844,7 @@ class RelayApp:
     wait-tenths := (wait-us + 99_999) / 100_000
     set-activity-status_ "TX wait: ~$(wait-tenths / 10).$(wait-tenths % 10)s"
 
-  send-lora-payload_ payload/string mode/string --continual/bool=false:
+  send-payload_ payload/string mode/string --continual/bool=false:
     reservation := reserve-transmission_ payload mode --continual=continual --manual=(not continual)
     if reservation != "reserved":
       if reservation == "blocked" and not continual: flash-rejected_
@@ -876,7 +876,7 @@ class RelayApp:
       logger_.warn "Failed to send LORA: $e"
       if not continual: flash-rejected_
 
-  send-lora-payload-now_ payload/string mode/string:
+  send-payload-now_ payload/string mode/string:
     if (reserve-transmission_ payload mode) != "reserved":
       logger_.info "$radio-name_ automatic response suppressed by airtime guard"
       set-activity-status_ (radio-mode_ == RelayRadio.LORA ? "Pong skipped: airtime guard" : "Pong skipped: TX busy")
@@ -911,7 +911,7 @@ class RelayApp:
         logger_.warn "$radio-name_ peer profile mismatch: received=$(body[5..body.size]) local=$(profile_.code)"
       response := prefixed-payload_ (radio-mode_ == RelayRadio.LORA ? "pong:$(profile_.code)" : "pong")
       if response:
-        send-lora-payload-now_ response "pong"
+        send-payload-now_ response "pong"
         logger_.info "$radio-name_ auto-pong considered: $response"
       else:
         logger_.warn "$radio-name_ auto-pong skipped: no device id"
@@ -956,7 +956,7 @@ class RelayApp:
         ids := messages.DeviceIDs.from-data resp.data
         device-id_ = ids.id
         logger_.info "Device id: $(device-id_)"
-        if showing-page_ == PAGE-LORA:
+        if showing-page_ == PAGE-RELAY:
           screen-on-button-row-change_
     if e:
       logger_.warn "Failed to read device id: $e"
@@ -1029,7 +1029,7 @@ class RelayApp:
     if button-data.duration <= 0:
       return
     if received-page != null and received-page != showing-page_:
-      logger_.warn "Ignoring stale queued LoRa button: received-P2-page=$(received-page), current-P2-page=$(showing-page_)"
+      logger_.warn "Ignoring stale queued Relay button: received-P2-page=$(received-page), current-P2-page=$(showing-page_)"
       return
     else if button-data.duration >= 3000:
       stop
@@ -1038,19 +1038,19 @@ class RelayApp:
     // The event is tagged by P1 with the page that was visible at press time.
     // Once P2 has transitioned to another page, an event from the former page
     // is stale.  It must never be reinterpreted using that former page: an
-    // Action tagged PAGE-LORA while the menu is open would otherwise transmit
+    // Action tagged PAGE-RELAY while the menu is open would otherwise transmit
     // a ping (and flash white) from inside the menu.
     if button-data.page-id != showing-page_:
       logger_.warn "Ignoring P1/P2 page mismatch: P1=$(button-data.page-id), P2=$(showing-page_)"
       return
 
-    if showing-page_ == PAGE-LORA:
+    if showing-page_ == PAGE-RELAY:
       if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:
         stop
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_ACTION:
         send-current
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN_RIGHT:
-        show-menu --reason="accepted P1 Down/Right on LoRa page"
+        show-menu --reason="accepted P1 Down/Right on Relay page"
 
     else if showing-page_ == PAGE-MENU:
       if menu-selection == null:
@@ -1061,7 +1061,7 @@ class RelayApp:
         // than relying solely on our locally replayed Up/Down presses.
         if button-data.has-data messages.ButtonPress.MENU-ITEM:
           if not menu-selection.synchronize button-data.menu-item:
-            logger_.warn "Ignoring out-of-range P1 LoRa menu item $(button-data.menu-item)"
+            logger_.warn "Ignoring out-of-range P1 Relay menu item $(button-data.menu-item)"
             return
         logger_.info "$radio-name_ menu action: item $(menu-selection.current)"
         selected := menu-selection.current
@@ -1082,7 +1082,7 @@ class RelayApp:
         else if selected == MENU-EXIT:
           stop
         else if selected == MENU-BACK:
-          show-lora --full=true --reason="accepted menu Back"
+          show-relay --full=true --reason="accepted menu Back"
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_DOWN_RIGHT:
         menu-selection.up
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID_UP_LEFT:

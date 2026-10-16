@@ -44,7 +44,7 @@ main:
     print "lb-app=$start-app-name"
   if start-app-name == "survey":
     apps.open-survey-app
-  else if start-app-name == "relay" or start-app-name == "lora":
+  else if start-app-name == "relay":
     apps.open-relay-app
   else if start-app-name == "qc":
     apps.open-qc-app

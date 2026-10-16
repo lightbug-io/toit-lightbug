@@ -467,9 +467,6 @@ class Apps:
     app_ = SurveyApp device_ this dog_
     app_.start
 
-  open-lora-app:
-    open-relay-app
-
   open-relay-app:
     stop-position-subscription_
     app_ = RelayApp device_ this dog_ --show-unknown-messages=show-unknown-lora-messages_
