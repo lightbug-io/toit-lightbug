@@ -10,6 +10,7 @@
 
 ## Documentation & resources
 
+- **P1/P2 deep sleep and wake timing:** [setup, telemetry and bench checks](DEEP_SLEEP.md)
 - **Toit home:** https://toitlang.org/
 - **Toit language reference:** https://docs.toit.io/language/
 - **Toit package docs:** https://docs.toit.io/language/package

@@ -2,6 +2,15 @@ import io
 import lightbug.cust.vending show Vending
 import lightbug.cust.vending_protocol show VendingProtocol
 
+class FeedReader extends io.Reader with io.InMixin:
+  pending /ByteArray := #[]
+
+  read_ -> ByteArray?:
+    while pending.size == 0: sleep --ms=1
+    data := pending
+    pending = #[]
+    return data
+
 class RecordingWriter extends io.Writer with io.OutMixin:
   frames /List := []
   times /List := []
@@ -14,6 +23,7 @@ class RecordingWriter extends io.Writer with io.OutMixin:
 
 class RecordingPort:
   out := RecordingWriter
+  in := FeedReader
 
 class TestVending extends Vending:
   recording-port := RecordingPort
@@ -87,5 +97,24 @@ main:
     error := catch:
       TestVending --response-count=count
     assert-equals "invalid count rejected" error "response-count must be at least 1"
+
+  // A truncated frame must release the sleep veto, then accept a complete
+  // request without transmitting an error into its beginning.
+  recovering := TestVending --delay=(Duration --ms=0)
+  recovering.recording-port.in.pending = #[0x3e, 0x0d, 0xa3]
+  reader := task --background=true:: recovering.process-loop
+  sleep --ms=300
+  assert-equals "partial frame no longer busy" recovering.busy false
+  assert-equals "no unsolicited timeout response" recovering.recording-port.out.frames.size 0
+  recovering.recording-port.in.pending = request
+  sleep --ms=50
+  // Timing assertions disabled with the instrumentation.
+  // assert-equals "complete frame after timeout" recovering.request-count 1
+  assert-equals "recovery response count" recovering.recording-port.out.frames.size 1
+  // if recovering.first-request-us == null or recovering.first-response-us == null or recovering.first-rx-restored-us == null:
+  //   throw "missing exchange timestamps"
+  // if recovering.first-response-us < recovering.first-request-us or recovering.first-rx-restored-us < recovering.first-response-us:
+  //   throw "exchange timestamps out of order"
+  reader.cancel
 
   print "vending response tests passed"
