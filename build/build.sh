@@ -16,7 +16,7 @@ fi
 # Check for correct number of arguments
 if [ "$#" -ne 4 ]; then
     echo "Usage: $0 <snapshot_name> <target_toit_file> <toit_version> <firmware_type>"
-    echo "Example: $0 base-apps ./examples/containers/base-apps.toit v2.0.0-alpha.190 esp32c6"
+    echo "Example: $0 base-apps ./examples/containers/base-apps.toit v2.0.0-alpha.198 esp32c6"
     echo ""
     echo "Optional environment overrides (highest precedence first):"
     echo "  LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope"
