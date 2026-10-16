@@ -42,3 +42,28 @@ The agent can capture and inspect frames, describe visible differences, and ask
 for better framing or lighting when needed. Single snapshots usually suffice;
 use repeated captures when the task needs observations over time.
 The reusable agent instructions are in the [IP-camera skill](skills/ip-camera/SKILL.md).
+
+## AI-assisted device development
+
+Use the [Jaguar skill](skills/jaguar/SKILL.md) for finding devices, reading logs,
+trying an app with `jag run`, or installing a boot-persistent named container.
+
+Give the agent the intended device(s), source or firmware artifact, and whether
+you want a temporary run, a persistent container, or a firmware flash. Existing
+authorization carries through the task; a change from container installation to
+firmware replacement needs its own agreed scope.
+
+For example: “Find the connected device and install this app as a boot container.”
+Ports and IPs are checked against current device identity before writes.
+
+The skill includes [native/Windows/WSL transport selection](skills/jaguar/references/transports.md).
+Use Windows Jaguar when Windows owns the COM port; use native Jaguar when the
+device is attached to Linux/macOS. For network operations, test the current
+endpoint from the host that can reach it. WSL and Windows may have different
+toolchains and network access. A USB log console is not necessarily a working
+Jaguar input endpoint.
+
+The optional `base-apps-dev.toit` entrypoint provides HTTP button controls and can
+use a separate watchdog provider for iterative development. The production
+`base-apps.toit` starts its own provider. Check which containers are already
+running before mixing these entrypoints or claiming an app is installed for boot.
