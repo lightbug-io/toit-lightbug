@@ -70,3 +70,5 @@ The optional `base-apps-dev.toit` entrypoint provides HTTP button controls and c
 use a separate watchdog provider for iterative development. The production
 `base-apps.toit` starts its own provider. Check which containers are already
 running before mixing these entrypoints or claiming an app is installed for boot.
+The Jaguar skill includes the [development watchdog provider](skills/jaguar/scripts/watchdog-provider.toit)
+and its installation instructions.

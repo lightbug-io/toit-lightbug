@@ -45,6 +45,16 @@ Relay can start with `-D lb-app=relay`; source defines do not select a device.
   entrypoint `base-apps-dev.toit` supports `-D lb-watchdog-provider=external`.
   Use that define only when an external provider is actually installed/running.
   Do not run the production provider alongside a separate one.
+  The bundled [watchdog provider](scripts/watchdog-provider.toit) can be installed
+  as a separate named container for that development workflow. From the repo root:
+
+  ```text
+  jag container list --device DEVICE
+  jag container install watchdog ./skills/jaguar/scripts/watchdog-provider.toit --device DEVICE
+  ```
+
+  Check the existing containers before installing it; install it only for the
+  selected external-provider workflow. It uses the repo's `watchdog` dependency.
 - Replacing an app can leave watchdog clients or hardware subscriptions behind.
   On an upload/reset failure, collect logs and inspect the lifecycle before
   retrying. Do not mask a watchdog or treat a failed upload as a successful start.
