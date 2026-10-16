@@ -16,10 +16,22 @@ class BLE:
   adapter_/ble.Adapter
   peripheral_/ble.Peripheral? := null
   advertising_/bool := false
+  scanning_/bool := false
+  relay-radio-leased_/bool := false
 
   constructor --logger/log.Logger:
     logger_ = logger
     adapter_ = ble.Adapter
+
+  // Reuse the device's singleton adapter, without stealing an active P1 scan
+  // or advertisement. Normal requests resume when Relay releases its lease.
+  acquire-relay-radio -> ble.Adapter:
+    if relay-radio-leased_ or scanning_ or advertising_: throw "BLE radio busy"
+    relay-radio-leased_ = true
+    return adapter_
+
+  release-relay-radio:
+    relay-radio-leased_ = false
 
   /**
   Performs a BLE scan synchronously (blocks until response).
@@ -101,46 +113,53 @@ class BLE:
   Returns: The number of devices emitted to $onSeen.
   */
   scan --stream --duration/int? --filter/Lambda?=null --active/bool=false --interval-ms/int=0 --window-ms/int=0 --interval-units/int?=null --window-units/int?=null --onSeen/Lambda?=null -> int:
+    if relay-radio-leased_ or scanning_:
+      logger_.warn "BLE scanner busy"
+      return 0
     if duration != null and duration <= 0:
       logger_.warn "Scan duration must be positive, got: $duration"
       return 0
 
-    if duration == null:
-      logger_.debug "Starting BLE scan with infinite duration"
-    else:
-      logger_.debug "Starting BLE scan with duration: $duration ms"
-
-    scan-duration := duration == null ? null : Duration --ms=duration
-    central := adapter_.central
     emitted-count := 0
-    // The public millisecond options retain their existing behaviour. The V3
-    // request path uses the optional controller-unit options to reach
-    // RemoteScannedDevice.scan without conversion (one unit is 0.625 ms).
-    interval := interval-units != null ? interval-units : scan-units-from-ms_ interval-ms
-    window := window-units != null ? window-units : scan-units-from-ms_ window-ms
-
+    scanning_ = true
     e := catch:
-      central.scan --duration=scan-duration --interval=interval --window=window --active=active: | device/ble.RemoteScannedDevice |
-        // Do not report rotating private addresses. They cannot be used as a
-        // stable device identifier by the P1/cloud path. The native ESP BLE
-        // API supplies this value separately from the six address bytes.
-        // We might at some point allow seeing these, and also returning the type
-        // of address we are returning, but noone seems to need this yet
-        if is-trackable-address-type_ device.address-type:
-          scan-result := BLEScanResult.from-device device
-
-          // Apply filter if provided.
-          should-emit := true
-          if filter:
-            should-emit = filter.call scan-result
-
-          if should-emit:
-            emitted-count++
-            if onSeen:
-              onSeen.call scan-result
+      try:
+        if duration == null:
+          logger_.debug "Starting BLE scan with infinite duration"
         else:
-          logger_.with-level log.TRACE-LEVEL:
-            logger_.trace "Ignoring BLE device with private or unknown address type: $(device.address-type)"
+          logger_.debug "Starting BLE scan with duration: $duration ms"
+
+        scan-duration := duration == null ? null : Duration --ms=duration
+        central := adapter_.central
+        // The public millisecond options retain their existing behaviour. The V3
+        // request path uses the optional controller-unit options to reach
+        // RemoteScannedDevice.scan without conversion (one unit is 0.625 ms).
+        interval := interval-units != null ? interval-units : scan-units-from-ms_ interval-ms
+        window := window-units != null ? window-units : scan-units-from-ms_ window-ms
+
+        central.scan --duration=scan-duration --interval=interval --window=window --active=active: | device/ble.RemoteScannedDevice |
+          // Do not report rotating private addresses. They cannot be used as a
+          // stable device identifier by the P1/cloud path. The native ESP BLE
+          // API supplies this value separately from the six address bytes.
+          // We might at some point allow seeing these, and also returning the type
+          // of address we are returning, but noone seems to need this yet
+          if is-trackable-address-type_ device.address-type:
+            scan-result := BLEScanResult.from-device device
+
+            // Apply filter if provided.
+            should-emit := true
+            if filter:
+              should-emit = filter.call scan-result
+
+            if should-emit:
+              emitted-count++
+              if onSeen:
+                onSeen.call scan-result
+          else:
+            logger_.with-level log.TRACE-LEVEL:
+              logger_.trace "Ignoring BLE device with private or unknown address type: $(device.address-type)"
+      finally:
+        scanning_ = false
 
     if e:
       logger_.error "BLE scan failed: $e"
@@ -151,10 +170,10 @@ class BLE:
 
   /**
   Performs a BLE scan asynchronously.
-  
+
   This method performs the scan in a separate task and calls the provided
   callback with the results.
-  
+
   Parameters:
     --duration: Scan duration in milliseconds.
     --filter: Optional filter function to apply to discovered devices.
@@ -211,17 +230,26 @@ class BLE:
   Returns: true if advertising started successfully, false otherwise.
   */
   start-advertise data/ble.Advertisement -> bool:
+    if relay-radio-leased_: return false
     if advertising_:
       logger_.warn "Already advertising, stop first before starting a new advertisement"
       return false
 
+    advertising_ = true
     logger_.debug "Starting BLE advertisement"
 
+    started := false
     e := catch:
-      if not peripheral_:
-        peripheral_ = adapter_.peripheral
-      peripheral_.start-advertise data
-      advertising_ = true
+      try:
+        if not peripheral_:
+          peripheral_ = adapter_.peripheral
+        peripheral_.start-advertise data
+        started = true
+      finally:
+        if not started:
+          advertising_ = false
+          if peripheral_:
+            critical-do: peripheral_.stop-advertise
 
     if e:
       logger_.error "Failed to start BLE advertisement: $e"
@@ -236,6 +264,7 @@ class BLE:
   Returns: true if advertising stopped successfully, false otherwise.
   */
   stop-advertise -> bool:
+    if relay-radio-leased_: return false
     if not advertising_:
       logger_.warn "Not currently advertising"
       return false

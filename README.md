@@ -8,6 +8,16 @@
 - **Sample applications:** A rich `examples/` tree covering low-level `messages/`, `modules/`, `services/`, and `containers/` plus stand-alone demos such as the `geofence` project.
 - **Tooling:** Helpers such as `bitmaps.json` and `tools/generate_bitmaps.py` create the bitmap tables that many examples expect, while `tests/` shows how we run unit-style Jaguar tests on host or hardware.
 
+## Relay app
+
+Open **Apps → Relay**, then choose **Radio: LoRa / ESP-NOW / BLE** independently of **Send: Ping / ID / Location**. LoRa is the default and retains its profiles and airtime limits. Switching radios stops continual sending and cancels queued sends. This app exchanges messages directly; it does not forward packets.
+
+ESP-NOW broadcasts on a selectable channel (1–11, default 6); both devices must use the same channel. It requires Wi-Fi to be disabled before entering that mode. For Jaguar bench sessions, use `-Djag.wifi=false` with an appropriate `-Djag.timeout` when starting the program over USB; Wi-Fi and HTTP button controls are unavailable during that session. Relay reports a busy/unavailable radio rather than disconnecting Wi-Fi itself.
+
+BLE uses compact, non-connectable advertisements carrying an ID, ping/pong, or coordinates. Each send advertises for up to 500 ms; a new send replaces the current advertisement immediately. Repeated receptions are filtered. BLE and ESP-NOW manual sends have no app-imposed cooldown or queued follow-up; Rate controls continual sends only. Rapid BLE sends can shorten a burst and reduce delivery chances. The device's BLE scanner and advertiser must be idle when selecting BLE; ordinary BLE requests cannot use the adapter until Relay releases it. BLE and ESP-NOW broadcasts are unencrypted and delivery is best effort.
+
+The base-apps entrypoints accept `-Dlb-app=relay`; the existing `lora` startup name and `LoraApp` import remain supported.
+
 ## Documentation & resources
 
 - **Toit home:** https://toitlang.org/
