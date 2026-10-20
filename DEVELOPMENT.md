@@ -55,5 +55,4 @@ previous transmission started. Transmission and UART switching may extend
 the interval. Unsupported commands remain ignored.
 
 The base vending container example uses `--response-count=1` and a 5 ms
-minimum response delay. See [deep sleep and wake timing](DEEP_SLEEP.md) for
-P1/P2 setup, timing fields, the container's sleep policy and hardware validation.
+minimum response delay. See [deep sleep](DEEP_SLEEP.md) for setup, wake sources and the example's sleep policy.

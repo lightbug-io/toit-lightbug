@@ -108,13 +108,7 @@ main:
   assert-equals "no unsolicited timeout response" recovering.recording-port.out.frames.size 0
   recovering.recording-port.in.pending = request
   sleep --ms=50
-  // Timing assertions disabled with the instrumentation.
-  // assert-equals "complete frame after timeout" recovering.request-count 1
   assert-equals "recovery response count" recovering.recording-port.out.frames.size 1
-  // if recovering.first-request-us == null or recovering.first-response-us == null or recovering.first-rx-restored-us == null:
-  //   throw "missing exchange timestamps"
-  // if recovering.first-response-us < recovering.first-request-us or recovering.first-rx-restored-us < recovering.first-response-us:
-  //   throw "exchange timestamps out of order"
   reader.cancel
 
   print "vending response tests passed"

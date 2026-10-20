@@ -31,6 +31,8 @@ class Comms:
   drop-open-count /int := 0
   block-open /bool := false
   reject-open /bool := false
+  block-prepare /bool := false
+  drop-awake /bool := false
 
   send msg/protocol.Message --now/bool --withLatch/bool --timeout/Duration:
     sent.add msg
@@ -46,11 +48,13 @@ class Comms:
       if reject-open: status = 5
     if msg.type == 47 and (msg.data.get-data-uint 11) == 1:
       trace.add "prepare"
+      if block-prepare: sleep --ms=60_000
       if reject or charging or external-power: status = 5 // InvalidState.
       if this.timeout:
         return monitor.Latch // Genuine silence, not an already expired request.
     else if msg.type == 47:
       trace.add "awake"
+      if drop-awake: return monitor.Latch
     reply.header-add-data-uint8 4 status
     latch := monitor.Latch
     if delayed-reject:
@@ -97,7 +101,7 @@ class Sleep extends Cpu2Sleep:
 
   constructor comms/Comms --rejection-retry/Duration=(Duration --s=5):
     trace = comms.trace
-    super comms --prepare-timeout=(Duration --ms=30) --rejection-retry=rejection-retry
+    super comms --timeout=(Duration --ms=30) --prepare-timeout=(Duration --ms=30) --rejection-retry=rejection-retry
 
   configure-wakeup_:
     trace.add "configure"
@@ -115,49 +119,18 @@ test-wire:
   assert-equals (parsed.data.get-data-uint 11) 1
   assert-equals (parsed.data.get-data-uint 12) 0
   msg = CPU2Sleep.awake-msg
-      --app-start-us=123
-      --uart-ready-us=456
-      --awake-sent-us=789
-      --reset-reason=8
-      --wake-cause=3
-      --i2c-ready-us=500
-      --type-ready-us=600
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-APP-START-US) 123
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-UART-READY-US) 456
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-AWAKE-SENT-US) 789
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-RESET-REASON) 8
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-WAKE-CAUSE) 3
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-I2C-READY-US) 500
-  assert-equals (msg.data.get-data-uint CPU2Sleep.P2-TYPE-READY-US) 600
-  error := catch: CPU2Sleep.awake-msg --app-start-us=1
-  assert-equals error "provide all three P2 timestamps"
-  data := protocol.Data
-  data.add-data-uint32 CPU2Sleep.TRIGGER-TO-PULSE-MS 0
-  timing := (CPU2Sleep.from-data data).wake-timing
-  assert-equals timing["trigger_to_pulse_ms"] 0
-  assert-equals timing["irq_to_trigger_ms"] null
-  error = catch: CPU2Sleep.awake-msg --reset-reason=8
-  assert-equals error "provide both P2 reset and wake causes"
-  error = catch: CPU2Sleep.awake-msg --i2c-ready-us=0
-  assert-equals error "provide both P2 setup timestamps"
-  msg = CPU2Sleep.report-timing-msg --request-count=0 --tx-flush-to-rx-us=0
   parsed = protocol.Message.from-bytes msg.bytes
+  assert-equals parsed.type CPU2Sleep.MT
   assert-equals (parsed.header-get-data-uint 5) 1
-  assert-equals (parsed.data.get-data-bool CPU2Sleep.WAKE-TIMING) true
-  assert-equals (parsed.data.get-data-uint CPU2Sleep.P2-REQUEST-COUNT) 0
-  assert-equals (parsed.data.get-data-uint CPU2Sleep.P2-TX-FLUSH-TO-RX-US) 0
-  assert-equals (parsed.data.has-data CPU2Sleep.P2-FIRST-REQUEST-US) false
-  error = catch: CPU2Sleep.report-timing-msg --request-count=0 --first-request-us=0x1_0000_0000
-  assert-equals error "P2 timing value exceeds uint32"
+  assert-equals (parsed.data.get-data-uint CPU2Sleep.SLEEP-TRANSITION) CPU2Sleep.AWAKE
+  error := catch: CPU2Sleep.prepare-deep-sleep-msg --wake-message-types=[]
+  if error == null: throw "empty wake selection accepted"
 
 test-setup:
   comms := Comms
   sleep := Cpu2Sleep comms
   sleep.awake
   assert-equals comms.sent.size 2
-  assert-equals (comms.sent[0].data.has-data CPU2Sleep.P2-APP-START-US) false
-  assert-equals (comms.sent[0].data.has-data CPU2Sleep.P2-RESET-REASON) false
-  assert-equals (comms.sent[0].data.has-data CPU2Sleep.P2-I2C-READY-US) false
   assert-equals comms.sent[1].type ButtonPress.MT
   assert-equals (comms.sent[1].header-get-data-uint 15) 10
   assert-equals (comms.sent[1].header-has-data 7) false
@@ -262,6 +235,19 @@ test-recovery:
   assert-equals sleep.entered false
   assert-equals (comms.sent[1].data.get-data-uint 11) 0
 
+test-recovery-without-awake-reply:
+  comms := Comms
+  comms.drop-awake = true
+  device := Device comms.trace
+  device.fail-close = true
+  coordinator := Sleep comms
+  error := catch: coordinator.deep-sleep device
+  if error == null: throw "failed recovery was not reported"
+  assert-equals device.connected true
+  assert-equals comms.paused false
+  assert-equals comms.heartbeats.is-running true
+  assert-equals coordinator.entered false
+
 test-silence:
   comms := Comms
   comms.timeout = true
@@ -273,6 +259,22 @@ test-silence:
   if elapsed < 30_000 or elapsed > 500_000: throw "reply wait was not bounded: $elapsed us"
   assert-equals sleep.entered true
   assert-equals device.connected false
+
+test-blocked-prepare:
+  comms := Comms
+  comms.block-prepare = true
+  device := Device comms.trace
+  coordinator := Sleep comms
+  start := Time.monotonic-us
+  error := catch: coordinator.deep-sleep device
+  if error == null or Time.monotonic-us - start > 500_000:
+    throw "blocked PREPARE write did not abort promptly"
+  assert-equals coordinator.entered false
+  assert-equals device.connected true
+  assert-equals comms.paused false
+  assert-equals comms.heartbeats.is-running true
+  assert-equals comms.sent[1].type CPU2Sleep.MT
+  assert-equals (comms.sent[1].data.get-data-uint CPU2Sleep.SLEEP-TRANSITION) CPU2Sleep.AWAKE
 
 test-delayed-nack:
   comms := Comms
@@ -309,14 +311,21 @@ test-buttons:
     data.add-data-uint32 5 sequence
     msg := protocol.Message.with-data 38 data
     assert-equals (buttons.handle-message msg) false
-  assert-equals buttons.count 2
+  assert-equals buttons.last-button-id 0
+  assert-equals buttons.last-duration-ms 123
   assert-equals store["last-button-sequence"] 11
+  duplicate := ButtonPress.data --button-id=1 --duration=456
+  duplicate.add-data-uint32 5 11
+  buttons.handle-message (protocol.Message.with-data 38 duplicate)
+  assert-equals buttons.last-button-id 0
+  assert-equals buttons.last-duration-ms 123
   // Recreate the handler to simulate a new process after deep sleep.
   resumed := VendingButtons store
   data := ButtonPress.data --button-id=0 --duration=123
   data.add-data-uint32 5 11
   resumed.handle-message (protocol.Message.with-data 38 data)
-  assert-equals resumed.count 0
+  assert-equals resumed.last-button-id null
+  assert-equals resumed.last-duration-ms null
 
 main:
   test-wire
@@ -327,8 +336,10 @@ main:
   test-rejection-retry
   test-race
   test-recovery
+  test-recovery-without-awake-reply
   test-silence
   test-delayed-nack
+  test-blocked-prepare
   test-power
   test-buttons
   print "CPU2 sleep protocol/lifecycle/button tests passed"

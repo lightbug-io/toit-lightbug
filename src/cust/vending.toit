@@ -33,32 +33,12 @@ class Vending:
   _min-response-delay := (Duration --ms=50)
   _response-count /int := 1
   _last-request-start-us := 0
-  // Development timing temporarily disabled.
-  // uart-ready-us /int := 0
-  // first-request-us /int? := null
-  // first-response-us /int? := null
-  // first-rx-restored-us /int? := null
   last-activity-us /int := 0
   busy /bool := false
-  // request-count /int := 0
-  // last-command /int? := null
-  // last-tx-flushed-us /int? := null
-  // last-rx-restored-us /int? := null
   temperature-cache_ /float := 20.0
   voltage-cache_ /float := 3.7
   authed /bool := false
 
-  // 0x2b is serial
-  // 	if(settings->serialNum){
-  // 	vendingId = 0x2B00000000;
-  // 	uint32_t serialRange = settings->serialNum / 1e6;
-  // 	uint32_t deviceIdentifier = settings->serialNum - (serialRange * 1e6);
-  // 	memcpy(&vendingId, &deviceIdentifier, 4);
-  // } else {
-  // 	vendingId = 0x1B00000000;
-  // 	uint32_t id = settings->getCurrentId();
-  // 	memcpy(&vendingId, &id, 4);
-  // }
   static VENDING_ID_DEFAULT := 0x1B00000000
   vending-id := VENDING_ID_DEFAULT
 
@@ -76,7 +56,6 @@ class Vending:
     this.vending-id = vending-id
     // Init a port..
     set-port-rx
-    // uart-ready-us = Time.monotonic-us --since-wakeup
     last-activity-us = Time.monotonic-us --since-wakeup
 
   wait-min-response-delay --since-us/int?=null:
@@ -89,7 +68,6 @@ class Vending:
     remaining-us := _min-response-delay.in-us - elapsed-us
     if remaining-us > 0:
       sleep --ms=((remaining-us + 999) / 1000)
-      // blocking-sleep (Duration --us=remaining-us)
 
   set-port-rx:
     if port:
@@ -143,15 +121,9 @@ class Vending:
       wait-min-response-delay --since-us=previous-start-us
       set-port-tx
       previous-start-us = Time.monotonic-us --since-wakeup
-      // if first-response-us == null: first-response-us = previous-start-us
       port.out.write frame --flush=true
-      // last-tx-flushed-us = Time.monotonic-us --since-wakeup
-      // Let the final stop bit clear before rearming RX.
-      // sleep (Duration --ms=2)
       set-port-rx
-      // last-rx-restored-us = Time.monotonic-us --since-wakeup
       last-activity-us = Time.monotonic-us --since-wakeup
-      // if first-rx-restored-us == null: first-rx-restored-us = last-rx-restored-us
   
   read-frame -> ByteArray?:
     // Wait for a port
@@ -161,7 +133,6 @@ class Vending:
     while port.in.peek-byte != HEADER:
       port.in.read-byte
     _last-request-start-us = Time.monotonic-us --since-wakeup
-    // if first-request-us == null: first-request-us = _last-request-start-us
     last-activity-us = _last-request-start-us
     busy = true
     port.in.read-byte // Consume header.
@@ -203,9 +174,6 @@ class Vending:
         last-activity-us = Time.monotonic-us --since-wakeup
 
   process-command data/ByteArray:
-    // request-count++
-    // if data.size > 0: last-command = data[0]
-    // logger_.debug "Received command frame: $(data)"
     if data.size < 2: // Minimum length is command and checksum.
       logger_.error "invalid cmd message received"
       send-error

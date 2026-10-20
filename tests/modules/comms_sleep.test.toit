@@ -24,6 +24,8 @@ class Transport implements V3Transport:
 main:
   transport := Transport
   comms := Comms --transport=transport --open=false
+  with-timeout --ms=100: comms.pause-inbound // Also safe before the new task has run.
+  comms.resume-inbound
   sleep --ms=30
   comms.pause-inbound
   before := transport.reader.calls

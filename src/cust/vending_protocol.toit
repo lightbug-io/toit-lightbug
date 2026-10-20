@@ -129,7 +129,7 @@ class VendingProtocol:
     if command == Cmd_Auth:
       if data.size != 9:
         return build-response-frame Res_Auth Stat_Fail
-      // Match LifepassVending.cpp: the first eight bytes are not checked.
+      // The first eight authentication bytes are not validated here.
       // Only 0x01 authorizes; every other value clears authorization.
       auth-data := ByteArray 1
       auth-data[0] = data[8] == 0x01 ? 1 : 0

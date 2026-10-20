@@ -21,7 +21,6 @@ IDLE-BEFORE-SLEEP-US ::= 500_000
 // deep sleep before installing it. No REINIT is sent across a sleep wake.
 main:
   startup-start-us := Time.monotonic-us --since-wakeup
-  // app-start-us := startup-start-us // Development timing temporarily disabled.
   // Deep-sleep wakes should serve their event and return to sleep promptly.
   startup-grace-us := esp32.reset-reason == esp32.RESET-DEEPSLEEP ? 0 : STARTUP-GRACE.in-us
   esp32.ext1-wakeup-status (1 << 7) // Return shared SCL from RTC to I2C use.
@@ -40,7 +39,6 @@ main:
       --startComms=false
       --reinit-on-comms-start=false
   comms := device.comms
-  // i2c-ready-us := Time.monotonic-us --since-wakeup
   buttons := VendingButtons cache
   comms.register-handler buttons
   power := Cpu2Sleep comms
@@ -50,17 +48,12 @@ main:
     can-sleep := (:: not vending.busy and (Time.monotonic-us --since-wakeup) - vending.last-activity-us >= IDLE-BEFORE-SLEEP-US)
     ready := false
     next-update-us := 0
-    // last-report-requests := -1
-    // last-report-buttons := -1
     while true:
       error := catch:
         if not ready:
           // OPEN requests retained power before discovery; bounded failures
           // retry this sequence without releasing P1's deep-sleep contract.
           power.start-awake device
-              // --app-start-us=app-start-us
-              // --uart-ready-us=vending.uart-ready-us
-              // --i2c-ready-us=i2c-ready-us
           ready = true
         now-us := Time.monotonic-us --since-wakeup
         if now-us >= next-update-us:
@@ -69,19 +62,6 @@ main:
             cache["vending-id"] = vending.vending-id
           // Missing identity retries promptly; the UART remains serviced.
           next-update-us = now-us + (vending.vending-id == Vending.VENDING_ID_DEFAULT ? 1_000_000 : POLL-EVERY.in-us)
-        // quiet := can-sleep.call
-        // if quiet and (last-report-requests != vending.request-count or last-report-buttons != buttons.count):
-        //   power.report-timing
-        //       --request-count=vending.request-count
-        //       --first-request-us=vending.first-request-us
-        //       --first-response-us=vending.first-response-us
-        //       --first-rx-restored-us=vending.first-rx-restored-us
-        //       --tx-flush-to-rx-us=(vending.last-rx-restored-us == null ? null : vending.last-rx-restored-us - vending.last-tx-flushed-us)
-        //       --button-count=buttons.count
-        //       --last-button-id=buttons.last-button-id
-        //       --last-command=vending.last-command
-        //   last-report-requests = vending.request-count
-        //   last-report-buttons = buttons.count
         // Keep Jaguar reachable even when P1 reports no external power.
         grace-complete := (Time.monotonic-us --since-wakeup) - startup-start-us >= startup-grace-us
         if grace-complete and vending.vending-id != Vending.VENDING_ID_DEFAULT:

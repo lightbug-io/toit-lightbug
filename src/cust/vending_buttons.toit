@@ -6,7 +6,6 @@ import ..messages show ButtonPress
     Store may be an RTC RAM bucket on hardware or a Map in host tests. */
 class VendingButtons implements MessageHandler:
   store_ /any
-  count /int := 0
   last-button-id /int? := null
   last-duration-ms /int? := null
 
@@ -18,7 +17,6 @@ class VendingButtons implements MessageHandler:
     sequence := (msg.data.has-data 5) ? (msg.data.get-data-uint 5) : msg.msgId
     previous := store_.get "last-button-sequence" --if-absent=(: null)
     if sequence != null and sequence == previous: return false
-    count++
     last-button-id = msg.data.get-data-uint ButtonPress.BUTTON-ID
     last-duration-ms = msg.data.get-data-uint ButtonPress.DURATION
     if sequence != null: store_["last-button-sequence"] = sequence
