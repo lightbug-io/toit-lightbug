@@ -5,9 +5,11 @@ import log
 class VendingUpdater:
 
   logger_/log.Logger
+  identity-cache_ /any
 
-  constructor --logger=log.default:
+  constructor --logger=log.default --identity-cache=null:
     logger_ = logger
+    identity-cache_ = identity-cache
 
   static REQUEST-TIMEOUT := (Duration --s=10)
 
@@ -28,32 +30,30 @@ class VendingUpdater:
         logger_.warn "DeviceIDs: unexpected or unsuccessful response"
         return
       ids := messages.DeviceIDs.from-data resp.data
-      if ids.has-data messages.DeviceIDs.SERIAL:
-        serial-bytes := ids.get-data messages.DeviceIDs.SERIAL
-        if serial-bytes.size == 0 or serial-bytes.size > 8:
-          logger_.warn "DeviceIDs: malformed serial"
-          return
-        serial := ids.serial
-        // Validate the raw serial before encoding: a nonzero serial whose
-        // suffix is zero (e.g. 1_000_000) is still a valid serial identity.
-        if serial > 0:
-          vending-id := vending.update-vending-id-from-serial serial
-          logger_.info "✅ Device serial: $serial -> vending-id=$vending-id"
-          return
+      current-id := identity-field_ ids messages.DeviceIDs.ID
+      serial := identity-field_ ids messages.DeviceIDs.SERIAL
+      // Validate the raw serial: a nonzero serial with suffix zero is valid.
+      if serial != null:
+        vending-id := vending.update-vending-id-from-serial serial
+        logger_.info "✅ Device serial: $serial -> vending-id=$vending-id"
       // Missing/zero serials must never downgrade a last-known-good serial.
       // The encoded prefix also survives replacing the updater instance.
-      if (vending.vending-id >> 32) == VendingProtocol.ID_PREFIX_SERIAL:
-        return
-      if ids.has-data messages.DeviceIDs.ID:
-        id-bytes := ids.get-data messages.DeviceIDs.ID
-        if id-bytes.size == 0 or id-bytes.size > 8:
-          logger_.warn "DeviceIDs: malformed current ID"
-          return
-        if ids.id > 0:
-          vending-id := vending.update-vending-id-from-current-id ids.id
-          logger_.info "✅ Device current ID: $(ids.id) -> vending-id=$vending-id"
+      else if (vending.vending-id >> 32) != VendingProtocol.ID_PREFIX_SERIAL and current-id != null:
+        vending-id := vending.update-vending-id-from-current-id current-id
+        logger_.info "✅ Device current ID: $current-id -> vending-id=$vending-id"
+      if identity-cache_ != null:
+        identity-cache_.update --device-id=current-id --serial=serial
     if e:
       logger_.error "❌ DeviceIDs update failed: $e"
+
+  identity-field_ ids key/int -> int?:
+    if not ids.has-data key: return null
+    bytes := ids.get-data key
+    if bytes.size == 0 or bytes.size > 8:
+      logger_.warn "DeviceIDs: malformed identity field $key"
+      return null
+    value := ids.get-data-uint key
+    return value > 0 ? value : null
 
   update-temperature comms vending:
     e := catch:

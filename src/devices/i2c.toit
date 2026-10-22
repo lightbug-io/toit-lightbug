@@ -1,4 +1,3 @@
-import gpio
 import i2c
 import io
 import log
@@ -22,8 +21,8 @@ I2C-WAIT-SLEEP := (Duration --ms=75)
 
 LBI2CBus --sda/int --scl/int --frequency/int=100_000 -> i2c.Bus:
   b := i2c.Bus
-      --sda=gpio.Pin sda
-      --scl=gpio.Pin scl
+      --sda=sda
+      --scl=scl
       --frequency=frequency
       --pull-up=true
   // Space out bus init from any start of comms / usage

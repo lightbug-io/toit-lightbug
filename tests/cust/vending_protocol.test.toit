@@ -12,6 +12,9 @@ main:
   build-response-frame-get-stat-negative-temp
   build-response-frame-get-stat-fail-with-extra-data
   build-response-frame-direct-fail
+  auth-response
+  auth-invalid-length
+  auth-invalid-checksum
   ignore-unsupported-commands
 
 vending-id-from-current-id:
@@ -143,6 +146,44 @@ build-response-frame-direct-fail:
     print "❌ build-response-frame-direct-fail. Expected: $expected, got: $got"
   else:
     print "✅ build-response-frame-direct-fail"
+
+assert-equals label/string actual expected:
+  if actual != expected:
+    throw "$label: expected $expected, got $actual"
+
+auth-response:
+  // An arbitrary ID is accepted, as in the active C++ implementation.
+  data := #[0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x01]
+  request := VendingProtocol.build-command-frame VendingProtocol.Cmd_Auth data
+  got := VendingProtocol.response-for-command-frame request 0x1b00000000 20 3.7
+  assert-equals "auth true" got #[0x3e, 0x06, 0xb3, 0xf1, 0x01, 0x7b, 0x0d, 0x0a]
+
+  // All values other than 0x01 must clear authorization, not just 0x00.
+  256.repeat: | flag |
+    if flag != 1:
+      data[8] = flag
+      request = VendingProtocol.build-command-frame VendingProtocol.Cmd_Auth data
+      got = VendingProtocol.response-for-command-frame request 0x1b00000000 20 3.7
+      assert-equals "auth false ($flag)" got #[0x3e, 0x06, 0xb3, 0xf1, 0x00, 0x7a, 0x0d, 0x0a]
+  print "auth response tests passed"
+
+auth-invalid-length:
+  [0, 1, 8, 10, 96].do: | length/int |
+    request := VendingProtocol.build-command-frame VendingProtocol.Cmd_Auth (ByteArray length)
+    got := VendingProtocol.response-for-command-frame request 0x1b00000000 20 3.7
+    assert-equals "auth invalid length ($length)" got #[0x3e, 0x05, 0xb3, 0xf2, 0x7a, 0x0d, 0x0a]
+  print "auth invalid length tests passed"
+
+auth-invalid-checksum:
+  request := VendingProtocol.build-command-frame VendingProtocol.Cmd_Auth #[0, 0, 0, 0, 0, 0, 0, 0, 1]
+  request[request.size - 3] ^= 1
+  got := VendingProtocol.response-for-command-frame request 0x1b00000000 20 3.7
+  assert-equals "auth invalid checksum" got null
+  // Also test the direct payload entry used by Vending.process-command.
+  payload := request[2..request.size - 2]
+  got = VendingProtocol.response-for-command-payload payload 0x1b00000000 20 3.7
+  assert-equals "auth invalid payload checksum" got null
+  print "auth invalid checksum tests passed"
 
 ignore-unsupported-commands:
   request := VendingProtocol.build-command-frame VendingProtocol.Cmd_SetId #[0x10, 0x20]

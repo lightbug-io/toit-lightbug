@@ -12,6 +12,26 @@ class CPU2Sleep extends protocol.Data:
   static WIFI-OVERRIDE-MODE_FORCE-ON := 1
   static WIFI-OVERRIDE-MODE_CLEAR-OVERRIDE := 2
 
+  static WAKE-MESSAGE-TYPES ::= 3
+  static SLEEP-TRANSITION ::= 11
+  static WAKE-MECHANISM ::= 12
+  static AWAKE ::= 0
+  static PREPARE-DEEP-SLEEP ::= 1
+  static SCL-PULSE ::= 0
+
+  static prepare-deep-sleep-msg --wake-message-types/List=[38, 48] -> protocol.Message:
+    if wake-message-types.is-empty: throw "wake-message-types must not be empty"
+    data := protocol.Data
+    data.add-data-uint8 SLEEP-TRANSITION PREPARE-DEEP-SLEEP
+    data.add-data-uint8 WAKE-MECHANISM SCL-PULSE
+    data.add-data-list-uint16 WAKE-MESSAGE-TYPES wake-message-types
+    return set-msg --base-data=data
+
+  static awake-msg -> protocol.Message:
+    data := protocol.Data
+    data.add-data-uint8 SLEEP-TRANSITION AWAKE
+    return set-msg --base-data=data
+
   static WIFI-OVERRIDE-MODE_STRINGS := {
     0: "Force Off",
     1: "Force On",
