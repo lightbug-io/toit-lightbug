@@ -97,6 +97,14 @@ recovery timer. The current Toit runtime requires a timer; the commented
 60-second alternative is useful for testing. Wake latency depends on hardware,
 firmware and runtime startup; full-battery connection may be detected by polling.
 
+Vending identity is restored from the flash bucket `lightbug/vending` before
+UART responses start. Its `identity` record holds the full device ID and serial
+number; the serial takes priority when forming the kiosk identity. Successful
+DeviceIDs reads update that record only when either value changes. Missing or
+zero fields preserve the last known values. Every boot/wake still requests fresh
+DeviceIDs, followed by the normal 60-second refresh while awake. Button
+deduplication remains in RTC RAM so button traffic does not write flash.
+
 Button delivery is ordered and at least once. Accept events before acknowledging
 them and preserve the last accepted sequence across deep sleep if duplicate
 actions matter. The vending example uses RTC RAM for this. P1 reset or loss of
