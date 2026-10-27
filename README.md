@@ -20,6 +20,7 @@ The base-apps entrypoint accepts `-Dlb-app=relay` to start Relay on boot.
 
 ## Documentation & resources
 
+- **P1/P2 deep sleep:** [setup, wake sources and examples](DEEP_SLEEP.md)
 - **Toit home:** https://toitlang.org/
 - **Toit language reference:** https://docs.toit.io/language/
 - **Toit package docs:** https://docs.toit.io/language/package

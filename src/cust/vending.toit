@@ -1,5 +1,4 @@
 import uart
-import gpio
 import log
 import .vending_protocol show VendingProtocol
 
@@ -25,86 +24,69 @@ class Vending:
 
   // Commands (FROM VENDING)
   static Cmd_SetId := VendingProtocol.Cmd_SetId // Will not be implemented.
-  static Cmd_Auth := VendingProtocol.Cmd_Auth // Will not be implemented.
+  static Cmd_Auth := VendingProtocol.Cmd_Auth
 
   port := null
-  _rx-pin := null
-  _tx-pin := null
   _rx-pin-num := null
   _tx-pin-num := null
   _baud-rate := null
   _min-response-delay := (Duration --ms=50)
+  _response-count /int := 1
   _last-request-start-us := 0
+  last-activity-us /int := 0
+  busy /bool := false
   temperature-cache_ /float := 20.0
   voltage-cache_ /float := 3.7
+  authed /bool := false
 
-  // 0x2b is serial
-  // 	if(settings->serialNum){
-  // 	vendingId = 0x2B00000000;
-  // 	uint32_t serialRange = settings->serialNum / 1e6;
-  // 	uint32_t deviceIdentifier = settings->serialNum - (serialRange * 1e6);
-  // 	memcpy(&vendingId, &deviceIdentifier, 4);
-  // } else {
-  // 	vendingId = 0x1B00000000;
-  // 	uint32_t id = settings->getCurrentId();
-  // 	memcpy(&vendingId, &id, 4);
-  // }
   static VENDING_ID_DEFAULT := 0x1B00000000
   vending-id := VENDING_ID_DEFAULT
 
   logger_/log.Logger
+  transmit_ /Lambda? := null
 
-  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --logger=log.default:
+  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --response-count/int=1 --vending-id/int=VENDING_ID_DEFAULT --logger=log.default --transmit/Lambda?=null:
+    if response-count < 1:
+      throw "response-count must be at least 1"
     logger_ = logger
     _rx-pin-num = rx-pin
     _tx-pin-num = tx-pin
-    _rx-pin = gpio.Pin _rx-pin-num --open-drain=true
-    _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
     _baud-rate = baud-rate
     _min-response-delay = min-response-delay
+    _response-count = response-count
+    this.vending-id = vending-id
+    transmit_ = transmit
     // Init a port..
-    set-port-rx
+    if transmit_ == null: set-port-rx
+    last-activity-us = Time.monotonic-us --since-wakeup
 
-  refresh-pins:
-    // Refresh both pins to avoid stale drive state after TX.
-    if _rx-pin:
-      _rx-pin.close
-    if _tx-pin:
-      _tx-pin.close
-    _rx-pin = gpio.Pin _rx-pin-num --open-drain=true
-    _tx-pin = gpio.Pin _tx-pin-num --open-drain=true
-
-  wait-min-response-delay:
+  wait-min-response-delay --since-us/int?=null:
     if _min-response-delay.in-us <= 0:
       return
-    if _last-request-start-us <= 0:
+    start-us := since-us == null ? _last-request-start-us : since-us
+    if start-us <= 0:
       return
-    elapsed-us := (Time.monotonic-us --since-wakeup) - _last-request-start-us
+    elapsed-us := (Time.monotonic-us --since-wakeup) - start-us
     remaining-us := _min-response-delay.in-us - elapsed-us
     if remaining-us > 0:
       sleep --ms=((remaining-us + 999) / 1000)
-      // blocking-sleep (Duration --us=remaining-us)
 
   set-port-rx:
-    print "Setting port to rx mode"
     if port:
       port.close
-    refresh-pins
     port = uart.Port
-      --rx=_rx-pin
-      --tx=_tx-pin // Partner pin for half-duplex read mode
+      --rx=_rx-pin-num
+      --tx=_tx-pin-num // Partner pin for half-duplex read mode
       --baud_rate=_baud-rate
       --high-priority=true
       --no-large-buffers
   
   set-port-tx:
-    print "Setting port to tx mode"
     if port:
       port.close
-    refresh-pins
     port = uart.Port
-      --rx=_tx-pin // Partner pin while transmitting
-      --tx=_rx-pin // Drive response on the kiosk line
+      --rx=_tx-pin-num // Partner pin while transmitting
+      --tx=_rx-pin-num // Drive response on the kiosk line
       --baud_rate=_baud-rate
       --high-priority=true
       --no-large-buffers
@@ -133,23 +115,30 @@ class Vending:
     return voltage-cache_
   
   send-error:
-    wait-min-response-delay
-    set-port-tx
-    port.out.write "ERROR\r\n".to-byte-array --flush=true
-    // Let the final stop bit clear before rearming RX.
-    sleep (Duration --ms=2)
-    set-port-rx
+    send-response "ERROR\r\n".to-byte-array
 
   send-response frame/ByteArray:
-    wait-min-response-delay
-    set-port-tx
-    // pad the frame with 500 bytes of 1...
-    // frame = frame + (ByteArray 500 --initial=1)
-    port.out.write frame --flush=true
-    // Let the final stop bit clear before rearming RX.
-    sleep (Duration --ms=2)
-    set-port-rx
-    logger_.debug "Sent response frame: $(frame)"
+    previous-start-us := _last-request-start-us
+    _response-count.repeat:
+      wait-min-response-delay --since-us=previous-start-us
+      if transmit_ == null: set-port-tx
+      previous-start-us = Time.monotonic-us --since-wakeup
+      if transmit_ != null:
+        transmit_.call frame
+      else:
+        port.out.write frame --flush=true
+        set-port-rx
+      last-activity-us = Time.monotonic-us --since-wakeup
+
+  handle-frame frame/ByteArray started-us/int:
+    busy = true
+    _last-request-start-us = started-us
+    try:
+      payload := VendingProtocol.command-payload-from-frame frame
+      if payload != null: process-command payload
+    finally:
+      busy = false
+      last-activity-us = Time.monotonic-us --since-wakeup
   
   read-frame -> ByteArray?:
     // Wait for a port
@@ -159,57 +148,47 @@ class Vending:
     while port.in.peek-byte != HEADER:
       port.in.read-byte
     _last-request-start-us = Time.monotonic-us --since-wakeup
+    last-activity-us = _last-request-start-us
+    busy = true
     port.in.read-byte // Consume header.
 
-    length := 0
-    // exception := catch --unwind=(: it != DEADLINE-EXCEEDED-ERROR):
-    //   with-timeout (Duration --ms=100):
-    length = port.in.read-byte
-    // if exception:
-    //   return null
+    frame := null
+    error := catch:
+      // 100 bytes at 9600 baud take ~104 ms. Bound a truncated request
+      // without timing out the idle wait for the next header.
+      with-timeout --ms=250:
+        frame = read-frame-body_
+    if error == DEADLINE-EXCEEDED-ERROR: return null
+    if error: throw error
+    return frame
 
-    if length < 4 or length > BUFFER_SIZE:
-      return null
-
-    // LENGTH includes [command/data/xor] and trailing CRLF.
+  read-frame-body_ -> ByteArray?:
+    length := port.in.read-byte
+    if length < 4 or length > BUFFER_SIZE: return null
     payload := ByteArray length
-
-    // exception = catch --unwind=(: it != DEADLINE-EXCEEDED-ERROR):
-    //   with-timeout (Duration --ms=50):
-    length.repeat: | i |
-      payload[i] = port.in.read-byte
-    // if exception:
-    //   return null
-
+    length.repeat: | i | payload[i] = port.in.read-byte
     if payload[length - 2] != BACKSLASH_R or payload[length - 1] != BACKSLASH_N:
       return null
-
     frame := ByteArray length + 2
     frame[0] = HEADER
     frame[1] = length
-    length.repeat: | i |
-      frame[i + 2] = payload[i]
+    length.repeat: | i | frame[i + 2] = payload[i]
     return frame
 
   process-loop:
-    // // Send Hello to start for debug
-    // send-response "Hello\r\n".to-byte-array
     while true:
-      frame := read-frame
-      if not frame:
-        send-error
-        continue
+      try:
+        frame := read-frame
+        // Resynchronise silently; an ERROR here could overlap a new frame.
+        if not frame: continue
+        payload := VendingProtocol.command-payload-from-frame frame
+        if not payload: continue
+        process-command payload
+      finally:
+        busy = false
+        last-activity-us = Time.monotonic-us --since-wakeup
 
-      payload := VendingProtocol.command-payload-from-frame frame
-      if not payload:
-        logger_.error "Invalid vending frame"
-        send-error
-        continue
-
-      process-command payload
-  
   process-command data/ByteArray:
-    // logger_.debug "Received command frame: $(data)"
     if data.size < 2: // Minimum length is command and checksum.
       logger_.error "invalid cmd message received"
       send-error
@@ -222,8 +201,9 @@ class Vending:
 
     response := VendingProtocol.response-for-command-payload data vending-id get-temperature get-voltage
     if response:
+      if data[0] == Cmd_Auth and response[3] == VendingProtocol.Stat_Success:
+        authed = response[4] == 0x01
       send-response response
-      print "Processed command $(data[0])"
       return
 
     if data[0] < Cmd_SetId or data[0] > Cmd_Auth:

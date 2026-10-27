@@ -1,5 +1,4 @@
 import uart
-import gpio
 import io
 import log
 import .base
@@ -21,8 +20,8 @@ ESP32C6-UART-TX-PIN := 16
 
 ESP32C6UartPort -> uart.Port:
   return uart.Port
-    --rx=gpio.Pin ESP32C6-UART-RX-PIN
-    --tx=gpio.Pin ESP32C6-UART-TX-PIN
+    --rx=ESP32C6-UART-RX-PIN
+    --tx=ESP32C6-UART-TX-PIN
     --baud_rate=115200
 
 // TODO GenericUart devices may want to have the LB prefix set for messages...

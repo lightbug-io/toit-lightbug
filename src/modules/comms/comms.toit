@@ -25,6 +25,11 @@ class Comms:
   msgIdGenerator /IdGenerator
   background_ /bool
   stopInboundOnDisconnect_ /bool
+  inbound-task_ /Task? := null
+  inbound-running_ /bool := false
+  link-id /int? := null
+  router_ /MessageHandler? := null
+  last-activity-us /int := 0
 
   outbox_ /Channel
   outboxTaskStarted_ /bool := false
@@ -54,6 +59,7 @@ class Comms:
       // `transport`: Comms only requires a V3 byte-stream transport.
       --device/V3Transport? = null
       --transport/V3Transport? = null
+      --link-id/int? = null // Peer/link reachable through this Comms instance.
       // Allow passing in handlers to register on creation
       --handlers/List?/*<MessageHandler>*/ = []
       // Customizable id generator for message ids
@@ -76,6 +82,7 @@ class Comms:
     if transport == null: transport = device
     if transport == null: throw "Comms requires a V3 transport"
     transport_ = transport
+    this.link-id = link-id
     messageHandlers_ = handlers
     msgIdGenerator = idGenerator
     background_ = background
@@ -104,6 +111,15 @@ class Comms:
     messageHandlers_.add handler
     logger_.info "Registered message handler"
 
+  register-router handler/MessageHandler:
+    if router_ != null: throw "A router is already registered on this link"
+    router_ = handler
+
+  /** Normal protocol dispatch for a transport that already assembles and
+      validates complete frames. Unlike inject-inbound, ACKs/tracking apply. */
+  receive-message msg/protocol.Message:
+    processReceivedMessage_ msg
+
   /**
    * Unregister a message handler.
    */
@@ -118,7 +134,7 @@ class Comms:
       // A disconnect makes processInbound_ return. Do not restart that normal
       // completion when the transport owner needs to recreate its resource;
       // exceptions while still connected are still restarted in either mode.
-      task --background=background_:: catch-and-restart "processInbound_" (:: processInbound_) --restart-always=(not stopInboundOnDisconnect_) --logger=logger_
+      resume-inbound
     if startOutbox:
       task --background=background_:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
     // In order for the Lightbug device to talk back to us, we have to open the conn
@@ -129,6 +145,23 @@ class Comms:
       heartbeats_.start
     
     logger_.info "Comms started"
+
+  /** Stop and join the reader before its transport/pins are released.
+      Call from the transport owner, never from an inbound handler. */
+  pause-inbound:
+    if not inbound-running_: return
+    inbound-task_.cancel
+    while inbound-running_: yield
+    inbound-task_ = null
+
+  resume-inbound:
+    if inbound-running_: return
+    inbound-running_ = true
+    inbound-task_ = task --background=background_::
+      try:
+        catch-and-restart "processInbound_" (:: processInbound_) --restart-always=(not stopInboundOnDisconnect_) --logger=logger_
+      finally:
+        inbound-running_ = false
 
   sendOpen:
     if not (send (messages.Open.msg --data=null) --now=true --withLatch=true --timeout=(Duration --s=10)).get:
@@ -284,6 +317,11 @@ class Comms:
     processReceivedMessage_ msg --synthetic=true
 
   processReceivedMessage_ msg/protocol.Message --synthetic/bool=false:
+    if not synthetic:
+      last-activity-us = Time.monotonic-us --since-wakeup
+      // Relayed responses belong to the originating link, not local trackers
+      // or handlers that happen to use the same message type or ID.
+      if router_ != null and router_.handle-message msg: return
     logger_.with-level log.TRACE-LEVEL:
       logger_.trace "RCV: $(msg)"
 
@@ -488,26 +526,21 @@ class Comms:
       // Ensure the message has a known message id
       if not (msg.header-has-data protocol.Header.TYPE-MESSAGE-ID):
         msg.header-add-data-uint32 protocol.Header.TYPE-MESSAGE-ID msgIdGenerator.next
-
-      // Only allocate a combined buffer when there is a prefix to prepend.
-      m := ?
-      if LBSyncBytes_.is-empty:
-        m = msg.bytes
-      else:
-        message-size := msg.size
-        m = ByteArray LBSyncBytes_.size + message-size
-        m.replace 0 LBSyncBytes_ 0 LBSyncBytes_.size
-        msg.write-bytes-for-protocol-into m LBSyncBytes_.size
-
-      // Send the message
-      transport_.out.write m --flush=true
-      logger_.with-level log.TRACE-LEVEL:
-        logger_.trace "SNT msg: $(stringify-all-bytes m) $(message-bytes-to-docs-url m)"
+      send-forwarded msg
     else:
       // TODO: It might be nice to allow the outbox to dedeuplicate messages sometimes?
       send-via-outbox msg
       logger_.with-level log.TRACE-LEVEL:
         logger_.trace "SNT (outbox) msg of type: $(msg.type) $(message-bytes-to-docs-url msg.bytes)"
+
+  /** Write a relayed frame with this transport's framing, preserving IDs and
+      without creating local trackers or acknowledging it on behalf of its peer. */
+  send-forwarded msg/protocol.Message:
+    bytes := LBSyncBytes_.is-empty ? msg.bytes : (LBSyncBytes_ + msg.bytes)
+    transport_.out.write bytes --flush=true
+    last-activity-us = Time.monotonic-us --since-wakeup
+    logger_.with-level log.TRACE-LEVEL:
+      logger_.trace "SNT msg: $(stringify-all-bytes bytes) $(message-bytes-to-docs-url bytes)"
 
   // Send a message via the outbox
   send-via-outbox msg/protocol.Message:

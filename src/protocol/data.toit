@@ -214,6 +214,12 @@ class Data:
     data := get-data dataType
     return data.to-string
 
+  get-all-data dataType/int -> List:
+    result := []
+    fields_.repeat:
+      if (data-type_ it) == dataType: result.add (field-data_ it)
+    return result
+
   get-data-uint8 dataType/int -> int:
     start := field-start-for-data-type_ dataType
     if start < 0:

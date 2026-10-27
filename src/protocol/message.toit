@@ -168,6 +168,9 @@ class Message:
  header-remove-data dataType/int -> none:
   materialize-header_.data.remove-data dataType
 
+ header-get-all-data dataType/int -> List:
+  return materialize-header_.data.get-all-data dataType
+
  header -> Header:
   return materialize-header_  
 

@@ -1,0 +1,16 @@
+import esp32
+import lightbug.devices as devices
+import lightbug.modules.power show Cpu2Sleep
+
+// This example owns whole-chip sleep. Coordinate other containers first.
+main:
+  device := devices.I2C --connect-now=false --open=false --reinit-on-comms-start=false
+  esp32.ext1-wakeup-status (1 << device.i2c-scl)
+  device.connect
+  power := Cpu2Sleep device.comms --wake-message-types=[48]
+  power.start-awake device
+
+  // Keep a programming window on cold boot; skip it after deep-sleep wake.
+  if esp32.reset-reason != esp32.RESET-DEEPSLEEP: sleep (Duration --s=20)
+  while not (power.deep-sleep device --duration=(Duration --h=1)):
+    sleep (Duration --s=5)
