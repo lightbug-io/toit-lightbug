@@ -32,7 +32,7 @@ class WiFiHandler implements MessageHandler:
     if method == protocol.Header.METHOD_UNSUBSCRIBE:
       logger_.info "Stopping WiFi scan subscription"
       stop-subscription_
-      acknowledge-request msg.msgId
+      acknowledge-request msg
       return true
     if method != protocol.Header.METHOD_SUBSCRIBE:
       logger_.debug "WiFi message with unsupported method: $method"
@@ -46,18 +46,23 @@ class WiFiHandler implements MessageHandler:
     reporting-interval := extract-reporting-interval msg
     request-msg-id := msg.msgId
 
-    acknowledge-request request-msg-id
+    acknowledge-request msg
     forwarded-for := msg.was-forwarded ? msg.forwarded-for : null
     start-report-task_ generation reporting-interval request-msg-id forwarded-for
     scan-task_ = task --background=true::
       perform-wifi-scan generation duration reporting-interval request-msg-id forwarded-for
     return true
 
-  acknowledge-request request-msg-id/int?:
+  acknowledge-request msg/protocol.Message:
+    request-msg-id := msg.msgId
     if request-msg-id == null: return
     ack-msg := messages.ACK.msg --data=null
     ack-msg.header-add-data-uint32 protocol.Header.TYPE-RESPONSE-TO-MESSAGE-ID request-msg-id
     ack-msg.header-add-data-uint8 protocol.Header.TYPE-MESSAGE-STATUS protocol.Header.STATUS-OK
+    // Forwarded subscriptions need their ACK routed back just like results.
+    route := msg.header-get-all-data protocol.Header.TYPE_FORWARDED_FOR
+    route.size.repeat:
+      ack-msg.header-add-data protocol.Header.TYPE_FORWARD_TO route[route.size - 1 - it]
     device_.comms.send ack-msg --now=true
 
   // Missing or zero duration means an unbounded subscription.

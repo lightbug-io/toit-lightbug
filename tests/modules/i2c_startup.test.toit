@@ -5,6 +5,8 @@ import lightbug.devices.i2c-device show I2C DeviceDetectionHandler
 import lightbug.modules.comms show Comms
 import lightbug.modules.comms.transport show V3Transport
 import lightbug.protocol as protocol
+import lightbug.messages as messages
+import lightbug.modules.comms.link-router show LinkRouter
 
 class Reader extends io.Reader with io.InMixin:
   frames := monitor.Channel 8
@@ -53,10 +55,21 @@ class Device extends I2C:
     super --connect-now=false --startComms=false
   comms -> Comms: return test-comms
 
+// Exercise the real I2C Comms factory without opening MCU peripherals.
+class HandlerDevice extends I2C:
+  wire := Transport
+  constructor:
+    super --connect-now=false --startComms=false --open=false --reinit-on-comms-start=false
+  prefix -> bool: return false
+  connected -> bool: return true
+  in -> io.Reader: return wire.in
+  out -> io.Writer: return wire.out
+
 main:
   test-capability-retry
   test-capability-status
-  print "I2C capability tests passed"
+  test-scan-handler-wiring
+  print "I2C capability and scan handler wiring tests passed"
 
 test-capability-retry:
   device := Device
@@ -96,3 +109,28 @@ test-capability-status:
       if error == null or device.type-known: throw "capability NACK accepted"
     comms.pause-inbound
 
+test-scan-handler-wiring:
+  // A forwarded unsubscribe safely exercises both real scan handlers on the
+  // host. Its ACK must return to cloud, unlike Comms' generic receipt ACK.
+  scanning := HandlerDevice
+  scan-comms := scanning.comms
+  router := LinkRouter --p1=scan-comms
+  [messages.WiFiScan.MT, messages.BLEScan.MT].do: | mt |
+    before-frames := scanning.wire.writer.frames.size
+    request := protocol.Message.with-method mt protocol.Header.METHOD_UNSUBSCRIBE
+    request.header-add-data-uint32 protocol.Header.TYPE_MESSAGE_ID mt
+    request.header-add-data-uint8 protocol.Header.TYPE_FORWARDED_FOR 0
+    if mt == messages.WiFiScan.MT:
+      request.header-add-data-uint8 protocol.Header.TYPE_FORWARD_TO 1
+    scanning.wire.reader.frames.send request.bytes
+    with-timeout --ms=200:
+      while scanning.wire.writer.frames.size == before-frames: sleep --ms=1
+    if scanning.wire.writer.frames.size != before-frames + 1: throw "Duplicate scan acknowledgement"
+    ack := scanning.wire.writer.frames[before-frames]
+    if ack.type != messages.ACK.MT or ack.response-to != mt or ack.msg-status != 0:
+      throw "Scan handler did not acknowledge unsubscribe"
+    if not ack.header-has-data protocol.Header.TYPE_FORWARD_TO:
+      throw "Scan ACK lost the cloud return route for MT$mt"
+    if (ack.header-get-data-uint protocol.Header.TYPE_FORWARD_TO) != 0:
+      throw "Scan ACK has the wrong return route"
+  scan-comms.pause-inbound

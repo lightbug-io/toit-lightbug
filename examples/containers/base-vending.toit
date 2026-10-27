@@ -60,7 +60,7 @@ main:
       --open=false
       --startComms=false
       --reinit-on-comms-start=false
-      --with-default-handlers=false
+      --with-default-handlers=true
   // Return the configured shared SCL pin from RTC to I2C before opening the bus.
   esp32.ext1-wakeup-status (1 << device.i2c-scl)
   device.connect
