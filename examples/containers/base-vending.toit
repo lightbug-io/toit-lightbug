@@ -5,10 +5,12 @@ import lightbug.cust.vending show Vending
 import lightbug.cust.vending_updater show VendingUpdater
 
 POLL-EVERY ::= (Duration --s=60)
-MIN-RESPONSE-DELAY ::= (Duration --ms=180)
+MIN-RESPONSE-DELAY ::= (Duration --ms=5)
+RESPONSE-COUNT ::= 1
 
 // A basic example of a vending app that listens for UART commands
-// and responds with cached temperature/voltage data, which is updated periodically
+// and responds RESPONSE-COUNT times, spaced by MIN-RESPONSE-DELAY, with cached
+// temperature/voltage data, which is updated periodically
 // from the device using the VendingUpdater.
 main:
   firmware.print-startup-line
@@ -21,7 +23,7 @@ main:
   real-pin := 19
 
   comms := device.comms
-  vending := Vending --tx-pin=0 --rx-pin=real-pin --min-response-delay=MIN-RESPONSE-DELAY
+  vending := Vending --tx-pin=0 --rx-pin=real-pin --min-response-delay=MIN-RESPONSE-DELAY --response-count=RESPONSE-COUNT
   vending-updater := VendingUpdater 
 
   task --background=true::
