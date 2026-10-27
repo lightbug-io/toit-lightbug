@@ -5,11 +5,25 @@ import lightbug.devices as devices
 import lightbug.cust.vending show Vending
 import lightbug.cust.vending_updater show VendingUpdater
 import lightbug.cust.vending_buttons show VendingButtons
+import lightbug.cust.vending_identity show VendingIdentity
 import lightbug.modules.power show Cpu2Sleep
 
-POLL-EVERY ::= (Duration --s=60)
+// Minimum response delay for each request.
+// The first response starts no earlier than this minimum response delay.
+// Subsequent responses start at least that duration after the previous transmission started.
+// Transmission and UART switching may extend the interval.
+// Default is 5 ms; increase to delay responses further if needed.
 MIN-RESPONSE-DELAY ::= (Duration --ms=5)
+
+// Response count for each request, including errors (`ERROR\r\n`).
+// Default is 1; increase to repeat responses more times if needed.
 RESPONSE-COUNT ::= 1
+
+// Polling interval for updates from P1 (the primary processor).
+// Each poll updates cached information in the vending container from P1.
+// Default is 60 s; increase to poll less frequently if needed.
+POLL-EVERY ::= (Duration --s=60)
+
 // This Toit runtime requires a timer; keep missed-pulse recovery infrequent.
 RECOVERY-WAKE ::= (Duration --h=1)
 // For short recovery tests, replace the line above with:
@@ -24,14 +38,14 @@ main:
   // Deep-sleep wakes should serve their event and return to sleep promptly.
   startup-grace-us := esp32.reset-reason == esp32.RESET-DEEPSLEEP ? 0 : STARTUP-GRACE.in-us
   cache := storage.Bucket.open --ram "lightbug/vending"
-  cached-id := cache.get "vending-id" --if-absent=(: Vending.VENDING_ID_DEFAULT)
-  // Initialise RX/identity before I2C, boot logging, or slow cache requests.
+  identity := VendingIdentity (storage.Bucket.open --flash "lightbug/vending")
+  // Restore identity before I2C setup so early kiosk requests use the saved ID.
   vending := Vending
       --tx-pin=0
       --rx-pin=19
       --min-response-delay=MIN-RESPONSE-DELAY
       --response-count=RESPONSE-COUNT
-      --vending-id=cached-id
+      --vending-id=identity.vending-id
   device := devices.I2C
       --connect-now=false
       --background=true
@@ -45,7 +59,7 @@ main:
   buttons := VendingButtons cache
   comms.register-handler buttons
   power := Cpu2Sleep comms
-  updater := VendingUpdater --logger=(log.default.with-level log.ERROR-LEVEL)
+  updater := VendingUpdater --logger=(log.default.with-level log.ERROR-LEVEL) --identity-cache=identity
 
   task --background=true::
     can-sleep := (:: not vending.busy and (Time.monotonic-us --since-wakeup) - vending.last-activity-us >= IDLE-BEFORE-SLEEP-US)
@@ -61,8 +75,6 @@ main:
         now-us := Time.monotonic-us --since-wakeup
         if now-us >= next-update-us:
           updater.update-vending-cache-from-device comms vending
-          if vending.vending-id != Vending.VENDING_ID_DEFAULT:
-            cache["vending-id"] = vending.vending-id
           // Missing identity retries promptly; the UART remains serviced.
           next-update-us = now-us + (vending.vending-id == Vending.VENDING_ID_DEFAULT ? 1_000_000 : POLL-EVERY.in-us)
         // Keep Jaguar reachable even when P1 reports no external power.
