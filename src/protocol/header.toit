@@ -34,6 +34,7 @@ class Header:
   static LINK_ID_UART := 5
   static LINK_ID_P1 := 3
   static LINK_ID_USB_HOST := 7
+  static LINK_ID_RS232 := 8
 
   // For use with TYPE_MESSAGE_STATUS
   static STATUS_OK /int ::= 0

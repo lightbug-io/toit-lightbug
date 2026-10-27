@@ -57,6 +57,7 @@ class UsbConsole implements V3Transport:
       // A host console has no Lightbug Open/reinit handshake. Applications can
       // explicitly start V3 heartbeats when that behaviour is desired.
       comms_ = Comms
+          --link-id=protocol.Header.LINK_ID_USB_HOST
           --transport=this
           --handlers=handlers_
           --open=false

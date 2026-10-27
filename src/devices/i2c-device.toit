@@ -238,6 +238,7 @@ class I2C implements Device:
       else :
         logger_.warn "Default message handlers disabled"
       comms_ = Comms 
+          --link-id=protocol.Header.LINK_ID_P1
           --device=this
           --open=open_
           --background=background_
