@@ -1,6 +1,8 @@
 import io
 import lightbug.cust.vending show Vending
 import lightbug.cust.vending_protocol show VendingProtocol
+import lightbug.modules.comms.mixed-serial show MixedSerial
+import lightbug.protocol as protocol
 
 class FeedReader extends io.Reader with io.InMixin:
   pending /ByteArray := #[]
@@ -24,6 +26,16 @@ class RecordingWriter extends io.Writer with io.OutMixin:
 class RecordingPort:
   out := RecordingWriter
   in := FeedReader
+  close:
+
+class TestMixedSerial extends MixedSerial:
+  recording-port := RecordingPort
+  constructor:
+    super --rx-pin=19 --tx-pin=0
+  set-rx_:
+    port_ = recording-port
+  set-tx_:
+    if reader-running_: throw "UART switched before the reader stopped"
 
 class TestVending extends Vending:
   recording-port := RecordingPort
@@ -110,5 +122,24 @@ main:
   sleep --ms=50
   assert-equals "recovery response count" recovering.recording-port.out.frames.size 1
   reader.cancel
+
+  // Both protocols share one reader and TX owner. Dispatch/ACK writes must
+  // not cancel the task handling the current request or steal its next frame.
+  serial := TestMixedSerial
+  multiplexed := Vending --rx-pin=19 --tx-pin=0 --min-response-delay=(Duration --ms=0)
+      --transmit=(:: | frame | serial.transmit frame)
+  v3 := protocol.Message 13
+  v3.header-add-data-uint32 protocol.Header.TYPE_MESSAGE_ID 77
+  serial.recording-port.in.pending = request + #[0x4c, 0x42] + v3.bytes
+  worker := task --background=true::
+    serial.run: | frame started | multiplexed.handle-frame frame started
+  with-timeout --ms=1000:
+    while serial.recording-port.out.frames.size < 2: sleep --ms=1
+  assert-equals "legacy response survives multiplexing" serial.recording-port.out.frames[0] expected
+  wire := serial.recording-port.out.frames[1]
+  assert-equals "normal V3 ACK is prefixed" wire[..2] #[0x4c, 0x42]
+  ack := protocol.Message.from-bytes wire[2..]
+  assert-equals "normal V3 ACK correlation" ack.response-to 77
+  worker.cancel
 
   print "vending response tests passed"

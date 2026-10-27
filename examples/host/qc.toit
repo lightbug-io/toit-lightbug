@@ -43,8 +43,11 @@ run-qc-connection path/string:
       --background=false
       --stopInboundOnDisconnect=true
   print "PR3 USB QC runner connected to $path"
+  // Keep P2's external-link idle lease alive while waiting for cloud QC.
+  comms.heartbeats.start
   e := catch:
     run-qc-session comms transport
+  comms.heartbeats.stop
   // This is harmless when the OS has already invalidated the handle, and
   // ensures the next retry never shares the old serial connection.
   catch: transport.disconnect

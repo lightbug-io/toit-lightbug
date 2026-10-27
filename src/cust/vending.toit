@@ -43,8 +43,9 @@ class Vending:
   vending-id := VENDING_ID_DEFAULT
 
   logger_/log.Logger
+  transmit_ /Lambda? := null
 
-  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --response-count/int=1 --vending-id/int=VENDING_ID_DEFAULT --logger=log.default:
+  constructor --rx-pin/int --tx-pin/int --baud-rate/int=VENDING_BAUD --min-response-delay/Duration=(Duration --ms=50) --response-count/int=1 --vending-id/int=VENDING_ID_DEFAULT --logger=log.default --transmit/Lambda?=null:
     if response-count < 1:
       throw "response-count must be at least 1"
     logger_ = logger
@@ -54,8 +55,9 @@ class Vending:
     _min-response-delay = min-response-delay
     _response-count = response-count
     this.vending-id = vending-id
+    transmit_ = transmit
     // Init a port..
-    set-port-rx
+    if transmit_ == null: set-port-rx
     last-activity-us = Time.monotonic-us --since-wakeup
 
   wait-min-response-delay --since-us/int?=null:
@@ -119,10 +121,23 @@ class Vending:
     previous-start-us := _last-request-start-us
     _response-count.repeat:
       wait-min-response-delay --since-us=previous-start-us
-      set-port-tx
+      if transmit_ == null: set-port-tx
       previous-start-us = Time.monotonic-us --since-wakeup
-      port.out.write frame --flush=true
-      set-port-rx
+      if transmit_ != null:
+        transmit_.call frame
+      else:
+        port.out.write frame --flush=true
+        set-port-rx
+      last-activity-us = Time.monotonic-us --since-wakeup
+
+  handle-frame frame/ByteArray started-us/int:
+    busy = true
+    _last-request-start-us = started-us
+    try:
+      payload := VendingProtocol.command-payload-from-frame frame
+      if payload != null: process-command payload
+    finally:
+      busy = false
       last-activity-us = Time.monotonic-us --since-wakeup
   
   read-frame -> ByteArray?:
