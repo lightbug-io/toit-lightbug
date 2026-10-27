@@ -25,6 +25,8 @@ class Comms:
   msgIdGenerator /IdGenerator
   background_ /bool
   stopInboundOnDisconnect_ /bool
+  inbound-task_ /Task? := null
+  inbound-running_ /bool := false
 
   outbox_ /Channel
   outboxTaskStarted_ /bool := false
@@ -118,7 +120,7 @@ class Comms:
       // A disconnect makes processInbound_ return. Do not restart that normal
       // completion when the transport owner needs to recreate its resource;
       // exceptions while still connected are still restarted in either mode.
-      task --background=background_:: catch-and-restart "processInbound_" (:: processInbound_) --restart-always=(not stopInboundOnDisconnect_) --logger=logger_
+      resume-inbound
     if startOutbox:
       task --background=background_:: catch-and-restart "processOutbox_" (:: processOutbox_) --logger=logger_
     // In order for the Lightbug device to talk back to us, we have to open the conn
@@ -129,6 +131,23 @@ class Comms:
       heartbeats_.start
     
     logger_.info "Comms started"
+
+  /** Stop and join the reader before its transport/pins are released.
+      Call from the transport owner, never from an inbound handler. */
+  pause-inbound:
+    if not inbound-running_: return
+    inbound-task_.cancel
+    while inbound-running_: yield
+    inbound-task_ = null
+
+  resume-inbound:
+    if inbound-running_: return
+    inbound-running_ = true
+    inbound-task_ = task --background=background_::
+      try:
+        catch-and-restart "processInbound_" (:: processInbound_) --restart-always=(not stopInboundOnDisconnect_) --logger=logger_
+      finally:
+        inbound-running_ = false
 
   sendOpen:
     if not (send (messages.Open.msg --data=null) --now=true --withLatch=true --timeout=(Duration --s=10)).get:

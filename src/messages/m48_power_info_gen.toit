@@ -15,6 +15,7 @@ class PowerInfo extends protocol.Data:
   static TOTAL-POWER-SINCE-LAST-TX := 7
   static CHARGE-CURRENT := 8
   static INPUT-CURRENT := 9
+  static EXTERNAL-POWER-CONNECTED := 11
 
   constructor:
     super
@@ -30,7 +31,7 @@ class PowerInfo extends protocol.Data:
    *
    * Returns: A protocol.Data object with the specified field values
    */
-  static data --wifi-on-interval/int?=null --wifi-wake-on-event/bool?=null --total-power-since-profile/float?=null --current/float?=null --charging/bool?=null --external-voltage/float?=null --total-power-since-last-tx/float?=null --charge-current/float?=null --input-current/float?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
+  static data --wifi-on-interval/int?=null --wifi-wake-on-event/bool?=null --total-power-since-profile/float?=null --current/float?=null --charging/bool?=null --external-voltage/float?=null --total-power-since-last-tx/float?=null --charge-current/float?=null --input-current/float?=null --external-power-connected/bool?=null --base-data/protocol.Data?=protocol.Data -> protocol.Data:
     data := base-data
     if wifi-on-interval != null: data.add-data-uint WIFI-ON-INTERVAL wifi-on-interval
     if wifi-wake-on-event != null: data.add-data-bool WIFI-WAKE-ON-EVENT wifi-wake-on-event
@@ -41,6 +42,7 @@ class PowerInfo extends protocol.Data:
     if total-power-since-last-tx != null: data.add-data-float TOTAL-POWER-SINCE-LAST-TX total-power-since-last-tx
     if charge-current != null: data.add-data-float CHARGE-CURRENT charge-current
     if input-current != null: data.add-data-float INPUT-CURRENT input-current
+    if external-power-connected != null: data.add-data-bool EXTERNAL-POWER-CONNECTED external-power-connected
     return data
 
   /**
@@ -135,6 +137,10 @@ class PowerInfo extends protocol.Data:
   input-current -> float:
     return get-data-float INPUT-CURRENT
 
+  /** Physical external power presence, independent of charge-off hysteresis. */
+  external-power-connected -> bool:
+    return get-data-bool EXTERNAL-POWER-CONNECTED
+
   stringify -> string:
     return {
       "_wifiOnInterval": wifi-on-interval,
@@ -146,4 +152,5 @@ class PowerInfo extends protocol.Data:
       "totalPowerSinceLastTx": total-power-since-last-tx,
       "chargeCurrent": charge-current,
       "inputCurrent": input-current,
+      "externalPowerConnected": external-power-connected,
     }.stringify

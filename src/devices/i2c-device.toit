@@ -1,4 +1,3 @@
-import gpio
 import i2c
 import io
 import log
@@ -40,8 +39,6 @@ class I2C implements Device:
 
   i2c-bus_ /i2c.Bus? := null
   i2c-device_ /i2c.Device? := null
-  i2c-sda-pin_ /gpio.Pin? := null
-  i2c-scl-pin_ /gpio.Pin? := null
   i2c-reader_ /Reader? := null
   i2c-writer_ /Writer? := null
   // P1 retains command state across some I2C operations. Serialize access to
@@ -151,13 +148,20 @@ class I2C implements Device:
     return type_ != null
   set-type_ new-type/int:
     type_ = new-type
-  request-type:
+  request-type --timeout/Duration=(Duration --s=60):
     if not type-known:
       // Ask for and wait for the device type to be known
-      (this.comms.send DeviceStatus.get-msg --withLatch=true --now=true).get
+      reply := with-timeout timeout:
+        (this.comms.send DeviceStatus.get-msg --withLatch=true --now=true --timeout=timeout).get
+      if reply == null or not reply.msg-ok or not type-known:
+        throw "Device type unavailable"
 
   prefix -> bool:
     return false
+
+  /** The configured SCL pin, also used by P1 to wake P2 from deep sleep. */
+  i2c-scl -> int:
+    return i2c-scl_
 
   /** Returns the raw I2C bus. Throws if disconnected. */
   i2c-bus -> i2c.Bus:
@@ -179,16 +183,12 @@ class I2C implements Device:
   connect -> none:
     if connected_: return
     logger_.debug "Connecting I2C bus (SDA=$i2c-sda_, SCL=$i2c-scl_ at $i2c-frequency_ Hz)"
-    sda-pin := gpio.Pin i2c-sda_
-    scl-pin := gpio.Pin i2c-scl_
     i2c-bus_ = i2c.Bus
-        --sda=sda-pin
-        --scl=scl-pin
+        --sda=i2c-sda_
+        --scl=i2c-scl_
         --frequency=i2c-frequency_
         --pull-up=true
     sleep --ms=10
-    i2c-sda-pin_ = sda-pin
-    i2c-scl-pin_ = scl-pin
     i2c-device_ = LBI2CDevice i2c-bus_
     i2c-reader_ = Reader i2c-device_ i2c-mutex_ --logger=(logger_.with-name "i2c.read")
     i2c-writer_ = Writer i2c-device_ i2c-mutex_ --logger=(logger_.with-name "i2c.write")
@@ -205,14 +205,7 @@ class I2C implements Device:
     if not connected_: return
     logger_.debug "Disconnecting I2C bus"
     i2c-bus_.close
-    // Explicitly close the gpio.Pin wrappers so the Toit resource system
-    // marks those pins free before the next connect. Without this the pins
-    // remain "in use" until GC runs, causing ALREADY_IN_USE on reconnect.
-    i2c-sda-pin_.close
-    i2c-scl-pin_.close
     i2c-bus_ = null
-    i2c-sda-pin_ = null
-    i2c-scl-pin_ = null
     i2c-device_ = null
     i2c-reader_ = null
     i2c-writer_ = null
