@@ -258,7 +258,7 @@ is-qc-pass-message message/protocol.Message -> bool:
 response-ok response -> bool:
   if response == false or response == null:
     return false
-  return response.msg-status == null or response.msg-status == protocol.Header.STATUS_OK
+  return response.msg-ok
 
 class HostSerialTransport implements V3Transport:
   port_ /uart.Port

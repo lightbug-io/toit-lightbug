@@ -70,7 +70,11 @@ handle request/http.RequestIncoming writer/http.ResponseWriter peer/VendingPeer 
         peer.disconnect
       else:
         name := body.get "command"
-        if not ["status", "authorise", "cancel", "sequence"].contains name: throw "Unknown command"
+        if not ["status", "authorise", "cancel", "sequence", "device-ids", "start-qc"].contains name: throw "Unknown command"
+        if name == "device-ids" or name == "start-qc":
+          peer.command name null #[0, 0, 0] 0 0
+          reply writer peer.state
+          return
         id-text := body.get "id" --if-absent=(: "")
         reserved-text := body.get "reserved" --if-absent=(: "000000")
         if id-text is not string or reserved-text is not string: throw "Invalid hex fields"

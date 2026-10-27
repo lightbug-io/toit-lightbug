@@ -22,6 +22,11 @@ PAGE ::= """
  <p><button id="status" data-command="status">Read status</button>
  <button id="authorise" data-command="authorise">Authorise</button>
  <button id="cancel" data-command="cancel">Cancel</button></p>
+ <p><button data-command="device-ids">Read Device IDs (V3)</button></p>
+ <pre id="deviceIds">Device IDs: not read yet</pre>
+ <p><button data-command="start-qc">Start QC</button></p>
+ <p id="qcState">QC has not been started.</p>
+ <p>Start QC enables P1's cloud link and sends QC Open to the server. Acknowledgement confirms delivery; it does not mean QC passed.</p>
  <p><label><input id="poll" type="checkbox">Poll status</label>
  <label for="pollMs">Interval (ms)</label>
  <input id="pollMs" type="number" min="250" max="60000" step="250" value="2000"></p>
@@ -82,6 +87,8 @@ function render(next) {
  state = next;
  if (!state.connected) { el('poll').checked = false; clearTimeout(pollTimer); }
  const data = state.status;
+ el('qcState').textContent = state.qc ? state.qc.stage : 'QC has not been started.';
+ el('deviceIds').textContent = state.deviceIds ? JSON.stringify(state.deviceIds, null, 2) : 'Device IDs: not read yet';
  if (data) {
   el('identityLabel').textContent = data.identityType;
   el('identifier').textContent = String(data.identifier);
