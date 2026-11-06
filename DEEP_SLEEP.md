@@ -92,8 +92,9 @@ continue. P1 may also hold its charging status briefly after disconnection.
 
 The vending example waits 20 seconds on cold boot for programming, skips that
 grace after deep-sleep wake, and sleeps after 500 ms of UART inactivity once its
-identity is available. Active Wi-Fi and BLE scan subscriptions veto sleep. It wakes
-on button or power connection and, with supporting P1 firmware, forwarded commands.
+identity is available. Toit vetoes its own sleep attempt while the default BLE or
+Wi-Fi scan is active. Direct scans and custom handlers need their own idle checks.
+It wakes on button or power connection and, with supporting P1 firmware, forwarded commands.
 The one-hour recovery timer is required by the current Toit runtime; the commented
 60-second alternative is useful for testing. Wake latency depends on hardware,
 firmware and runtime startup; full-battery connection may be detected by polling.
