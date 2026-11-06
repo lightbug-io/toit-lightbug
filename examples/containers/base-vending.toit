@@ -82,7 +82,7 @@ main:
       now-us := Time.monotonic-us --since-wakeup
       rs232-idle := serial.comms.last-activity-us == 0 or now-us - serial.comms.last-activity-us >= V3-IDLE-LEASE-US
       usb-idle := usb.comms.last-activity-us == 0 or now-us - usb.comms.last-activity-us >= V3-IDLE-LEASE-US
-      not vending.busy and not serial.busy and rs232-idle and usb-idle and now-us - serial.last-receive-us >= IDLE-BEFORE-SLEEP-US and now-us - serial.last-activity-us >= IDLE-BEFORE-SLEEP-US
+      not vending.busy and not serial.busy and not device.scan-active and rs232-idle and usb-idle and now-us - serial.last-receive-us >= IDLE-BEFORE-SLEEP-US and now-us - serial.last-activity-us >= IDLE-BEFORE-SLEEP-US
     ready := false
     next-setup-us := 0
     next-update-us := 0

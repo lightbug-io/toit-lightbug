@@ -56,6 +56,8 @@ class I2C implements Device:
   logger_ /log.Logger
 
   comms_ /Comms? := null
+  ble-handler_ /BLEHandler? := null
+  wifi-handler_ /WiFiHandler? := null
   strobe_ /Strobe?:= null
   piezo_ /Piezo?:= null
   haptics_ /Haptics?:= null
@@ -219,6 +221,10 @@ class I2C implements Device:
     if not i2c-writer_: throw "I2C device not connected"
     return i2c-writer_
 
+  scan-active -> bool:
+    return (ble-handler_ != null and ble-handler_.scan-active) or
+        (wifi-handler_ != null and wifi-handler_.scan-active)
+
   comms -> Comms:
     if not comms_:
       if reinit-on-comms-start_ and not reinit:
@@ -229,10 +235,12 @@ class I2C implements Device:
               DeviceStatusHandler this --logger=(logger_.with-name "h.status"),
       ]
       if with-default-handlers_:
+        ble-handler_ = BLEHandler this --logger=(logger_.with-name "h.ble")
+        wifi-handler_ = WiFiHandler this --logger=(logger_.with-name "h.wifi")
         handlers = handlers + [
             // TODO add a reset msg handler
-            BLEHandler this --logger=(logger_.with-name "h.ble"),
-            WiFiHandler this --logger=(logger_.with-name "h.wifi"),
+            ble-handler_,
+            wifi-handler_,
             StrobeHandler this --logger=(logger_.with-name "h.strobe"),
         ]
       else :

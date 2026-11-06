@@ -15,12 +15,15 @@ class WiFiHandler implements MessageHandler:
   device_/any
   scan-generation_/int := 0
   scan-task_/Task? := null
+  scans-in-flight_/int := 0
   report-task_/Task? := null
   pending-results_/Map := Map
 
   constructor device/any --logger/log.Logger:
     logger_ = logger
     device_ = device
+
+  scan-active -> bool: return scans-in-flight_ > 0
 
   handle-message msg/protocol.Message -> bool:
     if msg.type != MESSAGE-TYPE: return false
@@ -46,11 +49,22 @@ class WiFiHandler implements MessageHandler:
     reporting-interval := extract-reporting-interval msg
     request-msg-id := msg.msgId
 
-    acknowledge-request msg
-    forwarded-for := msg.was-forwarded ? msg.forwarded-for : null
-    start-report-task_ generation reporting-interval request-msg-id forwarded-for
-    scan-task_ = task --background=true::
-      perform-wifi-scan generation duration reporting-interval request-msg-id forwarded-for
+    scans-in-flight_++
+    started := false
+    try:
+      acknowledge-request msg
+      forwarded-for := msg.was-forwarded ? msg.forwarded-for : null
+      start-report-task_ generation reporting-interval request-msg-id forwarded-for
+      scan-task_ = task --background=true::
+        try:
+          perform-wifi-scan generation duration reporting-interval request-msg-id forwarded-for
+        finally:
+          scans-in-flight_--
+      started = true
+    finally:
+      if not started:
+        scans-in-flight_--
+        stop-subscription_
     return true
 
   acknowledge-request msg/protocol.Message:
