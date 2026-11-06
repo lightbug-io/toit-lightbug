@@ -21,11 +21,16 @@ class Writer extends io.Writer with io.OutMixin:
   status /int? := 0
   requests /int := 0
   frames /List := []
+  block-acks /bool := false
+  ack-started := monitor.Latch
 
   try-write_ data/io.Data from/int to/int -> int:
     requests++
     request := protocol.Message.from-bytes (ByteArray.from data)[from..to]
     frames.add request
+    if block-acks and request.type == messages.ACK.MT:
+      ack-started.set true
+      (monitor.Latch).get
     if respond:
       task::
         sleep --ms=5
@@ -87,6 +92,7 @@ main:
   test-capability-status
   test-scan-handler-wiring
   test-scan-sleep-veto
+  test-scan-startup-cancellation
   print "I2C capability and scan handler wiring tests passed"
 
 test-capability-retry:
@@ -190,3 +196,17 @@ test-scan-sleep-veto:
   with-timeout --ms=500:
     while device.scan-active: sleep --ms=1
   device.test-comms.pause-inbound
+
+test-scan-startup-cancellation:
+  [messages.WiFiScan.MT, messages.BLEScan.MT].do: | mt |
+    device := HandlerDevice
+    device.wire.writer.block-acks = true
+    comms := device.comms
+    request := protocol.Message.with-method mt protocol.Header.METHOD_SUBSCRIBE
+    request.header-add-data-uint32 protocol.Header.TYPE_MESSAGE_ID mt
+    device.wire.reader.frames.send request.bytes
+    with-timeout --ms=500: device.wire.writer.ack-started.get
+    if not device.scan-active: throw "Scan startup did not veto sleep"
+    // PREPARE can finish while the inbound handler is still sending its ACK.
+    with-timeout --ms=500: comms.pause-inbound
+    if device.scan-active: throw "Canceled scan startup still vetoes sleep for MT$mt"

@@ -50,7 +50,8 @@ class WiFiHandler implements MessageHandler:
     request-msg-id := msg.msgId
 
     scans-in-flight_++
-    error := catch:
+    started := false
+    try:
       acknowledge-request msg
       forwarded-for := msg.was-forwarded ? msg.forwarded-for : null
       start-report-task_ generation reporting-interval request-msg-id forwarded-for
@@ -59,10 +60,11 @@ class WiFiHandler implements MessageHandler:
           perform-wifi-scan generation duration reporting-interval request-msg-id forwarded-for
         finally:
           scans-in-flight_--
-    if error:
-      scans-in-flight_--
-      stop-subscription_
-      throw error
+      started = true
+    finally:
+      if not started:
+        scans-in-flight_--
+        stop-subscription_
     return true
 
   acknowledge-request msg/protocol.Message:

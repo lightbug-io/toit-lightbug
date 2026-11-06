@@ -69,7 +69,8 @@ class BLEHandler implements MessageHandler:
     // ACK for MID_BLE_SCAN as "scan started" and otherwise retries the request
     // after its ACK timeout, so acknowledge before launching the async work.
     scans-in-flight_++
-    error := catch:
+    started := false
+    try:
       acknowledge-request msg
       forwarded-for := msg.was-forwarded ? msg.forwarded-for : null
       start-report-task_ generation reporting-interval request-msg-id forwarded-for
@@ -78,10 +79,11 @@ class BLEHandler implements MessageHandler:
           perform-ble-scan generation duration active scan-interval scan-window reporting-interval request-msg-id forwarded-for
         finally:
           scans-in-flight_--
-    if error:
-      scans-in-flight_--
-      stop-subscription_
-      throw error
+      started = true
+    finally:
+      if not started:
+        scans-in-flight_--
+        stop-subscription_
     
     return true
 
