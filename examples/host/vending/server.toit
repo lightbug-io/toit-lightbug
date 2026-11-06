@@ -70,8 +70,8 @@ handle request/http.RequestIncoming writer/http.ResponseWriter peer/VendingPeer 
         peer.disconnect
       else:
         name := body.get "command"
-        if not ["status", "authorise", "cancel", "sequence", "device-ids", "start-qc"].contains name: throw "Unknown command"
-        if name == "device-ids" or name == "start-qc":
+        if not ["status", "poll", "authorise", "cancel", "sequence", "device-ids", "start-qc"].contains name: throw "Unknown command"
+        if name == "device-ids" or name == "start-qc" or name == "poll":
           peer.command name null #[0, 0, 0] 0 0
           reply writer peer.state
           return

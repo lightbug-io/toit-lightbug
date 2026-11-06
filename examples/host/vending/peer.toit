@@ -20,6 +20,8 @@ class VendingPeer:
   device-ids_ /Map? := null
   busy_ /bool := false
   qc_ /Map? := null
+  poll_ /Map? := null
+  next-poll_ /int := 1
 
   state -> Map:
     return {
@@ -29,6 +31,7 @@ class VendingPeer:
       "status": last-status_,
       "deviceIds": device-ids_,
       "qc": qc_,
+      "poll": poll_,
       "history": history_.copy,
     }
 
@@ -40,6 +43,7 @@ class VendingPeer:
       last-status_ = null
       device-ids_ = null
       qc_ = null
+      poll_ = null
       sleep --ms=250
 
   disconnect:
@@ -50,9 +54,10 @@ class VendingPeer:
       last-status_ = null
       device-ids_ = null
       qc_ = null
+      poll_ = null
 
   command name/string id/ByteArray? reserved/ByteArray gap-ms/int flag/int:
-    if not ["status", "sequence", "authorise", "cancel", "device-ids", "start-qc"].contains name: throw "Unknown command"
+    if not ["status", "poll", "sequence", "authorise", "cancel", "device-ids", "start-qc"].contains name: throw "Unknown command"
     mutex_.do:
       if port_ == null: throw "Connect a serial port first"
       if busy_: throw "A request is already in progress"
@@ -71,7 +76,9 @@ class VendingPeer:
         return
       busy_ = true
       try:
-        if name == "device-ids":
+        if name == "poll":
+          run-poll_
+        else if name == "device-ids":
           exchange-device-ids_
         else if name == "status":
           exchange_ "Status" VendingProtocol.Cmd_GetStat #[]
@@ -89,6 +96,16 @@ class VendingPeer:
           exchange_ (auth-flag == 1 ? "Authorise" : "Cancel") VendingProtocol.Cmd_Auth (auth-data id reserved auth-flag)
       finally:
         busy_ = false
+
+  run-poll_:
+    poll_ = {"loop": next-poll_++, "running": true, "status": null, "deviceIds": null}
+    try:
+      poll_["status"] = exchange_ "Status" VendingProtocol.Cmd_GetStat #[]
+      // Attempt V3 even when GetStat timed out; each protocol has its own result.
+      exchange-device-ids_
+      poll_["deviceIds"] = history_[history_.size - 1]
+    finally:
+      poll_["running"] = false
 
   exchange-device-ids_:
     response := exchange-v3_ "Device IDs (V3)" (p1-request messages.DeviceIDs.get-msg) messages.DeviceIDs.MT
@@ -157,9 +174,13 @@ class VendingPeer:
       result["elapsedMs"] = (Time.monotonic-us - started-us) / 1000.0
       result["outcome"] = error == DEADLINE-EXCEEDED-ERROR ? "timeout" : "error"
       result["error"] = error == DEADLINE-EXCEEDED-ERROR ? "No matching response within $timeout-ms ms" : "$error"
-    history_.add result
-    if history_.size > 200: history_ = history_[1..]
+    record-result_ result
     return response
+
+  record-result_ result/Map:
+    history_.add result
+    // A slice cannot grow; copy the retained entries before the next append.
+    if history_.size > 20: history_ = history_[1..].copy
 
   exchange_ label/string command/int data/ByteArray --previous-response-us/int?=null -> Map:
     frame := VendingProtocol.build-command-frame command data
@@ -193,8 +214,7 @@ class VendingPeer:
       result["elapsedMs"] = (Time.monotonic-us - started-us) / 1000.0
       result["outcome"] = error == DEADLINE-EXCEEDED-ERROR ? "timeout" : "error"
       result["error"] = error == DEADLINE-EXCEEDED-ERROR ? "No valid response within 3000 ms" : "$error"
-    history_.add result
-    if history_.size > 200: history_ = history_[1..]
+    record-result_ result
     return result
 
 auth-data id/ByteArray reserved/ByteArray flag/int -> ByteArray:

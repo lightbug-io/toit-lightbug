@@ -5,6 +5,8 @@ import lightbug.cust.vending_protocol show VendingProtocol
 import ...examples.host.vending.peer show read-device-ids decode-device-ids read-response read-v3-response qc-open-request cloud-link-request VendingPeer
 
 main:
+  poll-results
+  conversation-retention
   request := messages.DeviceIDs.get-msg
   request.header-add-data-uint32 protocol.Header.TYPE_MESSAGE_ID 7
   ids := messages.DeviceIDs.data --id=19314686 --serial=12345678
@@ -98,3 +100,56 @@ class SimulatedPeer extends VendingPeer:
     if expected == messages.DeviceIDs.MT:
       return protocol.Message.with-data expected (messages.DeviceIDs.data --id=1234)
     return messages.ACK.msg --data=null
+
+// Exercise both failure directions without opening a real serial port.
+poll-results:
+  peer := PollPeer
+  peer.run-poll_
+  check "GetStat precedes V3" peer.calls[0] "Status"
+  check "V3 follows GetStat" peer.calls[1] "Device IDs (V3)"
+  check "successful GetStat" peer.poll_["status"]["ok"] true
+  check "successful V3" peer.poll_["deviceIds"]["ok"] true
+  check "GetStat timing" peer.poll_["status"]["elapsedMs"] 12
+  check "V3 timing" peer.poll_["deviceIds"]["elapsedMs"] 34
+  peer.fail-status = true
+  peer.run-poll_
+  check "new loop" peer.poll_["loop"] 2
+  check "failed GetStat replaces previous success" peer.poll_["status"]["ok"] false
+  check "V3 attempted after failed GetStat" peer.poll_["deviceIds"]["ok"] true
+  check "last successful status retained" peer.last-status_["identifier"] 1234
+  peer.fail-status = false
+  peer.fail-ids = true
+  peer.run-poll_
+  check "GetStat independent of V3 failure" peer.poll_["status"]["ok"] true
+  check "failed V3 replaces previous success" peer.poll_["deviceIds"]["ok"] false
+  check "last successful IDs retained" peer.device-ids_["id"] 1234
+  check "loop complete" peer.poll_["running"] false
+  check "two requests per loop" peer.calls.size 6
+
+class PollPeer extends VendingPeer:
+  calls /List := []
+  fail-status /bool := false
+  fail-ids /bool := false
+
+  exchange_ label/string command/int data/ByteArray --previous-response-us/int?=null -> Map:
+    calls.add label
+    check "status result reset at loop start" poll_["status"] null
+    check "IDs result reset at loop start" poll_["deviceIds"] null
+    check "loop marked running" poll_["running"] true
+    if not fail-status: last-status_ = {"identifier": 1234}
+    return {"ok": not fail-status, "elapsedMs": 12}
+
+  exchange-v3_ label/string request/protocol.Message expected/int --cloud/bool=false --timeout-ms/int=5000 -> protocol.Message?:
+    calls.add label
+    if poll_["status"] == null: throw "V3 started before GetStat finished"
+    history_.add {"ok": not fail-ids, "elapsedMs": 34}
+    if fail-ids: return null
+    return protocol.Message.with-data expected (messages.DeviceIDs.data --id=1234)
+
+conversation-retention:
+  peer := VendingPeer
+  45.repeat: | index |
+    peer.record-result_ {"id": index}
+  check "conversation capped at 20" peer.history_.size 20
+  check "oldest retained transaction" peer.history_[0]["id"] 25
+  check "latest transaction retained" peer.history_[19]["id"] 44

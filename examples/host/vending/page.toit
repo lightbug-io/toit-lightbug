@@ -4,10 +4,28 @@ PAGE ::= """
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vending</title>
-<style>pre { white-space: pre-wrap; overflow-wrap: anywhere; }</style>
+<style>
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+#activityBar { position: sticky; top: 0; z-index: 1; background: white; color: #222; border: 1px solid #888; padding: .75rem; }
+#replyLight { display: inline-block; width: .85rem; height: .85rem; border-radius: 50%; background: #888; margin-right: .4rem; }
+#replyLight.reply { background: #18743b; animation: reply-pulse .3s ease-out; }
+#replyLight.failed { background: #bb2929; }
+.success { color: #18743b; }
+.failure { color: #bb2929; }
+#pollResults { display: block; margin-top: .3rem; }
+#responses { border-spacing: .75rem; text-align: left; }
+#latestResult { display: block; margin-top: .3rem; }
+@keyframes reply-pulse { from { box-shadow: 0 0 0 .4rem #a4e7ba; } to { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { #replyLight.reply { animation: none; } }
+</style>
 </head>
 <body>
 <h1>Vending</h1>
+<div id="activityBar">
+ <span id="replyLight" aria-hidden="true"></span><span id="activity">Ready when you are</span> · <span id="count">0 transactions</span>
+ <span id="pollResults">GetStat: <span id="statusSummary">—</span> · V3 Device IDs: <span id="idsSummary">—</span></span>
+ <span id="latestResult" role="status">No replies yet.</span>
+</div>
 <p id="connectionText">Disconnected</p>
 <p id="error" role="alert" hidden></p>
 <fieldset>
@@ -23,13 +41,21 @@ PAGE ::= """
  <button id="authorise" data-command="authorise">Authorise</button>
  <button id="cancel" data-command="cancel">Cancel</button></p>
  <p><button data-command="device-ids">Read Device IDs (V3)</button></p>
- <pre id="deviceIds">Device IDs: not read yet</pre>
+ <p id="pollLoop">No polling loop yet.</p>
+ <table id="responses">
+  <thead><tr><th scope="col">Message</th><th scope="col">This loop</th><th scope="col">Last response</th><th scope="col">Last successful response</th></tr></thead>
+  <tbody>
+   <tr><th scope="row">GetStat</th><td id="statusResult">—</td><td><pre id="latestStatusResponse">null</pre></td><td><pre id="statusResponse">Not read yet</pre></td></tr>
+   <tr><th scope="row">Device IDs (V3)</th><td id="idsResult">—</td><td><pre id="latestIdsResponse">null</pre></td><td><pre id="deviceIds">Not read yet</pre></td></tr>
+  </tbody>
+ </table>
  <p><button data-command="start-qc">Start QC</button></p>
  <p id="qcState">QC has not been started.</p>
  <p>Start QC enables P1's cloud link and sends QC Open to the server. Acknowledgement confirms delivery; it does not mean QC passed.</p>
- <p><label><input id="poll" type="checkbox">Poll status</label>
+ <p><label><input id="poll" type="checkbox" checked>Poll GetStat + V3 Device IDs</label>
  <label for="pollMs">Interval (ms)</label>
- <input id="pollMs" type="number" min="250" max="60000" step="250" value="2000"></p>
+ <input id="pollMs" type="number" min="250" max="60000" step="250" value="500"></p>
+ <p>Each loop reads GetStat, then V3 Device IDs, even if GetStat times out. The interval is the pause after both requests finish.</p>
  <p id="authState">Authorisation: no acknowledgement yet</p>
  <details><summary>Request fields</summary>
   <p><label for="deviceId">Device ID (5 bytes, wire order)</label>
@@ -58,9 +84,8 @@ PAGE ::= """
 <p>Serial identifiers are modulo 1,000,000. The full serial is not returned.</p>
 <h2>Conversation</h2>
 <p><button id="export">Export JSON</button> <button id="clear">Clear view</button></p>
-<p><span id="activity">Ready when you are</span>. <span id="count">0 transactions</span>.</p>
 <div id="feed" role="log" aria-label="Serial transactions"><p id="empty">No transactions yet.</p></div>
-<p>Last 200 transactions retained. Timing includes the request and complete reply.</p>
+<p>Last 20 transactions retained. Timing includes the request and complete reply.</p>
 <script>
 'use strict';
 const el = id => document.getElementById(id);
@@ -74,7 +99,8 @@ function controls() {
  el('connectionText').textContent = state.connected ? 'Connected / ' + state.port : 'Disconnected';
  commandButtons.forEach(button => button.disabled = !state.connected || pending || state.busy || (['authorise','cancel'].includes(button.dataset.command) && !/^[0-9a-f]{10}\$/i.test(el('deviceId').value)));
  el('poll').disabled = !state.connected;
- el('activity').textContent = pending || state.busy ? 'Request in progress…' : state.connected ? 'Port open · waiting for a request' : 'Ready when you are';
+ el('activity').textContent = pending || state.busy ? 'Request in progress…' : state.connected ? (el('poll').checked ? 'Polling GetStat + V3 · ' + el('pollMs').value + ' ms pause' : 'Connected · idle') : 'Disconnected';
+ if (!state.connected) el('replyLight').className = '';
 }
 async function api(path, body) {
  const response = await fetch(path, body === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -82,13 +108,31 @@ async function api(path, body) {
  if (!response.ok) throw new Error(result.error || 'Request failed');
  return result;
 }
+function renderPollResult(result, cellId, summaryId, running) {
+ const text = result ? (result.ok ? '✓ ' + result.elapsedMs.toFixed(1) + ' ms' : '✗ ' + result.outcome + ' · ' + result.elapsedMs.toFixed(1) + ' ms') : (running ? '… Pending' : '—');
+ [cellId, summaryId].forEach(id => {
+  el(id).textContent = text;
+  el(id).className = result ? (result.ok ? 'success' : 'failure') : '';
+  el(id).title = result && result.error ? result.error : '';
+ });
+}
 function render(next) {
  const wasConnected = state.connected;
  state = next;
- if (!state.connected) { el('poll').checked = false; clearTimeout(pollTimer); }
+ if (!state.connected) clearTimeout(pollTimer);
  const data = state.status;
  el('qcState').textContent = state.qc ? state.qc.stage : 'QC has not been started.';
- el('deviceIds').textContent = state.deviceIds ? JSON.stringify(state.deviceIds, null, 2) : 'Device IDs: not read yet';
+ el('deviceIds').textContent = state.deviceIds ? JSON.stringify(state.deviceIds, null, 2) : 'Not read yet';
+ el('statusResponse').textContent = data ? JSON.stringify(data, null, 2) : 'Not read yet';
+ const latestFirst = state.history.slice().reverse();
+ const latestStatus = latestFirst.find(item => item.command === 'Status');
+ const latestIds = latestFirst.find(item => item.command === 'Device IDs (V3)' || item.command === 'QC: Device IDs');
+ el('latestStatusResponse').textContent = JSON.stringify(latestStatus ? (latestStatus.data ?? null) : null, null, 2);
+ el('latestIdsResponse').textContent = JSON.stringify(latestIds ? (latestIds.data ?? null) : null, null, 2);
+ const poll = state.poll;
+ el('pollLoop').textContent = poll ? 'Loop ' + poll.loop + (poll.running ? ' in progress…' : ' complete') : 'No polling loop yet.';
+ renderPollResult(poll && poll.status, 'statusResult', 'statusSummary', poll && poll.running);
+ renderPollResult(poll && poll.deviceIds, 'idsResult', 'idsSummary', poll && poll.running);
  if (data) {
   el('identityLabel').textContent = data.identityType;
   el('identifier').textContent = String(data.identifier);
@@ -132,24 +176,44 @@ function render(next) {
   el('feed').append(card);
   if (item.ok) { el('latency').textContent = item.elapsedMs.toFixed(1) + ' ms'; el('latencyDetail').textContent = item.command + ' · complete response'; }
  });
- while (el('feed').querySelectorAll('.transaction').length > 200) el('feed').querySelector('.transaction').remove();
+ while (el('feed').querySelectorAll('.transaction').length > 20) el('feed').querySelector('.transaction').remove();
  if (fresh.length) el('feed').scrollTop = el('feed').scrollHeight;
+ if (fresh.length) {
+  const latest = fresh[fresh.length - 1];
+  el('latestResult').textContent = '#' + latest.id + ' ' + latest.command + ' — ' + latest.outcome + ' · ' + latest.elapsedMs.toFixed(1) + ' ms' + (latest.error ? ' · ' + latest.error : '');
+  const light = el('replyLight');
+  light.className = '';
+  void light.offsetWidth;
+  light.className = latest.ok ? 'reply' : 'failed';
+ }
  const count = el('feed').querySelectorAll('.transaction').length;
  el('count').textContent = count + ' transaction' + (count === 1 ? '' : 's');
  controls();
+ if (!wasConnected && state.connected) schedulePoll();
 }
 function schedulePoll() {
  clearTimeout(pollTimer);
  if (!el('poll').checked || !state.connected) return;
  const delay = Number(el('pollMs').value);
  if (!Number.isInteger(delay) || delay < 250 || delay > 60000) { fail('Polling interval must be 250–60000 ms'); el('poll').checked = false; return; }
- pollTimer = setTimeout(async () => { if (!pending && !state.busy) await send('status'); else schedulePoll(); }, delay);
+ pollTimer = setTimeout(async () => { if (!pending && !state.busy) await send('poll'); else schedulePoll(); }, delay);
 }
 async function send(command) {
  if (pending) return;
  clearTimeout(pollTimer); pending = true; fail(''); controls();
+ if (command === 'poll') {
+  el('pollLoop').textContent = 'Polling loop in progress…';
+  renderPollResult(null, 'statusResult', 'statusSummary', true);
+  renderPollResult(null, 'idsResult', 'idsSummary', true);
+ }
  try { render(await api('/api/command', {command,id:el('deviceId').value.trim(),reserved:el('reserved').value,gapMs:Number(el('gap').value),flag:Number(el('sequenceFlag').value)})); }
- catch (error) { fail(error.message); }
+ catch (error) {
+  fail(error.message);
+  if (command === 'poll') {
+   el('pollLoop').textContent = 'Polling loop interrupted; results unavailable.';
+   ['statusResult', 'statusSummary', 'idsResult', 'idsSummary'].forEach(id => { el(id).textContent = '✗ Result unavailable'; el(id).className = 'failure'; });
+  }
+ }
  finally { pending = false; controls(); schedulePoll(); }
 }
 el('connect').onclick = async () => {
@@ -163,8 +227,8 @@ el('connect').onclick = async () => {
 };
 commandButtons.forEach(button => button.onclick = () => send(button.dataset.command));
 el('deviceId').oninput = controls;
-el('poll').onchange = schedulePoll;
-el('pollMs').onchange = schedulePoll;
+el('poll').onchange = () => { controls(); schedulePoll(); };
+el('pollMs').onchange = () => { controls(); schedulePoll(); };
 el('clear').onclick = () => { clearedThrough = lastId; el('feed').querySelectorAll('.transaction').forEach(node => node.remove()); el('empty').hidden = false; el('count').textContent = '0 transactions'; };
 el('export').onclick = () => {
  const blob = new Blob([JSON.stringify({exportedAt:new Date().toISOString(),...state},null,2)], {type:'application/json'});
@@ -173,7 +237,7 @@ el('export').onclick = () => {
 };
 async function refresh() {
  try { if (!pending) { render(await api('/api/state')); if (el('error').dataset.offline) { fail(''); delete el('error').dataset.offline; } } }
- catch (error) { fail('Vending app unavailable. Check that the local host process is running.'); el('error').dataset.offline = 'true'; state.connected = false; el('poll').checked = false; controls(); }
+ catch (error) { fail('Vending app unavailable. Check that the local host process is running.'); el('error').dataset.offline = 'true'; state.connected = false; clearTimeout(pollTimer); controls(); }
  finally { refreshTimer = setTimeout(refresh,1000); }
 }
 controls(); refresh();
