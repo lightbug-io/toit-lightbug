@@ -20,7 +20,7 @@ P2 application                         P1 controller
      |  ACK or silence: enter deep sleep    |
      |  P2 supply remains on                |
      |                                      |
-     |<--- SCL wake pulse ------------------| button / power connected
+     |<--- SCL wake pulse ------------------| button / power / forwarded command
      |  restart application                 |
      |---- AWAKE -------------------------->|
      |<--- retained button events ----------|
@@ -92,8 +92,9 @@ continue. P1 may also hold its charging status briefly after disconnection.
 
 The vending example waits 20 seconds on cold boot for programming, skips that
 grace after deep-sleep wake, and sleeps after 500 ms of UART inactivity once its
-identity is available. It wakes on button or power connection and has a one-hour
-recovery timer. The current Toit runtime requires a timer; the commented
+identity is available. Active Wi-Fi and BLE scan subscriptions veto sleep. It wakes
+on button or power connection and, with supporting P1 firmware, forwarded commands.
+The one-hour recovery timer is required by the current Toit runtime; the commented
 60-second alternative is useful for testing. Wake latency depends on hardware,
 firmware and runtime startup; full-battery connection may be detected by polling.
 

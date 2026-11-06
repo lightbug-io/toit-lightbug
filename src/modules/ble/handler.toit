@@ -18,12 +18,15 @@ class BLEHandler implements MessageHandler:
   device_/devices.Device
   scan-generation_/int := 0
   scan-task_/Task? := null
+  scans-in-flight_/int := 0
   report-task_/Task? := null
   pending-results_/Map := Map
   
   constructor device/devices.Device --logger/log.Logger:
     logger_ = logger
     device_ = device
+
+  scan-active -> bool: return scans-in-flight_ > 0
   
   /**
    * Handle a BLE scan request message.
@@ -65,19 +68,20 @@ class BLEHandler implements MessageHandler:
     // Returning true suppresses Comms' generic ACK policy. P1 treats an OK
     // ACK for MID_BLE_SCAN as "scan started" and otherwise retries the request
     // after its ACK timeout, so acknowledge before launching the async work.
-    acknowledge-request msg
-    
-    // If the msg was forwarded, extract the msg source too, so we can forward responses correctly
-    forwarded-for := null
-    if msg.was-forwarded:
-      forwarded-for = msg.forwarded-for
-    
-    start-report-task_ generation reporting-interval request-msg-id forwarded-for
-
-    // Perform BLE scan asynchronously. A newer subscription or UNSUBSCRIBE
-    // cancels this task and invalidates its callbacks using $generation.
-    scan-task_ = task --background=true::
-      perform-ble-scan generation duration active scan-interval scan-window reporting-interval request-msg-id forwarded-for
+    scans-in-flight_++
+    error := catch:
+      acknowledge-request msg
+      forwarded-for := msg.was-forwarded ? msg.forwarded-for : null
+      start-report-task_ generation reporting-interval request-msg-id forwarded-for
+      scan-task_ = task --background=true::
+        try:
+          perform-ble-scan generation duration active scan-interval scan-window reporting-interval request-msg-id forwarded-for
+        finally:
+          scans-in-flight_--
+    if error:
+      scans-in-flight_--
+      stop-subscription_
+      throw error
     
     return true
 
