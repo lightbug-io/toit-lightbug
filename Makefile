@@ -30,7 +30,7 @@ analyze-examples:
 	@echo "Installing example dependencies"
 	@cd examples && $(TOIT_PKG) install
 	@echo "Analyzing examples"
-	@find examples -type d -name '.packages' -prune -o -type f -name '*.toit' -print0 | xargs -0 -n 1 $(TOIT) analyze --project-root examples
+	@find examples packages/*/examples -type d -name '.packages' -prune -o -type f -name '*.toit' -print0 | xargs -0 -n 1 $(TOIT) analyze --project-root examples
 
 # We need a blocking jag run in order for this to work properly for things like BLE scans
 .PHONY: test

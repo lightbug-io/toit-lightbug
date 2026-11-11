@@ -1,3 +1,6 @@
+// Provides e-ink page, drawing and refresh commands.
+// Used by Lightbug applications including the RH2 motion display.
+
 import ...protocol as protocol
 import ...messages as messages
 import ...devices as devices
@@ -62,15 +65,15 @@ class Eink:
           return false
 
     batch-sem_.down
-    ok := true
-    e := catch:
-      block.call
-    if e:
-      logger_.warn "Eink batch failed: $e"
-      ok = false
-    batch-last-draw-at_ = Time.now
-    batch-sem_.up
-    return ok
+    try:
+      e := catch: block.call
+      if e:
+        logger_.warn "Eink batch failed: $e"
+        return false
+      return true
+    finally:
+      batch-last-draw-at_ = Time.now
+      batch-sem_.up
 
   // Compute redraw-type from friendly flags when an explicit redraw-type is
   // not provided. Returns null if nothing is selected so callers can keep
@@ -157,15 +160,20 @@ class Eink:
           onError.call e.stringify
 
   /**
-  Draw the current buffer to the screen.
+  Draw a custom page's current buffer without clearing it by default.
 
-  This is a convenience that sends a BasePage with a drawing redraw-type
-  (default FullRedraw). Use this after buffering multiple pieces to make
-  them appear on-screen at once.
+  Pass the same page-id used when buffering. Custom pages flush through
+  TextPage: the firmware's BasePage command only draws system presets and
+  can acknowledge a same-page request without transferring any pixels.
+  Explicit preset IDs (0-10) retain BasePage behavior. Explicit --full clears
+  the buffer; use --redraw-type=FULLREDRAWWITHOUTCLEAR to preserve it.
   */
   draw-page --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --partial/bool?=false --full/bool?=false --buffer/bool?=false --clear/bool?=false -> protocol.Message?:
     rt := compute-redraw-type --redraw-type=redraw-type --partial=partial --full=full --buffer=buffer --clear=clear
-    return send-base-page --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=rt
+    if page-id != null and 0 <= page-id <= 10:
+      return send-base-page --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=rt
+    if rt == null: rt = messages.TextPage.REDRAW-TYPE_FULLREDRAWWITHOUTCLEAR
+    return text-page --page-id=page-id --status-bar-enable=status-bar-enable --redraw-type=rt
 
   // Async overload for draw-page
   draw-page --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --partial/bool?=false --full/bool?=false --buffer/bool?=false --clear/bool?=false --onComplete/Lambda?=null --onError/Lambda?=null:
@@ -259,6 +267,47 @@ class Eink:
     msg := messages.DrawElement.msg --data=data
 
     return device_.comms.send-new msg --timeout=(Duration --s=3) --onTimeout=onTimeout
+
+  /** Buffer drawing elements with at most two requests awaiting ACKs.
+  The caller holds batch ownership and flushes only after this returns true.
+  Keeping the window small bounds peer receive-buffer and tracker pressure.
+  */
+  draw-elements elements/List -> bool:
+    if device_ == null or device_.comms == null: return false
+    // Validate the entire frame before sending any of it. Panel refreshes
+    // must remain outside the pipeline, after every buffer command is ACKed.
+    elements.do: | data/protocol.Data |
+      mode := data.get-data-uint messages.DrawElement.REDRAW-TYPE
+      if mode != messages.DrawElement.REDRAW-TYPE_BUFFERONLY and
+          mode != messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW:
+        throw "EINK_PIPELINE_REQUIRES_BUFFERED_ELEMENTS"
+    start := 0
+    while start < elements.size:
+      clearing := (elements[start].get-data-uint messages.DrawElement.REDRAW-TYPE) == messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW
+      count := clearing ? 1 : (min 2 (elements.size - start))
+      if count == 2 and (elements[start + 1].get-data-uint messages.DrawElement.REDRAW-TYPE) == messages.DrawElement.REDRAW-TYPE_CLEARDONTDRAW:
+        count = 1
+      // A page transition can wait for the previous full panel refresh. Send
+      // that command alone and give it a bounded startup allowance.
+      pending := []
+      count.repeat: | offset |
+        msg := messages.DrawElement.msg --data=elements[start + offset]
+        pending.add (device_.comms.send-new msg --async --timeout=(Duration --s=(clearing ? 8 : 3)))
+      failure/string? := null
+      // Drain both responses even after a NACK, before reporting the failure.
+      count.repeat: | offset |
+        latch := pending[offset]
+        reply := latch == null ? null : latch.get
+        if reply == null or not reply.msg-ok:
+          index := start + offset
+          data/protocol.Data := elements[index]
+          kind := data.get-data-uint messages.DrawElement.TYPE
+          page := data.has-data messages.DrawElement.PAGE-ID ? (data.get-data-uint messages.DrawElement.PAGE-ID) : null
+          reason := reply == null ? "timeout" : "status=$(reply.msg-status)"
+          if failure == null: failure = "E-ink buffer element $index type=$kind page=$page: $reason"
+      if failure != null: throw failure
+      start += count
+    return true
 
   // Async overload for draw-element
   draw-element --async --page-id/int?=null --status-bar-enable/bool?=null --redraw-type/int?=null --x/int?=null --y/int?=null --width/int?=null --height/int?=null --type/int?=null --style/int?=null --fontsize/int?=null --textalign/int?=null --linewidth/int?=null --padding/int?=null --radius/int?=null --linetype/int?=null --x2/int?=null --y2/int?=null --bitmap/ByteArray?=null --text/string?=null --onComplete/Lambda?=null --onError/Lambda?=null --onTimeout/Lambda?=null:

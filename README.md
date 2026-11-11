@@ -20,6 +20,7 @@ The base-apps entrypoint accepts `-Dlb-app=relay` to start Relay on boot.
 
 ## Documentation & resources
 
+- **Motion processing:** [RH2 IMU, quaternion fusion, motion features and Compass](examples/motion/README.md)
 - **P1/P2 deep sleep:** [setup, wake sources and examples](DEEP_SLEEP.md)
 - **Toit home:** https://toitlang.org/
 - **Toit language reference:** https://docs.toit.io/language/
