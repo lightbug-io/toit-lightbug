@@ -2,6 +2,7 @@
 // Used by the I2C device and shared-bus applications.
 
 import i2c
+import serial.device as serial
 import io
 import log
 import io.byte-order show LITTLE-ENDIAN
@@ -146,8 +147,7 @@ class Reader extends io.Reader:
     return all
 
 class Writer extends io.Writer:
-  // Accept a device-shaped test double as well as the hardware I2C device.
-  device /any
+  device /serial.Device
   bus-mutex_ /any
   can-write-bytes /int := 0
   logger_ /log.Logger
@@ -197,7 +197,7 @@ class Writer extends io.Writer:
     // TODO could refactor this to send in smaller chunks if needed?!
     if can-write-bytes == 0:
       logger_.trace "Updating or waiting for writeable bytes"
-      len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
+      len-bytes := device.registers.read-bytes I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES 2
       can-write-bytes = LITTLE-ENDIAN.uint16 len-bytes 0
       logger_.trace "Write space is $can-write-bytes"
       if can-write-bytes > I2C-MAX-WRITABLE-BYTES:
@@ -223,7 +223,7 @@ class Writer extends io.Writer:
         logger_.trace "Writing bytes $bytes[current-index..read-to-index]"
       send-len := #[0]
       LITTLE-ENDIAN.put-uint8 send-len 0 writing
-      device.write-address #[I2C-COMMAND-LIGHTBUG-WRITE] send-len + bytes[current-index..read-to-index]
+      device.registers.write-bytes I2C-COMMAND-LIGHTBUG-WRITE (send-len + bytes[current-index..read-to-index])
       written += writing
       can-write-bytes -= writing
       current-index = read-to-index
