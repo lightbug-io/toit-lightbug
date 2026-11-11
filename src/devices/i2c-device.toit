@@ -1,3 +1,6 @@
+// Implements a Lightbug device connected over a shared I2C bus.
+// Used by applications including the RH2 motion example.
+
 import i2c
 import io
 import log
@@ -167,6 +170,18 @@ class I2C implements Device:
   i2c-bus -> i2c.Bus:
     if not i2c-bus_: throw "I2C device not connected"
     return i2c-bus_
+
+  /**
+  Runs a short peripheral transaction on the bus shared with P1.
+
+  Use this around external sensor reads/writes, including multi-operation
+    sequences. Do not nest calls, perform analysis, or wait for data here.
+  Keep the bus connected while peripherals retain handles to it.
+  */
+  with-i2c [action]:
+    return i2c-mutex_.do:
+      if not connected_: throw "I2C device not connected"
+      action.call
 
   i2c-device -> i2c.Device:
     if not i2c-device_: throw "I2C device not connected"

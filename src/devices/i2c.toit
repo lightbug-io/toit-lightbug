@@ -1,3 +1,6 @@
+// Provides buffered I2C reader and writer transport for Lightbug communications.
+// Used by the I2C device and shared-bus applications.
+
 import i2c
 import io
 import log
@@ -143,7 +146,8 @@ class Reader extends io.Reader:
     return all
 
 class Writer extends io.Writer:
-  device /i2c.Device
+  // Accept a device-shaped test double as well as the hardware I2C device.
+  device /any
   bus-mutex_ /any
   can-write-bytes /int := 0
   logger_ /log.Logger
@@ -159,20 +163,24 @@ class Writer extends io.Writer:
   try-write_ data/io.Data from/int to/int -> int:
     written := 0
     result /int := 0
-    e := catch:
-      backoff.do-with-backoff
-        --onError=(:: |error|
-          logger_.warn "Error writing to device: $error, wrote $written bytes, will retry"
-        )
-        --initial-delay=I2C-WAIT-SLEEP
-        --backoff-factor=2.0
-        --max-delay=(Duration --s=4):
-        // Serialize multi-chunk writes, but release the bus for retry backoff.
-        result = bus-mutex_.do: try-write-inner_ data from to written
-    if e:
-      logger_.error "Lightbug I2C: Failed to write after backoff: $e"
-      return written
-    return result
+    while true:
+      e := catch:
+        backoff.do-with-backoff
+          --onError=(:: |error|
+            logger_.warn "Error writing to device: $error, wrote $written bytes, will retry"
+          )
+          --initial-delay=I2C-WAIT-SLEEP
+          --backoff-factor=2.0
+          --max-delay=(Duration --s=4):
+          // A write attempt is atomic, but waiting for buffer space is not.
+          result = bus-mutex_.do: try-write-inner_ data from to written
+      if e:
+        logger_.error "Lightbug I2C: Failed to write after backoff: $e"
+        return written
+      if result > 0 or from == to: return result
+      // P1 can take longer than the sensor FIFO capacity to free space.
+      // Sleep outside the shared bus lock so acquisition can continue.
+      sleep I2C-WAIT-SLEEP
 
   try-write-inner_ data/io.Data from/int to/int written/int -> int:
     bytes/ByteArray := ?
@@ -187,7 +195,7 @@ class Writer extends io.Writer:
 
     // Check the receiver has enough space for our bytes before sending...
     // TODO could refactor this to send in smaller chunks if needed?!
-    while can-write-bytes == 0:
+    if can-write-bytes == 0:
       logger_.trace "Updating or waiting for writeable bytes"
       len-bytes := device.write-read #[I2C-COMMAND-LIGHTBUG-WRITEABLE_BYTES] 2
       can-write-bytes = LITTLE-ENDIAN.uint16 len-bytes 0
@@ -196,11 +204,10 @@ class Writer extends io.Writer:
         // Probably got some messy data, so reset and sleep
         logger_.warn "⚠️ Got some messy writable bytes data, binning, and sleeping for $I2C-WAIT-SLEEP"
         can-write-bytes = 0
-        sleep I2C-WAIT-SLEEP
       logger_.trace "Can write $can-write-bytes bytes"
       if can-write-bytes == 0:
         logger_.trace "Waiting for some bytes to be writeable, sleeping for $I2C-WAIT-SLEEP"
-        sleep I2C-WAIT-SLEEP
+        return 0
       else:
         logger_.trace "Can write $can-write-bytes bytes, continuing"
 
