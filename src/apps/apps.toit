@@ -1,4 +1,4 @@
-import ..devices
+import ..devices as devices
 import ..services
 import ..messages.messages_gen as messages
 import ..protocol as protocol
@@ -16,7 +16,7 @@ import system
 
 class Apps:
 
-  device_/Device
+  device_/devices.Device
   dog_/Watchdog
   show-unknown-lora-messages_/bool := false
   is-running_/bool := false
@@ -99,7 +99,7 @@ class Apps:
   PAGE-DEVICE-IDS := 24
   PAGE-POSITION := 25
 
-  constructor device/Device dog/Watchdog --show-unknown-lora-messages/bool=false:
+  constructor device/devices.Device dog/Watchdog --show-unknown-lora-messages/bool=false:
     device_ = device
     dog_ = dog
     show-unknown-lora-messages_ = show-unknown-lora-messages
@@ -429,6 +429,17 @@ class Apps:
     return "Unknown ($(reason))"
 
   // Basic app control, similar to SurveyApp.
+  supports-button-menu -> bool:
+    if device_ is devices.I2C:
+      i2c-device := device_ as devices.I2C
+      i2c-device.request-type --timeout=(Duration --s=5)
+      type := i2c-device.type
+      return type == devices.TYPE-RH2 or
+          type == devices.TYPE-ZCARD or
+          type == devices.TYPE-RH2Z or
+          type == devices.TYPE-RH2M
+    return false
+
   start:
     // logger_.info "START"
     is-running_ = true
@@ -437,29 +448,32 @@ class Apps:
     // Subscribe to buttons if we're not already subscribed.
     if not buttons-subscriber-id_:
       e := catch:
-        id := device_.buttons.subscribe --timeout=null --callback=(:: |button-data|
-          // We only listen to button presses on page 0...
-          if button-data.duration <= 0:
-            // Not actually a press... TODO make this nicer
-          else:
-            task::
-              strobe-once:
-                device_.strobe.blue
-                sleep --ms=50
-                device_.strobe.off
-            if self.app_ and self.app_.is-running:
-              // If an app is running, let it handle button presses.
+        if supports-button-menu:
+          id := device_.buttons.subscribe --timeout=null --callback=(:: |button-data|
+            // We only listen to button presses on page 0...
+            if button-data.duration <= 0:
+              // Not actually a press... TODO make this nicer
             else:
-              self.handle-menu-button-press_ button-data
-        )
+              task::
+                strobe-once:
+                  device_.strobe.blue
+                  sleep --ms=50
+                  device_.strobe.off
+              if self.app_ and self.app_.is-running:
+                // If an app is running, let it handle button presses.
+              else:
+                self.handle-menu-button-press_ button-data
+          )
 
-        if not id:
-          logger_.warn "BTN sub fail"
+          if not id:
+            logger_.warn "BTN sub fail"
+          else:
+            buttons-subscriber-id_ = id
+            logger_.info "BTN sub $(id)"
         else:
-          buttons-subscriber-id_ = id
-          logger_.info "BTN sub $(id)"
+          logger_.info "Skipping button subscription for unsupported device type"
       if e:
-        logger_.error "BTN sub fail $e"
+        logger_.error "Button setup failed: $e"
 
   open-survey-app:
     // logger_.info "OPEN SURVEY"

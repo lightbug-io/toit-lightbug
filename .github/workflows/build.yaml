@@ -138,6 +138,7 @@ jobs:
           LIGHTBUG_ENVELOPE_ASSET="${{ matrix.envelopeAsset }}" \
           LIGHTBUG_ENVELOPE_URL="${{ matrix.envelopeUrl }}" \
           LIGHTBUG_FIRMWARE_VERSION="$FIRMWARE_VERSION" \
+          LIGHTBUG_FIRMWARE_VARIANT="${{ matrix.name }}" \
           ./build/build.sh "${{ matrix.name }}.${{ matrix.artifact_suffix }}" "${{ matrix.path }}" "${{ matrix.version }}" "${{ matrix.chip }}"
 
       - name: Upload Artifacts

@@ -16,9 +16,10 @@ fi
 # Check for correct number of arguments
 if [ "$#" -ne 4 ]; then
     echo "Usage: $0 <snapshot_name> <target_toit_file> <toit_version> <firmware_type>"
-    echo "Example: $0 base-apps ./examples/containers/base-apps.toit v2.0.0-alpha.198 esp32c6"
+    echo "Example: $0 base ./examples/containers/base.toit v2.0.0-alpha.198 esp32c6"
     echo ""
     echo "Optional environment overrides (highest precedence first):"
+    echo "  LIGHTBUG_FIRMWARE_VARIANT=base"
     echo "  LIGHTBUG_ENVELOPE_FILE=/absolute/path/to/firmware.envelope"
     echo "  LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope"
     echo "  LIGHTBUG_ENVELOPE_RELEASE_TAG=lb.20260819-1"
@@ -31,6 +32,7 @@ TARGET_FILE=$2
 TOIT_VERSION=$3
 FIRMWARE_TYPE=$4
 FIRMWARE_INFO_FILE="src/firmware_build_info.toit"
+LIGHTBUG_FIRMWARE_VARIANT="${LIGHTBUG_FIRMWARE_VARIANT:-${SNAPSHOT_NAME}}"
 
 encode_semver() {
     local version="$1"
@@ -102,7 +104,7 @@ EOF
 
 LIGHTBUG_FIRMWARE_VERSION="$(detect_firmware_version)"
 LIGHTBUG_FIRMWARE_VERSION_INT="$(encode_semver "${LIGHTBUG_FIRMWARE_VERSION}")"
-write_firmware_build_info "${LIGHTBUG_FIRMWARE_VERSION}" "${LIGHTBUG_FIRMWARE_VERSION_INT}" "${SNAPSHOT_NAME}"
+write_firmware_build_info "${LIGHTBUG_FIRMWARE_VERSION}" "${LIGHTBUG_FIRMWARE_VERSION_INT}" "${LIGHTBUG_FIRMWARE_VARIANT}"
 
 # Define output directories
 # Assuming script is run from project root, or we use relative paths for output

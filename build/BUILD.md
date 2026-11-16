@@ -3,9 +3,9 @@
 Scripts and artifacts related to building useful outputs from this repository.
 
 CI tests and release artifacts use Toit `v2.0.0-alpha.198` only.
-The supported variants are `ble-cert-test`, `base`, `base-apps`, and `base-vending`,
-all using the `.198` envelope profile. The alpha.191 profiles and legacy entrypoints
-have been retired.
+The supported variants are `ble-cert-test`, `base`, and `base-vending`, all using
+the `.198` envelope profile. The `base` variant includes the Apps functionality.
+The alpha.191 profiles and legacy entrypoints have been retired.
 
 ## Scripts
 
@@ -16,7 +16,7 @@ have been retired.
 Example usage:
 
 ```sh
-./build/build.sh basic-ble-cert-test ./examples/basic/ble-cert-test.toit v2.0.0-alpha.198 esp32c6
+./build/build.sh base ./examples/containers/base.toit v2.0.0-alpha.198 esp32c6
 ```
 
 ## Dockerized builds
@@ -46,6 +46,7 @@ Useful environment overrides:
 
 ```sh
 JAG_VERSION=v1.71.0
+LIGHTBUG_FIRMWARE_VARIANT=base
 LIGHTBUG_ENVELOPE_RELEASE_TAG=lb.20260819-1
 LIGHTBUG_ENVELOPE_ASSET=esp32c6-single-ota.198.envelope
 LIGHTBUG_ENVELOPE_URL=https://.../firmware.envelope

@@ -4,7 +4,7 @@ set -e
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <image_file> <com_port>"
-    echo "Example: $0 build/out/base-apps/base-apps.image.bin COM21"
+    echo "Example: $0 build/out/base/base.image.bin COM21"
     exit 1
 fi
 

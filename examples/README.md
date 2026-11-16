@@ -7,8 +7,8 @@ Install their dependencies in the `examples` directory before compiling or insta
 
 ```sh
 jag pkg install
-jag toit analyze containers/base-apps.toit
-jag toit compile --snapshot -O2 -o /tmp/base-apps.snapshot containers/base-apps.toit
+jag toit analyze containers/base.toit
+jag toit compile --snapshot -O2 -o /tmp/base.snapshot containers/base.toit
 ```
 
 ## Troubleshooting

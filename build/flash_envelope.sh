@@ -4,7 +4,7 @@ set -e
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <envelope_file> <com_port>"
-    echo "Example: $0 build/out/base-apps/base-apps.envelope COM21"
+    echo "Example: $0 build/out/base/base.envelope COM21"
     exit 1
 fi
 
