@@ -1,0 +1,2 @@
+name: lsm6ds3
+description: I2C accelerometer and gyroscope driver for the LSM6DS3

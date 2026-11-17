@@ -1,0 +1,5 @@
+prefixes:
+  motion-fusion: motion-fusion
+packages:
+  motion-fusion:
+    path: ..

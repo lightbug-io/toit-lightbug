@@ -1,0 +1,5 @@
+prefixes:
+  lsm6ds3: lsm6ds3
+packages:
+  lsm6ds3:
+    path: ..

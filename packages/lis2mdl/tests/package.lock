@@ -1,0 +1,5 @@
+prefixes:
+  lis2mdl: lis2mdl
+packages:
+  lis2mdl:
+    path: ..
