@@ -2,10 +2,49 @@
 
 Scripts and artifacts related to building useful outputs from this repository.
 
-CI tests and release artifacts use Toit `v2.0.0-alpha.198` only.
+Normal CI tests and release artifacts use Toit `v2.0.0-alpha.198` only.
 The supported variants are `ble-cert-test`, `base`, and `base-vending`, all using
 the `.198` envelope profile. The `base` variant includes the Apps functionality.
 The alpha.191 profiles and legacy entrypoints have been retired.
+
+## Experimental ESP32-S31 base
+
+Set the repository Actions secret `TOIT_ENVELOPES_READ_TOKEN` to a fine-grained
+token with **Actions: read** access to `lightbug-io/toit-envelopes`. The default
+workflow token is scoped to this repository, not the envelope repository.
+Manual workflows must be registered on the default branch before dispatching.
+
+1. In `lightbug-io/toit-envelopes`, manually run **Build** with `profile: s31`.
+2. Once it succeeds, copy the numeric run ID from its Actions URL.
+3. Here, manually run **Build experimental S31 base**, supplying that ID as
+   `envelopes_run_id`.
+
+This opt-in workflow downloads the envelope and matching Linux x64 SDK from
+that run, checks their checksums, and compiles the existing
+`examples/containers/base.toit` unchanged. The `base-s31-4mb-artifacts` artifact
+contains the snapshot, application envelope, full `base.s31.image.bin`, source
+metadata, and checksums. CI checks the image is exactly 4 MiB and that both
+bootloader and application headers identify S31 with a 4 MiB flash configuration.
+Normal C6 builds and releases are unaffected.
+
+The target module is **ESP32-S31-WROOM-3-N16R16V** (16 MiB flash, 16 MiB octal
+PSRAM). PSRAM is enabled; the initial flash layout deliberately uses only 4 MiB,
+with one OTA slot. This is a build/bring-up artifact, not hardware-qualified
+firmware: the base app still expects Lightbug peripheral wiring and may require
+board-specific pin changes before it runs on an S31 board.
+
+Flash the complete image at address **0x0**, not at the S31 bootloader offset
+(the image already places that bootloader at 0x2000). Use an S31-capable
+**esptool 5.5 or newer** with ROM-only flashing:
+
+```sh
+esptool --chip esp32s31 --port /dev/ttyACM0 --no-stub \
+  write-flash 0x0 base.s31.image.bin
+```
+
+Alternatively, flash the envelope with the experimental SDK's firmware tool,
+which selects the matching S31 esptool and ROM-only mode. Do not use the legacy
+`flash_image.sh` / installed Jaguar tooling for this experimental target.
 
 ## Scripts
 

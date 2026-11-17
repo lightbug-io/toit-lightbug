@@ -1,0 +1,95 @@
+name: Build experimental S31 base
+
+on:
+  workflow_dispatch:
+    inputs:
+      envelopes_run_id:
+        description: Successful toit-envelopes Build run ID (manual s31 profile)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download matching S31 envelope and SDK
+        env:
+          GH_TOKEN: ${{ secrets.TOIT_ENVELOPES_READ_TOKEN }}
+          ENVELOPES_RUN_ID: ${{ inputs.envelopes_run_id }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Set TOIT_ENVELOPES_READ_TOKEN to a token with Actions read access to lightbug-io/toit-envelopes."
+            exit 1
+          fi
+          if [[ ! "$ENVELOPES_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::envelopes_run_id must be a numeric GitHub Actions run ID."
+            exit 1
+          fi
+          gh api "repos/lightbug-io/toit-envelopes/actions/runs/$ENVELOPES_RUN_ID" |
+            jq -e '.conclusion == "success" and .event == "workflow_dispatch" and .path == ".github/workflows/ci.yml"'
+          gh run download "$ENVELOPES_RUN_ID" \
+            --repo lightbug-io/toit-envelopes \
+            --name envelope-esp32s31-single-ota-4mb.s31.envelope \
+            --dir build/s31-input
+          cd build/s31-input
+          sha256sum --check SHA256SUMS
+          jq -e '.experimental == true and .variant == "esp32s31-single-ota-4mb"
+            and .asset == "esp32s31-single-ota-4mb.s31.envelope"
+            and .toit_repository == "addshore/toit"
+            and (.toit_ref | test("^[0-9a-f]{40}$"))' s31-build.json
+
+      - name: Set up matching experimental Toit SDK
+        run: |
+          mkdir -p build/s31-sdk
+          tar -xzf build/s31-input/toit-sdk-s31-linux-x64.tar.gz -C build/s31-sdk
+          echo "$GITHUB_WORKSPACE/build/s31-sdk/sdk/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: |
+          toit version
+          toit pkg install
+          cd examples
+          toit pkg install
+
+      - name: Build existing base app for S31
+        env:
+          LIGHTBUG_ENVELOPE_FILE: build/s31-input/esp32s31-single-ota-4mb.s31.envelope
+          LIGHTBUG_FIRMWARE_VARIANT: base
+          LIGHTBUG_FIRMWARE_VERSION: 0.0.0
+        run: |
+          TOIT_REF=$(jq -r '.toit_ref' build/s31-input/s31-build.json)
+          bash build/build.sh base.s31 ./examples/containers/base.toit "$TOIT_REF" esp32s31
+          cp build/s31-input/s31-build.json build/out/base.s31/
+
+      - name: Validate full 4 MiB S31 flash image
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          image = Path("build/out/base.s31/base.s31.image.bin").read_bytes()
+          if len(image) != 4 * 1024 * 1024:
+              raise SystemExit(f"Expected a 4 MiB image, got {len(image)} bytes")
+          # S31 boots at 0x2000; the single OTA slot is aligned to 0x10000.
+          for name, offset in [("bootloader", 0x2000), ("application", 0x10000)]:
+              if image[offset] != 0xE9:
+                  raise SystemExit(f"Missing ESP image header for {name}")
+              chip_id = int.from_bytes(image[offset + 12:offset + 14], "little")
+              if chip_id != 0x20:
+                  raise SystemExit(f"Expected ESP32-S31 {name}, got chip ID {chip_id}")
+              if image[offset + 3] >> 4 != 2:
+                  raise SystemExit(f"Expected 4 MiB flash header for {name}")
+          print("Validated 4 MiB ESP32-S31 image including bootloader and application")
+          PY
+          cd build/out/base.s31
+          sha256sum *.snapshot *.envelope *.bin s31-build.json > SHA256SUMS
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: base-s31-4mb-artifacts
+          path: build/out/base.s31/
+          if-no-files-found: error
