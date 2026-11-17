@@ -2,8 +2,8 @@
 
 Scripts and artifacts related to building useful outputs from this repository.
 
-Normal CI tests and release artifacts use Toit `v2.0.0-alpha.198` only.
-The supported variants are `ble-cert-test`, `base`, and `base-vending`, all using
+CI tests and C6 release artifacts use Toit `v2.0.0-alpha.198`.
+The C6 variants are `ble-cert-test`, `base`, and `base-vending`, all using
 the `.198` envelope profile. The `base` variant includes the Apps functionality.
 The alpha.191 profiles and legacy entrypoints have been retired.
 
@@ -12,20 +12,25 @@ The alpha.191 profiles and legacy entrypoints have been retired.
 S31 assets are published alongside C6/S3 assets in normal `toit-envelopes`
 releases, with `alpha.esp32s31-*` names marking their experimental status.
 Public release downloads need no extra token or repository secret.
-Manual workflows must be registered on the default branch before dispatching.
 
-1. Publish a normal tagged release of `lightbug-io/toit-envelopes` containing
+1. Publish `lightbug-io/toit-envelopes` release `lb.20261117-1` containing
    the `alpha.esp32s31-*` envelope, matching SDK, metadata, and checksums.
-2. Here, manually run **Build experimental S31 base**, supplying that release
-   tag as `envelope_release_tag`.
+2. Push a normal firmware release tag (`vMAJOR.MINOR.PATCH`) here.
 
-This opt-in workflow downloads the envelope and matching Linux x64 SDK from
-that public release, checks their checksums, and compiles the existing
-`examples/containers/base.toit` unchanged. The `base-s31-4mb-artifacts` artifact
-contains the snapshot, application envelope, full `base.s31.image.bin`, source
-metadata, and checksums. CI checks the image is exactly 4 MiB and that both
+The existing Build workflow includes `alpha.esp32s31-base` in its normal
+push/PR/release matrix; no manual dispatch is needed. Its profile in
+`.github/variants.json` pins the envelope release and exact experimental SDK
+commit. Publish that envelope release before running this matrix.
+
+CI downloads the envelope and matching Linux x64 SDK, verifies checksums and
+the pinned commit, and compiles `examples/containers/base.toit` unchanged.
+Normal firmware releases include `alpha.esp32s31-base.4mb.snapshot`,
+`alpha.esp32s31-base.4mb.envelope`, and the full
+`alpha.esp32s31-base.4mb.image.bin`, plus source metadata and checksums.
+The `alpha` asset prefix marks experimental firmware, not a prerelease.
+CI checks the image is exactly 4 MiB and that both
 bootloader and application headers identify S31 with a 4 MiB flash configuration.
-Normal C6 builds and releases are unaffected.
+C6 build profiles and asset names are unchanged.
 
 The target module is **ESP32-S31-WROOM-3-N16R16V** (16 MiB flash, 16 MiB octal
 PSRAM). PSRAM is enabled; the initial flash layout deliberately uses only 4 MiB,
@@ -39,7 +44,7 @@ Flash the complete image at address **0x0**, not at the S31 bootloader offset
 
 ```sh
 esptool --chip esp32s31 --port /dev/ttyACM0 --no-stub \
-  write-flash 0x0 base.s31.image.bin
+  write-flash 0x0 alpha.esp32s31-base.4mb.image.bin
 ```
 
 Alternatively, flash the envelope with the experimental SDK's firmware tool,

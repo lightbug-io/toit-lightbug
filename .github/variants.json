@@ -5,6 +5,14 @@
       "artifact_suffix": "198",
       "envelopeReleaseTag": "lb.20260819-1",
       "envelopeAsset": "esp32c6-single-ota.198.envelope"
+    },
+    "alpha-esp32s31": {
+      "version": "3afb27a892ef30355b53c055fe9c62c0e39f7811",
+      "artifact_suffix": "4mb",
+      "chip": "esp32s31",
+      "firmwareVariant": "base",
+      "envelopeReleaseTag": "lb.20261117-1",
+      "envelopeAsset": "alpha.esp32s31-single-ota-4mb.envelope"
     }
   },
   "variants": [
@@ -30,6 +38,13 @@
       "chip": "esp32c6",
       "profiles": [
         "198"
+      ]
+    },
+    {
+      "name": "alpha.esp32s31-base",
+      "path": "./examples/containers/base.toit",
+      "profiles": [
+        "alpha-esp32s31"
       ]
     }
   ]
