@@ -9,18 +9,18 @@ The alpha.191 profiles and legacy entrypoints have been retired.
 
 ## Experimental ESP32-S31 base
 
-Set the repository Actions secret `TOIT_ENVELOPES_READ_TOKEN` to a fine-grained
-token with **Actions: read** access to `lightbug-io/toit-envelopes`. The default
-workflow token is scoped to this repository, not the envelope repository.
+S31 assets are published alongside C6/S3 assets in normal `toit-envelopes`
+releases, with `alpha.esp32s31-*` names marking their experimental status.
+Public release downloads need no extra token or repository secret.
 Manual workflows must be registered on the default branch before dispatching.
 
-1. In `lightbug-io/toit-envelopes`, manually run **Build** with `profile: s31`.
-2. Once it succeeds, copy the numeric run ID from its Actions URL.
-3. Here, manually run **Build experimental S31 base**, supplying that ID as
-   `envelopes_run_id`.
+1. Publish a normal tagged release of `lightbug-io/toit-envelopes` containing
+   the `alpha.esp32s31-*` envelope, matching SDK, metadata, and checksums.
+2. Here, manually run **Build experimental S31 base**, supplying that release
+   tag as `envelope_release_tag`.
 
 This opt-in workflow downloads the envelope and matching Linux x64 SDK from
-that run, checks their checksums, and compiles the existing
+that public release, checks their checksums, and compiles the existing
 `examples/containers/base.toit` unchanged. The `base-s31-4mb-artifacts` artifact
 contains the snapshot, application envelope, full `base.s31.image.bin`, source
 metadata, and checksums. CI checks the image is exactly 4 MiB and that both

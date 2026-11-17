@@ -3,8 +3,8 @@ name: Build experimental S31 base
 on:
   workflow_dispatch:
     inputs:
-      envelopes_run_id:
-        description: Successful toit-envelopes Build run ID (manual s31 profile)
+      envelope_release_tag:
+        description: toit-envelopes release tag containing alpha.esp32s31 assets
         required: true
         type: string
 
@@ -19,34 +19,30 @@ jobs:
 
       - name: Download matching S31 envelope and SDK
         env:
-          GH_TOKEN: ${{ secrets.TOIT_ENVELOPES_READ_TOKEN }}
-          ENVELOPES_RUN_ID: ${{ inputs.envelopes_run_id }}
+          ENVELOPE_RELEASE_TAG: ${{ inputs.envelope_release_tag }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::Set TOIT_ENVELOPES_READ_TOKEN to a token with Actions read access to lightbug-io/toit-envelopes."
+          if [[ ! "$ENVELOPE_RELEASE_TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::envelope_release_tag must be a release tag using letters, digits, dots, underscores or hyphens."
             exit 1
           fi
-          if [[ ! "$ENVELOPES_RUN_ID" =~ ^[0-9]+$ ]]; then
-            echo "::error::envelopes_run_id must be a numeric GitHub Actions run ID."
-            exit 1
-          fi
-          gh api "repos/lightbug-io/toit-envelopes/actions/runs/$ENVELOPES_RUN_ID" |
-            jq -e '.conclusion == "success" and .event == "workflow_dispatch" and .path == ".github/workflows/ci.yml"'
-          gh run download "$ENVELOPES_RUN_ID" \
-            --repo lightbug-io/toit-envelopes \
-            --name envelope-esp32s31-single-ota-4mb.s31.envelope \
-            --dir build/s31-input
+          mkdir -p build/s31-input
           cd build/s31-input
-          sha256sum --check SHA256SUMS
+          BASE_URL="https://github.com/lightbug-io/toit-envelopes/releases/download/$ENVELOPE_RELEASE_TAG"
+          for asset in alpha.esp32s31-single-ota-4mb.envelope \
+            alpha.esp32s31-sdk-linux-x64.tar.gz alpha.esp32s31-build.json \
+            alpha.esp32s31-SHA256SUMS; do
+            curl --fail --location --retry 3 --output "$asset" "$BASE_URL/$asset"
+          done
+          sha256sum --check alpha.esp32s31-SHA256SUMS
           jq -e '.experimental == true and .variant == "esp32s31-single-ota-4mb"
-            and .asset == "esp32s31-single-ota-4mb.s31.envelope"
+            and .asset == "alpha.esp32s31-single-ota-4mb.envelope"
             and .toit_repository == "addshore/toit"
-            and (.toit_ref | test("^[0-9a-f]{40}$"))' s31-build.json
+            and (.toit_ref | test("^[0-9a-f]{40}$"))' alpha.esp32s31-build.json
 
       - name: Set up matching experimental Toit SDK
         run: |
           mkdir -p build/s31-sdk
-          tar -xzf build/s31-input/toit-sdk-s31-linux-x64.tar.gz -C build/s31-sdk
+          tar -xzf build/s31-input/alpha.esp32s31-sdk-linux-x64.tar.gz -C build/s31-sdk
           echo "$GITHUB_WORKSPACE/build/s31-sdk/sdk/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
@@ -58,13 +54,13 @@ jobs:
 
       - name: Build existing base app for S31
         env:
-          LIGHTBUG_ENVELOPE_FILE: build/s31-input/esp32s31-single-ota-4mb.s31.envelope
+          LIGHTBUG_ENVELOPE_FILE: build/s31-input/alpha.esp32s31-single-ota-4mb.envelope
           LIGHTBUG_FIRMWARE_VARIANT: base
           LIGHTBUG_FIRMWARE_VERSION: 0.0.0
         run: |
-          TOIT_REF=$(jq -r '.toit_ref' build/s31-input/s31-build.json)
+          TOIT_REF=$(jq -r '.toit_ref' build/s31-input/alpha.esp32s31-build.json)
           bash build/build.sh base.s31 ./examples/containers/base.toit "$TOIT_REF" esp32s31
-          cp build/s31-input/s31-build.json build/out/base.s31/
+          cp build/s31-input/alpha.esp32s31-build.json build/out/base.s31/
 
       - name: Validate full 4 MiB S31 flash image
         run: |
@@ -86,7 +82,7 @@ jobs:
           print("Validated 4 MiB ESP32-S31 image including bootloader and application")
           PY
           cd build/out/base.s31
-          sha256sum *.snapshot *.envelope *.bin s31-build.json > SHA256SUMS
+          sha256sum *.snapshot *.envelope *.bin alpha.esp32s31-build.json > SHA256SUMS
 
       - uses: actions/upload-artifact@v7
         with:
