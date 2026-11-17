@@ -13,6 +13,7 @@ import .lora-profile show LoraProfile
 import .lora-flow show LoraFlow LoraWire
 import .lora-distance show LoraDistance
 import .relay-radio show RelayRadio
+import .relay-upload show RelayUpload
 
 TOP-PAD := 41
 TEXT-SPACING := 12
@@ -46,8 +47,9 @@ class RelayApp:
   static MENU-PROFILE ::= 2
   static MENU-RATE ::= 3
   static MENU-REPEAT ::= 4
-  static MENU-EXIT ::= 5
-  static MENU-BACK ::= 6
+  static MENU-UPLOAD ::= 5
+  static MENU-EXIT ::= 6
+  static MENU-BACK ::= 7
 
   device_/Device
   parent_/Apps? := null
@@ -74,6 +76,7 @@ class RelayApp:
   flow_/LoraFlow := ?
   button-events_/List := []
   button-worker_/Task? := null
+  upload_/RelayUpload
 
   menu-selection/MenuSelection? := null
   send-mode_/string := SEND-PING
@@ -101,6 +104,11 @@ class RelayApp:
     parent_ = parent
     dog_ = dog
     show-unknown-messages_ = show-unknown-messages
+    upload_ = RelayUpload --send=(:: |msg|
+      // Await a matching response outside radio dispatch. No P1 storage or
+      // app retry: at most one upload is outstanding for this 15s window.
+      device.comms.send-new msg --flush=true --timeout=(Duration --s=15)
+    )
 
   start:
     dog_.start --s=60
@@ -116,6 +124,7 @@ class RelayApp:
 
   stop:
     is-running_ = false
+    upload_.stop
     button-events_ = []
     cancel-received-message-render_
     cancel-pending-manual_
@@ -213,6 +222,12 @@ class RelayApp:
     device_.comms.register-handler lora-handler_
 
   receive-payload_ payload/ByteArray:
+    e := catch: receive-payload-inner_ payload
+    if e:
+      logger_.warn "$radio-name_ rejected malformed received payload: $e"
+
+  receive-payload-inner_ payload/ByteArray:
+    upload_.receive payload device-id_
     v3-msg := payload-to-v3-message_ payload
     text := payload-to-display-text_ payload v3-msg
     logger_.info "$radio-name_ rx: $text"
@@ -410,7 +425,7 @@ class RelayApp:
 
   draw-status_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
     mode := send-mode_ == SEND-LOCATION ? "Location" : (send-mode_ == SEND-PING ? "Ping" : "ID")
-    status := "$mode | $(device-id-text_)$(flow_.pending-manual-mode != null ? " | Queued" : "")"
+    status := "$mode | $(device-id-text_) | Cloud $(upload_.label)$(flow_.pending-manual-mode != null ? " | Queued" : "")"
     device_.eink.draw-element --page-id=PAGE-RELAY --status-bar-enable=true --type=messages.DrawElement.TYPE_BOX --x=4 --y=17 --text=status --fontsize=0 --width=(screen-width - 8) --redraw-type=redraw-type
 
   draw-timing_ --redraw-type/int=messages.DrawElement.REDRAW-TYPE-BUFFERONLY:
@@ -536,6 +551,7 @@ class RelayApp:
       radio-mode_ == RelayRadio.LORA ? "Profile$(profile_.name) $(profile_.frequency-hz / 1_000_000.0)" : (radio-mode_ == RelayRadio.ESPNOW ? "Channel$(espnow-channel_)" : "BLECompact advertisements"),
       "Rate$(rate-label_)",
       "Continual$(continual_ ? "On" : "Off")",
+      "Cloud upload$(upload_.label)",
       MENU-TEXT-EXIT,
       MENU-TEXT-BACK,
     ]
@@ -662,6 +678,11 @@ class RelayApp:
       msg := protocol.Message.from-bytes payload
       checksum := LITTLE-ENDIAN.uint16 payload (payload.size - 2)
       if msg.checksum-calc != checksum:
+        return null
+      // A CRC alone does not validate the length-prefixed field sections.
+      // Materialize inside this catch so malformed radio data cannot throw
+      // later while rendering the message or extracting its position.
+      if 1 + msg.header.size + msg.data.size + 2 != payload.size:
         return null
       return msg
     if e:
@@ -952,9 +973,14 @@ class RelayApp:
       return
     e := catch:
       resp := device_.comms.send-new messages.DeviceIDs.get-msg --timeout=(Duration --s=5)
-      if resp != null:
+      if resp != null and resp.msg-ok and resp.type == messages.DeviceIDs.MT and
+          (resp.data.has-data messages.DeviceIDs.ID):
         ids := messages.DeviceIDs.from-data resp.data
-        device-id_ = ids.id
+        id := ids.id
+        if id < 0 or id > 0xffff_ffff:
+          logger_.warn "Device id outside uint32 range"
+          return
+        device-id_ = id
         logger_.info "Device id: $(device-id_)"
         if showing-page_ == PAGE-RELAY:
           screen-on-button-row-change_
@@ -1079,6 +1105,9 @@ class RelayApp:
           cycle-rate_
         else if selected == MENU-REPEAT:
           toggle-continual_
+        else if selected == MENU-UPLOAD:
+          upload_.cycle
+          update-menu
         else if selected == MENU-EXIT:
           stop
         else if selected == MENU-BACK:
