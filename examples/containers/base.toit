@@ -9,6 +9,7 @@ import lightbug.apps as apps
 import lightbug.apps.survey show SurveyApp
 import lightbug.util.docs show jag-define
 import log
+import system
 
 import watchdog.provider
 import watchdog show WatchdogServiceClient
@@ -41,8 +42,11 @@ run --setup/Lambda?=null --start-watchdog-provider/bool=true:
   // Keep the application container usable as a USB dock target.  The USB V3
   // bridge sends Forward To=P1 requests to P1 and routes correlated replies
   // (and Forward To=USB host messages) back to the host.
-  usb := UsbConsole --background=false
-  P1UsbForwarder --usb=usb.comms --p1=device.comms
+  // The S31 USB-OTG console mirrors output only. The SDK's USB stdin uses
+  // the separate USB Serial/JTAG controller and can fail on this target.
+  if system.architecture != "esp32s31":
+    usb := UsbConsole --background=false
+    P1UsbForwarder --usb=usb.comms --p1=device.comms
 
   // Listen for "Actions" button presses...
   apps.start

@@ -2,6 +2,7 @@ import i2c
 import io
 import log
 import monitor
+import system
 import ble as ble-sdk
 import .base
 import .i2c
@@ -30,8 +31,9 @@ A class for a generic Lightbug I2C device
 Containing the common I2C implementation
 */
 class I2C implements Device:
-  static I2C-SDA := 6
-  static I2C-SCL := 7
+  // RTKZERO's S31 uses GPIO1/4 to reach P1. Existing boards use GPIO6/7.
+  static I2C-SDA := system.architecture == "esp32s31" ? 1 : 6
+  static I2C-SCL := system.architecture == "esp32s31" ? 4 : 7
 
   i2c-sda_ /int
   i2c-scl_ /int
