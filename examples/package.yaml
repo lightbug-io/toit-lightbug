@@ -7,3 +7,9 @@ dependencies:
   watchdog:
     url: github.com/toitware/toit-watchdog
     version: ^1.4.1
+  lsm6ds3:
+    path: ../packages/lsm6ds3
+  lis2mdl:
+    path: ../packages/lis2mdl
+  motion-fusion:
+    path: ../packages/motion-fusion

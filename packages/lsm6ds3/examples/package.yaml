@@ -1,0 +1,3 @@
+dependencies:
+  lsm6ds3:
+    path: ..
