@@ -48,13 +48,11 @@ class Apps:
   APPS-MENU-OPTIONS := [
     "Survey",
     "Relay",
-    "QC",
     "Back",
     ]
   APPS-MENU-OPTION-SURVEY := 0
   APPS-MENU-OPTION-RELAY := 1
-  APPS-MENU-OPTION-QC := 2
-  APPS-MENU-OPTION-BACK := 3
+  APPS-MENU-OPTION-BACK := 2
 
   // These actions deliberately send ordinary V3 messages to CPU1. They make
   // useful, observable P1 functions available without adding a bespoke P2
@@ -355,8 +353,6 @@ class Apps:
           task:: open-survey-app
         else if menu-selection.current == APPS-MENU-OPTION-RELAY:
           task:: open-relay-app
-        else if menu-selection.current == APPS-MENU-OPTION-QC:
-          task:: open-qc-app
         else if menu-selection.current == APPS-MENU-OPTION-BACK:
           show_menu
       else if button-data.button-id == messages.ButtonPress.BUTTON-ID-DOWN-RIGHT:
