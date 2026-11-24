@@ -7,6 +7,8 @@ import lightbug.modules.comms.transport show V3Transport
 import lightbug.protocol as protocol
 import lightbug.messages as messages
 import lightbug.modules.comms.link-router show LinkRouter
+import lightbug.modules.wifi.handler show WiFiHandler
+import lightbug.modules.ble.handler show BLEHandler
 
 class Reader extends io.Reader with io.InMixin:
   frames := monitor.Channel 8
@@ -19,11 +21,16 @@ class Writer extends io.Writer with io.OutMixin:
   status /int? := 0
   requests /int := 0
   frames /List := []
+  block-acks /bool := false
+  ack-started := monitor.Latch
 
   try-write_ data/io.Data from/int to/int -> int:
     requests++
     request := protocol.Message.from-bytes (ByteArray.from data)[from..to]
     frames.add request
+    if block-acks and request.type == messages.ACK.MT:
+      ack-started.set true
+      (monitor.Latch).get
     if respond:
       task::
         sleep --ms=5
@@ -54,6 +61,9 @@ class Device extends I2C:
   constructor:
     super --connect-now=false --startComms=false
   comms -> Comms: return test-comms
+  set-scanners wifi/WiFiHandler ble/BLEHandler:
+    wifi-handler_ = wifi
+    ble-handler_ = ble
 
 // Exercise the real I2C Comms factory without opening MCU peripherals.
 class HandlerDevice extends I2C:
@@ -65,10 +75,24 @@ class HandlerDevice extends I2C:
   in -> io.Reader: return wire.in
   out -> io.Writer: return wire.out
 
+class SlowWiFi extends WiFiHandler:
+  gate := monitor.Latch
+  constructor device: super device --logger=log.default
+  perform-wifi-scan generation/int duration/int? interval/int id/int? route/int?:
+    gate.get
+
+class SlowBLE extends BLEHandler:
+  gate := monitor.Latch
+  constructor device: super device --logger=log.default
+  perform-ble-scan generation/int duration/int? active/bool interval/int window/int reporting/int id/int? route/int?:
+    gate.get
+
 main:
   test-capability-retry
   test-capability-status
   test-scan-handler-wiring
+  test-scan-sleep-veto
+  test-scan-startup-cancellation
   print "I2C capability and scan handler wiring tests passed"
 
 test-capability-retry:
@@ -134,3 +158,55 @@ test-scan-handler-wiring:
     if (ack.header-get-data-uint protocol.Header.TYPE_FORWARD_TO) != 0:
       throw "Scan ACK has the wrong return route"
   scan-comms.pause-inbound
+
+test-scan-sleep-veto:
+  device := Device
+  transport := Transport
+  device.test-comms = Comms --transport=transport --open=false
+  wifi := SlowWiFi device
+  ble := SlowBLE device
+  device.set-scanners wifi ble
+  [wifi, ble].do: | handler |
+    mt := handler == wifi ? messages.WiFiScan.MT : messages.BLEScan.MT
+    request := protocol.Message.with-method mt protocol.Header.METHOD_SUBSCRIBE
+    request.header-add-data-uint32 protocol.Header.TYPE_MESSAGE_ID mt
+    if handler.scan-active: throw "Scanner active before subscription"
+    if not handler.handle-message request or not handler.scan-active or not device.scan-active:
+      throw "Scan did not veto sleep while starting"
+    handler.gate.set true
+    with-timeout --ms=500:
+      while handler.scan-active: sleep --ms=1
+    if device.scan-active: throw "Finished scan still vetoes sleep"
+    handler.gate = monitor.Latch
+    if not handler.handle-message request or not handler.scan-active:
+      throw "Second scan did not start"
+    stop := protocol.Message.with-method mt protocol.Header.METHOD_UNSUBSCRIBE
+    handler.handle-message stop
+    with-timeout --ms=500:
+      while device.scan-active: sleep --ms=1
+  wifi.gate = monitor.Latch
+  ble.gate = monitor.Latch
+  wifi.handle-message (protocol.Message.with-method messages.WiFiScan.MT protocol.Header.METHOD_SUBSCRIBE)
+  ble.handle-message (protocol.Message.with-method messages.BLEScan.MT protocol.Header.METHOD_SUBSCRIBE)
+  wifi.handle-message (protocol.Message.with-method messages.WiFiScan.MT protocol.Header.METHOD_UNSUBSCRIBE)
+  with-timeout --ms=500:
+    while wifi.scan-active: sleep --ms=1
+  if not device.scan-active: throw "Stopping WiFi released an active BLE scan"
+  ble.handle-message (protocol.Message.with-method messages.BLEScan.MT protocol.Header.METHOD_UNSUBSCRIBE)
+  with-timeout --ms=500:
+    while device.scan-active: sleep --ms=1
+  device.test-comms.pause-inbound
+
+test-scan-startup-cancellation:
+  [messages.WiFiScan.MT, messages.BLEScan.MT].do: | mt |
+    device := HandlerDevice
+    device.wire.writer.block-acks = true
+    comms := device.comms
+    request := protocol.Message.with-method mt protocol.Header.METHOD_SUBSCRIBE
+    request.header-add-data-uint32 protocol.Header.TYPE_MESSAGE_ID mt
+    device.wire.reader.frames.send request.bytes
+    with-timeout --ms=500: device.wire.writer.ack-started.get
+    if not device.scan-active: throw "Scan startup did not veto sleep"
+    // PREPARE can finish while the inbound handler is still sending its ACK.
+    with-timeout --ms=500: comms.pause-inbound
+    if device.scan-active: throw "Canceled scan startup still vetoes sleep for MT$mt"
